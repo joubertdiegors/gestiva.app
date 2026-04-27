@@ -46,7 +46,8 @@
   .profile-main { display: flex; flex-direction: column; gap: 16px; }
 
   /* ── Cartão de secção ── */
-  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  /* overflow: visible — senão o dropdown de nacionalidades/idiomas fica cortado pelo cartão */
+  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: visible; }
   .card-title { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; font-weight: 600; }
 
   /* ── Grade de células ── */
@@ -112,7 +113,7 @@
   }
   .autocomplete-input:focus { border-bottom-color: var(--accent); }
   .autocomplete-dropdown {
-    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 500;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); box-shadow: var(--shadow-md);
     max-height: 180px; overflow-y: auto; display: none;
