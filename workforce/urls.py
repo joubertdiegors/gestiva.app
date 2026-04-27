@@ -6,6 +6,9 @@ app_name = 'workforce'
 urlpatterns = [
     path('', views.collaborator_list, name='list'),
     path('create/', views.collaborator_create, name='create'),
+    # Ficheiros sensíveis (antes de <pk>/ para não sombrear rotas mais específicas)
+    path('<int:pk>/photo/', views.collaborator_photo_serve, name='collaborator_photo'),
+    path('<int:pk>/driver-license/scan/', views.driver_license_scan_serve, name='driver_license_scan'),
     path('<int:pk>/', views.collaborator_detail, name='detail'),
     path('<int:pk>/edit/', views.collaborator_update, name='update'),
     path('<int:pk>/status/toggle/', views.collaborator_status_toggle, name='status_toggle'),

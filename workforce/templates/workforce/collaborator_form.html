@@ -190,7 +190,7 @@
     <div class="profile-photo-card">
       <div class="avatar-xl" onclick="document.getElementById('id_photo').click()" title="Clique para alterar foto">
         {% if collaborator and collaborator.photo %}
-          <img src="{{ collaborator.photo.url }}" alt="Foto" id="photo-preview" style="display:block;">
+          <img src="{% url 'workforce:collaborator_photo' collaborator.pk %}" alt="Foto" id="photo-preview" style="display:block;">
           <span id="photo-initials" style="display:none;">{{ collaborator.name|slice:":1"|upper }}</span>
         {% else %}
           <img src="" alt="" id="photo-preview">

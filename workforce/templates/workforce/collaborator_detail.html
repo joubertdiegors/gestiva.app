@@ -153,6 +153,10 @@
   .popup-body { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
   .popup-footer { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px; border-top: 1px solid var(--border); }
   .popup-error { display: none; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; background: #fdecea; color: var(--red); border: 1px solid #f5c6cb; }
+  #scan-viewer-dialog .scan-viewer-panel {
+    max-width: min(960px, calc(100vw - 40px));
+    width: 100%;
+  }
   .form-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-grid2 .span-2 { grid-column: span 2; }
   @media(max-width:500px) { .form-grid2 { grid-template-columns: 1fr; } .form-grid2 .span-2 { grid-column: span 1; } }
@@ -195,7 +199,7 @@
     <div class="profile-photo-card">
       <div class="avatar-xl">
         {% if collaborator.photo %}
-          <img src="{{ collaborator.photo.url }}" alt="{{ collaborator.name }}">
+          <img src="{% url 'workforce:collaborator_photo' collaborator.pk %}" alt="{{ collaborator.name }}">
         {% else %}
           {{ collaborator.name|slice:":1"|upper }}
         {% endif %}
@@ -556,7 +560,7 @@
         <div class="info-cell full">
           <div class="info-label">Scan</div>
           <div class="info-val">
-            <a href="{{ driver_license.scan.url }}" target="_blank">📎 Ver documento</a>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="openScanViewer()" style="padding:4px 10px;">📎 Ver documento</button>
           </div>
         </div>
         {% endif %}
@@ -879,7 +883,7 @@
             <input type="file" id="lic-scan" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
             {% if driver_license.scan %}
             <div style="font-size:12px;color:var(--text3);margin-top:4px;font-family:sans-serif;">
-              Atual: <a href="{{ driver_license.scan.url }}" target="_blank" style="color:var(--accent);">{{ driver_license.scan.name|slice:"19:" }}</a>
+              Atual: <button type="button" class="btn btn-ghost btn-sm" onclick="openScanViewer()" style="padding:2px 8px;color:var(--accent);">{{ driver_license.scan.name|slice:"19:" }}</button>
             </div>
             {% endif %}
           </div>
@@ -992,7 +996,23 @@
   </div>
 </dialog>
 
+<!-- Visualizador interno do scan (sessão obrigatória; não usar URL /media/ pública) -->
+<dialog id="scan-viewer-dialog" class="cat-dialog" aria-labelledby="scan-viewer-title">
+  <div class="cat-dialog-flex">
+    <div class="popup-panel scan-viewer-panel" role="document">
+      <div class="popup-header">
+        <span class="popup-title" id="scan-viewer-title">Documento da carta de condução</span>
+        <button type="button" class="popup-close" onclick="closeScanViewer()" aria-label="Fechar">×</button>
+      </div>
+      <div class="popup-body" style="padding:0;">
+        <iframe id="scan-viewer-frame" title="Documento da carta de condução" style="width:100%;min-height:72vh;border:none;background:var(--surface2);"></iframe>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <!-- URLs ocultas -->
+<span id="url-driver-license-scan" data-url="{% url 'workforce:driver_license_scan' collaborator.pk %}" style="display:none"></span>
 <span id="url-license-save"      data-url="{% url 'workforce:driver_license_save' collaborator.pk %}" style="display:none"></span>
 <span id="url-park-create"       data-url="{% url 'workforce:parking_permit_create' collaborator.pk %}" style="display:none"></span>
 <span id="url-park-delete-base"  data-url="{% url 'workforce:parking_permit_delete' collaborator.pk 0 %}" style="display:none"></span>
@@ -1006,6 +1026,7 @@
 
 <script>
 const CSRF = '{{ csrf_token }}';
+const URL_SCAN_VIEW          = document.getElementById('url-driver-license-scan')?.dataset?.url || '';
 const URL_LICENSE_SAVE       = document.getElementById('url-license-save').dataset.url;
 const URL_PARK_CREATE        = document.getElementById('url-park-create').dataset.url;
 const URL_PARK_DELETE_BASE   = document.getElementById('url-park-delete-base').dataset.url;
@@ -1027,6 +1048,23 @@ function postJSON(url, data) {
 
 // ── CARTA DE CONDUÇÃO ──────────────────────────────────────────────────────
 const LIC_DLG = document.getElementById('license-dialog');
+const SCAN_DLG = document.getElementById('scan-viewer-dialog');
+
+function openScanViewer() {
+  if (!URL_SCAN_VIEW) return;
+  const f = document.getElementById('scan-viewer-frame');
+  if (f) f.src = URL_SCAN_VIEW;
+  try { if (SCAN_DLG && !SCAN_DLG.open) SCAN_DLG.showModal(); } catch (e) {}
+}
+function closeScanViewer() {
+  const f = document.getElementById('scan-viewer-frame');
+  if (f) f.src = 'about:blank';
+  try { if (SCAN_DLG && SCAN_DLG.open) SCAN_DLG.close(); } catch (e) {}
+}
+if (SCAN_DLG) {
+  SCAN_DLG.addEventListener('click', function (e) { if (e.target === this) closeScanViewer(); });
+  SCAN_DLG.addEventListener('cancel', function (e) { e.preventDefault(); closeScanViewer(); });
+}
 
 function licModalCascade() {
   const takes   = document.getElementById('m-lic-takes-home')?.checked;

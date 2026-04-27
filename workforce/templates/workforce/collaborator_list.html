@@ -83,7 +83,7 @@
     <a href="{% url 'workforce:detail' c.pk %}" class="avatar-link">
       <div class="avatar">
         {% if c.photo %}
-          <img src="{{ c.photo.url }}" alt="{{ c.name }}">
+          <img src="{% url 'workforce:collaborator_photo' c.pk %}" alt="{{ c.name }}">
         {% else %}
           {{ c.name|slice:":1"|upper }}
         {% endif %}

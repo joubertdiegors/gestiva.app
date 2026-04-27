@@ -1,6 +1,10 @@
-from django.shortcuts import render, get_object_or_404, redirect
+import mimetypes
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
@@ -20,6 +24,34 @@ def _safe_next_path(request, nxt):
     if not url_has_allowed_host_and_scheme(url=nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         return None
     return nxt
+
+
+def _protected_workforce_upload_response(file_field):
+    """
+    Serve um ficheiro guardado em MEDIA_ROOT apenas se estiver sob pastas
+    controladas (fotos de colaborador / scans da carta). Evita path traversal.
+    """
+    if file_field is None or not getattr(file_field, 'name', None):
+        raise Http404()
+    try:
+        path = Path(file_field.path).resolve()
+    except ValueError:
+        raise Http404()
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    try:
+        rel = path.relative_to(media_root).as_posix()
+    except ValueError:
+        raise Http404()
+    if not rel.startswith(('workforce/photos/', 'workforce/licenses/')):
+        raise Http404()
+    if not path.is_file():
+        raise Http404()
+    ctype, _ = mimetypes.guess_type(str(path))
+    fh = path.open('rb')
+    resp = FileResponse(fh, content_type=ctype or 'application/octet-stream')
+    resp['Cache-Control'] = 'private, no-store'
+    resp['X-Content-Type-Options'] = 'nosniff'
+    return resp
 
 
 # ── Lista ──────────────────────────────────────────────────────────────────────
@@ -476,6 +508,23 @@ def legal_form_delete(request, pk):
     from django.contrib import messages
     messages.success(request, _('Forma jurídica eliminada.'))
     return redirect('workforce:legal_form_list')
+
+
+# ── Ficheiros sensíveis (só utilizador autenticado) ────────────────────────────
+
+@login_required
+def collaborator_photo_serve(request, pk):
+    collaborator = get_object_or_404(Collaborator, pk=pk)
+    return _protected_workforce_upload_response(collaborator.photo)
+
+
+@login_required
+def driver_license_scan_serve(request, pk):
+    get_object_or_404(Collaborator, pk=pk)
+    dl = DriverLicense.objects.filter(collaborator_id=pk).first()
+    if not dl:
+        raise Http404()
+    return _protected_workforce_upload_response(dl.scan)
 
 
 # ── CARTA DE CONDUÇÃO ──────────────────────────────────────────────────────────

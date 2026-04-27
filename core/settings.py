@@ -27,6 +27,11 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+# Em produção com DEBUG=False, ficheiros em MEDIA_ROOT não são servidos por defeito.
+# True: o Django expõe MEDIA_URL (adequado a ambientes pequenos; em sites muito públicos prefira S3 ou o servidor web).
+# No PythonAnywhere pode em vez disso mapear /media/ em Web → Static files (recomendado).
+SERVE_MEDIA = config('SERVE_MEDIA', default=False, cast=bool)
+
 # Lista separada por vírgulas no .env, ex.: localhost,127.0.0.1,joubertdiegors.pythonanywhere.com
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
