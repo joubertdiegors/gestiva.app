@@ -506,15 +506,19 @@
 
 <script>
 (function () {
-  const SUP_PK = {{ supplier.pk }};
-  const CSRF   = '{{ csrf_token }}';
+  const CSRF = '{{ csrf_token }}';
 
-  const urlAddrSave   = "{% url 'suppliers:address_save' supplier.pk %}";
-  const urlAddrUpdate = (pk) => `/suppliers/${SUP_PK}/addresses/${pk}/save/`;
-  const urlAddrDelete = (pk) => `/suppliers/${SUP_PK}/addresses/${pk}/delete/`;
-  const urlCtSave     = "{% url 'suppliers:contact_save' supplier.pk %}";
-  const urlCtUpdate   = (pk) => `/suppliers/${SUP_PK}/contacts/${pk}/save/`;
-  const urlCtDelete   = (pk) => `/suppliers/${SUP_PK}/contacts/${pk}/delete/`;
+  const urlAddrSave = "{% url 'suppliers:address_save' supplier.pk %}";
+  const urlAddrUpdateTpl = "{% url 'suppliers:address_update' supplier.pk 0 %}";
+  const urlAddrDeleteTpl = "{% url 'suppliers:address_delete' supplier.pk 0 %}";
+  const urlCtSave = "{% url 'suppliers:contact_save' supplier.pk %}";
+  const urlCtUpdateTpl = "{% url 'suppliers:contact_update' supplier.pk 0 %}";
+  const urlCtDeleteTpl = "{% url 'suppliers:contact_delete' supplier.pk 0 %}";
+
+  const urlAddrUpdate = (pk) => urlAddrUpdateTpl.replace(/\/addresses\/0\/save\//, `/addresses/${pk}/save/`);
+  const urlAddrDelete = (pk) => urlAddrDeleteTpl.replace(/\/addresses\/0\/delete\//, `/addresses/${pk}/delete/`);
+  const urlCtUpdate = (pk) => urlCtUpdateTpl.replace(/\/contacts\/0\/save\//, `/contacts/${pk}/save/`);
+  const urlCtDelete = (pk) => urlCtDeleteTpl.replace(/\/contacts\/0\/delete\//, `/contacts/${pk}/delete/`);
   const urlOfferSave  = "{% url 'procurement:supplier_offer_save' supplier.pk %}";
   const urlOfferUpd   = (pk) => "{% url 'procurement:supplier_offer_update' supplier.pk 999999 %}".replace('999999', String(pk));
   const urlOfferDel   = (pk) => "{% url 'procurement:supplier_offer_delete' supplier.pk 999999 %}".replace('999999', String(pk));

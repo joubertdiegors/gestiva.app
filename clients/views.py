@@ -2,6 +2,7 @@ import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.utils.translation import gettext_lazy as _
 from .models import Client, ClientAddress, ClientContact
@@ -65,6 +66,14 @@ def address_save(request, client_pk, pk=None):
         return JsonResponse({
             'ok': True,
             'address': _address_to_dict(addr),
+            'update_url': reverse(
+                'clients:address_update',
+                kwargs={'client_pk': client.pk, 'pk': addr.pk},
+            ),
+            'delete_url': reverse(
+                'clients:address_delete',
+                kwargs={'client_pk': client.pk, 'pk': addr.pk},
+            ),
         })
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
@@ -92,6 +101,14 @@ def contact_save(request, client_pk, pk=None):
         return JsonResponse({
             'ok': True,
             'contact': _contact_to_dict(contact),
+            'update_url': reverse(
+                'clients:contact_update',
+                kwargs={'client_pk': client.pk, 'pk': contact.pk},
+            ),
+            'delete_url': reverse(
+                'clients:contact_delete',
+                kwargs={'client_pk': client.pk, 'pk': contact.pk},
+            ),
         })
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 

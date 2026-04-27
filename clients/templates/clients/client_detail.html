@@ -193,7 +193,9 @@
           </thead>
           <tbody id="addr-tbody">
             {% for addr in client.addresses.all %}
-            <tr data-id="{{ addr.pk }}">
+            <tr data-id="{{ addr.pk }}"
+                data-url-update="{% url 'clients:address_update' client.pk addr.pk %}"
+                data-url-delete="{% url 'clients:address_delete' client.pk addr.pk %}">
               <td>{{ addr.label|default:"—" }}</td>
               <td>{{ addr.street }}{% if addr.number %}, {{ addr.number }}{% endif %}{% if addr.complement %} — {{ addr.complement }}{% endif %}</td>
               <td class="muted">{{ addr.postal_code }} {{ addr.city }}</td>
@@ -233,7 +235,10 @@
           </thead>
           <tbody id="ct-tbody">
             {% for ct in client.contacts.all %}
-            <tr data-id="{{ ct.pk }}">
+            <tr data-id="{{ ct.pk }}"
+                data-contact-type="{{ ct.contact_type }}"
+                data-url-update="{% url 'clients:contact_update' client.pk ct.pk %}"
+                data-url-delete="{% url 'clients:contact_delete' client.pk ct.pk %}">
               <td style="font-weight:500;">{{ ct.name }}</td>
               <td class="muted">{{ ct.get_contact_type_display }}</td>
               <td class="muted">{{ ct.phone|default:"—" }}</td>
@@ -368,15 +373,21 @@
 
 <script>
 (function () {
-  const CLIENT_PK = {{ client.pk }};
   const CSRF = '{{ csrf_token }}';
 
-  const urlAddrSave   = "{% url 'clients:address_save' client.pk %}";
-  const urlAddrUpdate = (pk) => `/clients/${CLIENT_PK}/addresses/${pk}/save/`;
-  const urlAddrDelete = (pk) => `/clients/${CLIENT_PK}/addresses/${pk}/delete/`;
-  const urlCtSave     = "{% url 'clients:contact_save' client.pk %}";
-  const urlCtUpdate   = (pk) => `/clients/${CLIENT_PK}/contacts/${pk}/save/`;
-  const urlCtDelete   = (pk) => `/clients/${CLIENT_PK}/contacts/${pk}/delete/`;
+  const urlAddrSave = "{% url 'clients:address_save' client.pk %}";
+  const urlCtSave = "{% url 'clients:contact_save' client.pk %}";
+
+  function addressPostUrl() {
+    if (editingAddrPk == null) return urlAddrSave;
+    const row = document.querySelector(`#addr-tbody tr[data-id="${editingAddrPk}"]`);
+    return (row && row.dataset.urlUpdate) ? row.dataset.urlUpdate : urlAddrSave;
+  }
+  function contactPostUrl() {
+    if (editingCtPk == null) return urlCtSave;
+    const row = document.querySelector(`#ct-tbody tr[data-id="${editingCtPk}"]`);
+    return (row && row.dataset.urlUpdate) ? row.dataset.urlUpdate : urlCtSave;
+  }
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function csrfPost(url, data) {
@@ -429,13 +440,13 @@
   let editingAddrPk = null;
 
   window.openAddressPopup = function (pk) {
-    editingAddrPk = pk || null;
+    editingAddrPk = (pk === undefined || pk === null) ? null : pk;
     clearErrors('addr');
-    const isEdit = !!pk;
+    const isEdit = editingAddrPk !== null;
     document.getElementById('addr-popup-title').textContent = isEdit ? '{% trans "Editar endereço" %}' : '{% trans "Novo endereço" %}';
 
     if (isEdit) {
-      const row = document.querySelector(`#addr-tbody tr[data-id="${pk}"]`);
+      const row = document.querySelector(`#addr-tbody tr[data-id="${editingAddrPk}"]`);
       // pre-fill from data attributes or re-read from DOM
       const cells = row.querySelectorAll('td');
       document.getElementById('addr-label').value   = cells[0].textContent.trim() === '—' ? '' : cells[0].textContent.trim();
@@ -476,7 +487,7 @@
       is_default:  document.getElementById('addr-is-default').checked ? 'on' : '',
     };
 
-    const url = editingAddrPk ? urlAddrUpdate(editingAddrPk) : urlAddrSave;
+    const url = addressPostUrl();
     const btn = document.getElementById('addr-save-btn');
     btn.disabled = true;
 
@@ -496,11 +507,15 @@
           row.cells[1].textContent = streetFull;
           row.cells[2].textContent = `${a.postal_code} ${a.city}`;
           row.cells[3].innerHTML   = badgePrincipal(a.is_default);
+          if (json.update_url) row.dataset.urlUpdate = json.update_url;
+          if (json.delete_url) row.dataset.urlDelete = json.delete_url;
         } else {
           removeEmptyRow('addr-tbody', 'addr-empty');
           const tbody = document.getElementById('addr-tbody');
           const tr = document.createElement('tr');
           tr.dataset.id = a.id;
+          if (json.update_url) tr.dataset.urlUpdate = json.update_url;
+          if (json.delete_url) tr.dataset.urlDelete = json.delete_url;
           tr.innerHTML = `
             <td>${a.label || '—'}</td>
             <td>${streetFull}</td>
@@ -519,7 +534,10 @@
 
   window.deleteAddress = function (pk, btnEl) {
     if (!confirm('{% trans "Eliminar este endereço?" %}')) return;
-    csrfPost(urlAddrDelete(pk), {})
+    const delRow = document.querySelector(`#addr-tbody tr[data-id="${pk}"]`);
+    const delUrl = delRow && delRow.dataset.urlDelete;
+    if (!delUrl) return;
+    csrfPost(delUrl, {})
       .then(r => r.json())
       .then(json => {
         if (!json.ok) return;
@@ -534,9 +552,9 @@
   let editingCtPk = null;
 
   window.openContactPopup = function (pk) {
-    editingCtPk = pk || null;
+    editingCtPk = (pk === undefined || pk === null) ? null : pk;
     clearErrors('ct');
-    const isEdit = !!pk;
+    const isEdit = editingCtPk !== null;
     document.getElementById('ct-popup-title').textContent = isEdit ? '{% trans "Editar contacto" %}' : '{% trans "Novo contacto" %}';
 
     if (isEdit) {
@@ -573,7 +591,7 @@
       is_default:   document.getElementById('ct-is-default').checked ? 'on' : '',
     };
 
-    const url = editingCtPk ? urlCtUpdate(editingCtPk) : urlCtSave;
+    const url = contactPostUrl();
     const btn = document.getElementById('ct-save-btn');
     btn.disabled = true;
 
@@ -594,12 +612,16 @@
           row.cells[3].textContent = c.email || '—';
           row.cells[4].innerHTML   = badgePrincipal(c.is_default);
           row.dataset.contactType  = c.contact_type;
+          if (json.update_url) row.dataset.urlUpdate = json.update_url;
+          if (json.delete_url) row.dataset.urlDelete = json.delete_url;
         } else {
           removeEmptyRow('ct-tbody', 'ct-empty');
           const tbody = document.getElementById('ct-tbody');
           const tr = document.createElement('tr');
           tr.dataset.id = c.id;
           tr.dataset.contactType = c.contact_type;
+          if (json.update_url) tr.dataset.urlUpdate = json.update_url;
+          if (json.delete_url) tr.dataset.urlDelete = json.delete_url;
           tr.innerHTML = `
             <td style="font-weight:500;">${c.name}</td>
             <td class="muted">${c.contact_type_display}</td>
@@ -619,7 +641,10 @@
 
   window.deleteContact = function (pk, btnEl) {
     if (!confirm('{% trans "Eliminar este contacto?" %}')) return;
-    csrfPost(urlCtDelete(pk), {})
+    const delRow = document.querySelector(`#ct-tbody tr[data-id="${pk}"]`);
+    const delUrl = delRow && delRow.dataset.urlDelete;
+    if (!delUrl) return;
+    csrfPost(delUrl, {})
       .then(r => r.json())
       .then(json => {
         if (!json.ok) return;

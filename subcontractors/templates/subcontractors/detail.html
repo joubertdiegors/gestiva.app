@@ -263,12 +263,14 @@
 
 <script>
 (function () {
-  const SUB_PK = {{ subcontractor.pk }};
-  const CSRF   = '{{ csrf_token }}';
+  const CSRF = '{{ csrf_token }}';
 
-  const urlAddrSave   = "{% url 'subcontractors:address_save' subcontractor.pk %}";
-  const urlAddrUpdate = (pk) => `/subcontractors/${SUB_PK}/addresses/${pk}/save/`;
-  const urlAddrDelete = (pk) => `/subcontractors/${SUB_PK}/addresses/${pk}/delete/`;
+  const urlAddrSave = "{% url 'subcontractors:address_save' subcontractor.pk %}";
+  const urlAddrUpdateTpl = "{% url 'subcontractors:address_update' subcontractor.pk 0 %}";
+  const urlAddrDeleteTpl = "{% url 'subcontractors:address_delete' subcontractor.pk 0 %}";
+
+  const urlAddrUpdate = (pk) => urlAddrUpdateTpl.replace(/\/addresses\/0\/save\//, `/addresses/${pk}/save/`);
+  const urlAddrDelete = (pk) => urlAddrDeleteTpl.replace(/\/addresses\/0\/delete\//, `/addresses/${pk}/delete/`);
 
   function csrfPost(url, data) {
     return fetch(url, { method: 'POST', body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }) });
