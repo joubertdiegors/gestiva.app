@@ -1,9 +1,18 @@
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, get_user_model
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from .i18n_redirect import redirect_with_cookie_language
+
 User = get_user_model()
+
+
+def root_redirect(request):
+    """Bare '/' → localized home (respects cookie / Accept-Language via LocaleMiddleware)."""
+    return HttpResponseRedirect(reverse('home'))
 
 
 def _default_redirect(user):
@@ -16,7 +25,7 @@ def _default_redirect(user):
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect(_default_redirect(request.user))
+        return redirect_with_cookie_language(request, _default_redirect(request.user))
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -25,7 +34,7 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            return redirect(_default_redirect(user))
+            return redirect_with_cookie_language(request, _default_redirect(user))
         else:
             context = {'error': 'Usuário ou senha inválidos'}
             return render(request, 'login.html', context)
@@ -35,7 +44,7 @@ def login_view(request):
 
 @login_required(login_url='login')
 def home_view(request):
-    return redirect('dashboard')
+    return redirect_with_cookie_language(request, 'dashboard')
 
 
 @login_required(login_url='login')

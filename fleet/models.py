@@ -101,9 +101,9 @@ class VehicleDocument(models.Model):
 
     TYPE_CHOICES = [
         (TYPE_INSURANCE, _("Insurance (RC / Omnium)")),
-        (TYPE_TECHNICAL_INSPECTION, _("Technical Inspection (Contrôle Technique)")),
-        (TYPE_REGISTRATION, _("Registration Certificate (DIV)")),
-        (TYPE_ROAD_TAX, _("Road Tax (Taxe de Circulation)")),
+        (TYPE_TECHNICAL_INSPECTION, _("Technical inspection")),
+        (TYPE_REGISTRATION, _("Registration certificate")),
+        (TYPE_ROAD_TAX, _("Road tax / circulation tax")),
         (TYPE_LEASING, _("Leasing / Renting Contract")),
         (TYPE_TACHOGRAPH, _("Tachograph Calibration")),
         (TYPE_ADR, _("ADR Certificate")),

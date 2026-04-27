@@ -1,86 +1,98 @@
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings
-from decimal import Decimal
 
 
 class UnitOfMeasure(models.Model):
-    symbol      = models.CharField(max_length=20, unique=True, verbose_name=_("Symbole"))
-    name        = models.CharField(max_length=100, verbose_name=_("Nom"))
-    description = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Description"))
+    symbol = models.CharField(max_length=20, unique=True, verbose_name=_('Symbol'))
+    name = models.CharField(max_length=100, verbose_name=_('Name'))
+    description = models.CharField(max_length=255, blank=True, default='', verbose_name=_('Description'))
 
     class Meta:
-        verbose_name        = _("Unite de mesure")
-        verbose_name_plural = _("Unites de mesure")
-        ordering            = ['symbol']
+        verbose_name = _('Unit of measure')
+        verbose_name_plural = _('Units of measure')
+        ordering = ['symbol']
 
     def __str__(self):
-        return f"{self.symbol} - {self.name}"
+        return f'{self.symbol} - {self.name}'
 
 
 class ProductCategory(models.Model):
-    name      = models.CharField(max_length=100, verbose_name=_("Nom"))
-    parent    = models.ForeignKey(
-        'self', null=True, blank=True,
+    name = models.CharField(max_length=100, verbose_name=_('Name'))
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name='children',
-        verbose_name=_("Categorie parente")
+        verbose_name=_('Parent category'),
     )
-    is_active = models.BooleanField(default=True, verbose_name=_("Actif"))
+    is_active = models.BooleanField(default=True, verbose_name=_('Active'))
 
     class Meta:
-        verbose_name        = _("Categorie de produit")
-        verbose_name_plural = _("Categories de produits")
-        unique_together     = [('name', 'parent')]
+        verbose_name = _('Product category')
+        verbose_name_plural = _('Product categories')
+        unique_together = [('name', 'parent')]
 
     def __str__(self):
-        return f"{self.parent} > {self.name}" if self.parent else self.name
+        return f'{self.parent} > {self.name}' if self.parent else self.name
 
 
 class Product(models.Model):
-    name     = models.CharField(max_length=255, verbose_name=_("Nom du produit"))
-    brand    = models.CharField(max_length=100, blank=True, default='', verbose_name=_("Marque"))
-    barcode  = models.CharField(max_length=100, blank=True, default='', verbose_name=_("Code-barres"))
+    name = models.CharField(max_length=255, verbose_name=_('Product name'))
+    brand = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Brand'))
+    barcode = models.CharField(max_length=100, blank=True, default='', verbose_name=_('Barcode'))
     category = models.ForeignKey(
-        ProductCategory, null=True, blank=True,
+        ProductCategory,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name='products',
-        verbose_name=_("Categorie")
+        verbose_name=_('Category'),
     )
     unit = models.ForeignKey(
         UnitOfMeasure,
         on_delete=models.PROTECT,
         related_name='products',
-        verbose_name=_("Unite de base"),
-        help_text=_("Unite interne de reference. Ex: kg, m2, un.")
+        verbose_name=_('Base unit'),
+        help_text=_('Internal reference unit, e.g. kg, m², ea.'),
     )
     vat_rate = models.DecimalField(
-        max_digits=6, decimal_places=2, default=Decimal('21.00'),
-        verbose_name=_("Taux TVA (%)"),
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('21.00'),
+        verbose_name=_('VAT rate (%)'),
     )
     sale_margin = models.DecimalField(
-        max_digits=6, decimal_places=2, default=Decimal('0.00'),
-        verbose_name=_("Marge de vente (%)")
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name=_('Sale margin (%)'),
     )
-    notes       = models.TextField(blank=True, default='', verbose_name=_("Informations"))
-    is_active   = models.BooleanField(default=True, verbose_name=_("Produit actif"))
+    notes = models.TextField(blank=True, default='', verbose_name=_('Notes'))
+    is_active = models.BooleanField(default=True, verbose_name=_('Product active'))
     is_approved = models.BooleanField(
-        default=False, verbose_name=_("Approuve"),
-        help_text=_("Seuls les produits approuves apparaissent dans les devis.")
+        default=False,
+        verbose_name=_('Approved'),
+        help_text=_('Only approved products appear in quotes.'),
     )
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name='products_created',
-        verbose_name=_("Cree par")
+        verbose_name=_('Created by'),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name        = _("Produit")
-        verbose_name_plural = _("Produits")
-        ordering            = ['name']
+        verbose_name = _('Product')
+        verbose_name_plural = _('Products')
+        ordering = ['name']
         indexes = [
             models.Index(fields=['is_active', 'is_approved']),
             models.Index(fields=['category']),

@@ -1,0 +1,3 @@
+# Optional: locale maintenance (scripts/complete_django_po.py)
+polib>=1.2.0
+deep-translator>=1.11.0

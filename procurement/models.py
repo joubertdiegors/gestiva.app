@@ -10,47 +10,47 @@ class ProductSupplier(models.Model):
         'catalog.Product',
         on_delete=models.PROTECT,
         related_name='supplier_offers',
-        verbose_name=_("Produit")
+        verbose_name=_("Product")
     )
     supplier = models.ForeignKey(
         'suppliers.Supplier',
         on_delete=models.PROTECT,
         related_name='product_offers',
-        verbose_name=_("Fournisseur")
+        verbose_name=_("Supplier")
     )
-    supplier_ref         = models.CharField(max_length=100, blank=True, default='', verbose_name=_("Ref. fournisseur"))
-    supplier_description = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Description fournisseur"))
+    supplier_ref         = models.CharField(max_length=100, blank=True, default='', verbose_name=_("Supplier reference"))
+    supplier_description = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Supplier description"))
     unit_price = models.DecimalField(
         max_digits=14, decimal_places=4,
         default=Decimal('0.0000'),
-        verbose_name=_("Prix unitaire HT"),
-        help_text=_("Prix par unite de base du produit.")
+        verbose_name=_("Unit price excl. VAT"),
+        help_text=_("Price per base unit of the product.")
     )
     package_qty  = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal('1'),
-        verbose_name=_("Qte par emballage")
+        verbose_name=_("Quantity per package")
     )
     package_unit = models.ForeignKey(
         'catalog.UnitOfMeasure', null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='package_offers',
-        verbose_name=_("Unite d'emballage")
+        verbose_name=_("Package unit")
     )
     minimum_order_qty = models.DecimalField(
         max_digits=12, decimal_places=4, default=Decimal('1'),
-        verbose_name=_("Quantite minimale de commande")
+        verbose_name=_("Minimum order quantity")
     )
-    lead_time_days = models.PositiveIntegerField(default=0, verbose_name=_("Delai de livraison (jours)"))
-    is_preferred   = models.BooleanField(default=False, verbose_name=_("Fournisseur prefere"))
-    is_active      = models.BooleanField(default=True, verbose_name=_("Actif"))
-    valid_from     = models.DateField(null=True, blank=True, verbose_name=_("Valide du"))
-    valid_until    = models.DateField(null=True, blank=True, verbose_name=_("Valide jusqu'au"))
+    lead_time_days = models.PositiveIntegerField(default=0, verbose_name=_("Lead time (days)"))
+    is_preferred   = models.BooleanField(default=False, verbose_name=_("Preferred supplier"))
+    is_active      = models.BooleanField(default=True, verbose_name=_("Active"))
+    valid_from     = models.DateField(null=True, blank=True, verbose_name=_("Valid from"))
+    valid_until    = models.DateField(null=True, blank=True, verbose_name=_("Valid until"))
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name        = _("Offre fournisseur")
-        verbose_name_plural = _("Offres fournisseurs")
+        verbose_name        = _("Supplier offer")
+        verbose_name_plural = _("Supplier offers")
         unique_together     = [('product', 'supplier')]
         ordering            = ['unit_price']
         indexes = [
@@ -71,20 +71,20 @@ class ProductSupplierPriceHistory(models.Model):
         ProductSupplier,
         on_delete=models.CASCADE,
         related_name='price_history',
-        verbose_name=_("Offre")
+        verbose_name=_("Offer")
     )
-    price          = models.DecimalField(max_digits=14, decimal_places=4, verbose_name=_("Prix HT"))
+    price          = models.DecimalField(max_digits=14, decimal_places=4, verbose_name=_("Price excl. VAT"))
     effective_date = models.DateTimeField(auto_now_add=True, verbose_name=_("Date"))
     changed_by     = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL,
-        verbose_name=_("Modifie par")
+        verbose_name=_("Changed by")
     )
-    note = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Motif"))
+    note = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Reason"))
 
     class Meta:
-        verbose_name        = _("Historique de prix")
-        verbose_name_plural = _("Historique des prix")
+        verbose_name        = _("Price history entry")
+        verbose_name_plural = _("Price history")
         ordering            = ['-effective_date']
 
     def __str__(self):
@@ -93,17 +93,17 @@ class ProductSupplierPriceHistory(models.Model):
 
 class RFQ(models.Model):
     class Status(models.TextChoices):
-        DRAFT     = 'draft',     _('Rascunho')
-        SENT      = 'sent',      _('Enviado')
-        PARTIAL   = 'partial',   _('Parcial')
-        CLOSED    = 'closed',    _('Fechado')
-        CANCELLED = 'cancelled', _('Cancelado')
+        DRAFT     = 'draft',     _('Draft')
+        SENT      = 'sent',      _('Sent')
+        PARTIAL   = 'partial',   _('Partial')
+        CLOSED    = 'closed',    _('Closed')
+        CANCELLED = 'cancelled', _('Cancelled')
 
-    number = models.CharField(max_length=30, unique=True, blank=True, default='', verbose_name=_("Número"))
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, verbose_name=_("Estado"))
+    number = models.CharField(max_length=30, unique=True, blank=True, default='', verbose_name=_("Number"))
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, verbose_name=_("Status"))
 
-    due_date = models.DateField(null=True, blank=True, verbose_name=_("Prazo para resposta"))
-    notes    = models.TextField(blank=True, default='', verbose_name=_("Observações"))
+    due_date = models.DateField(null=True, blank=True, verbose_name=_("Response due date"))
+    notes    = models.TextField(blank=True, default='', verbose_name=_("Notes"))
 
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -111,14 +111,14 @@ class RFQ(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name='rfqs_requested',
-        verbose_name=_("Solicitado por"),
+        verbose_name=_("Requested by"),
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Criado em"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Atualizado em"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
     class Meta:
-        verbose_name = _("Cotação (RFQ)")
-        verbose_name_plural = _("Cotações (RFQ)")
+        verbose_name = _("Request for quotation (RFQ)")
+        verbose_name_plural = _("Requests for quotation (RFQ)")
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['status', 'created_at']),
@@ -137,28 +137,28 @@ class RFQ(models.Model):
 
 class RFQItem(models.Model):
     rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name='items', verbose_name=_("RFQ"))
-    product = models.ForeignKey('catalog.Product', on_delete=models.PROTECT, related_name='rfq_items', verbose_name=_("Produto"))
+    product = models.ForeignKey('catalog.Product', on_delete=models.PROTECT, related_name='rfq_items', verbose_name=_("Product"))
     selected_vendor = models.ForeignKey(
         'procurement.RFQVendor',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name='selected_items',
-        verbose_name=_("Fornecedor selecionado"),
+        verbose_name=_("Selected vendor"),
     )
 
     qty = models.DecimalField(
         max_digits=12, decimal_places=4,
         default=Decimal('1'),
-        verbose_name=_("Quantidade"),
+        verbose_name=_("Quantity"),
     )
-    notes = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Observações"))
+    notes = models.CharField(max_length=255, blank=True, default='', verbose_name=_("Notes"))
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = _("Item da cotação")
-        verbose_name_plural = _("Itens da cotação")
+        verbose_name = _("RFQ line")
+        verbose_name_plural = _("RFQ lines")
         unique_together = [('rfq', 'product')]
         ordering = ['id']
         indexes = [
@@ -171,28 +171,28 @@ class RFQItem(models.Model):
 
 class RFQVendor(models.Model):
     class Status(models.TextChoices):
-        PENDING  = 'pending',  _('Pendente')
-        SENT     = 'sent',     _('Enviado')
-        ANSWERED = 'answered', _('Respondido')
-        DECLINED = 'declined', _('Recusado')
+        PENDING  = 'pending',  _('Pending')
+        SENT     = 'sent',     _('Sent')
+        ANSWERED = 'answered', _('Answered')
+        DECLINED = 'declined', _('Declined')
 
     rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name='vendors', verbose_name=_("RFQ"))
-    supplier = models.ForeignKey('suppliers.Supplier', on_delete=models.PROTECT, related_name='rfq_invitations', verbose_name=_("Fornecedor"))
+    supplier = models.ForeignKey('suppliers.Supplier', on_delete=models.PROTECT, related_name='rfq_invitations', verbose_name=_("Supplier"))
 
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name=_("Estado"))
-    message = models.TextField(blank=True, default='', verbose_name=_("Mensagem"))
-    sent_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Enviado em"))
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name=_("Status"))
+    message = models.TextField(blank=True, default='', verbose_name=_("Message"))
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Sent at"))
 
     payment_term = models.CharField(
         max_length=120,
         blank=True,
         default='',
-        verbose_name=_("Prazo de pagamento"),
+        verbose_name=_("Payment term"),
     )
     quote_validity = models.DateField(
         null=True,
         blank=True,
-        verbose_name=_("Validade do orçamento"),
+        verbose_name=_("Quote valid until"),
     )
 
     quote_contact = models.ForeignKey(
@@ -201,31 +201,31 @@ class RFQVendor(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name='rfq_vendors',
-        verbose_name=_("Responsável (contacto)"),
+        verbose_name=_("Quote contact"),
     )
 
     quote_contact_name = models.CharField(
         max_length=255,
         blank=True,
         default='',
-        verbose_name=_("Responsável pelo orçamento"),
-        help_text=_("Contacto comercial a tratar desta cotação junto do fornecedor."),
+        verbose_name=_("Quote contact name"),
+        help_text=_("Commercial contact at the supplier for this RFQ."),
     )
     quote_contact_phone = models.CharField(
         max_length=50,
         blank=True,
         default='',
-        verbose_name=_("Telefone (orçamento)"),
+        verbose_name=_("Quote contact phone"),
     )
     quote_contact_email = models.EmailField(
         blank=True,
         default='',
-        verbose_name=_("E-mail (orçamento)"),
+        verbose_name=_("Quote contact email"),
     )
 
     class Meta:
-        verbose_name = _("Fornecedor convidado")
-        verbose_name_plural = _("Fornecedores convidados")
+        verbose_name = _("Invited supplier")
+        verbose_name_plural = _("Invited suppliers")
         unique_together = [('rfq', 'supplier')]
         ordering = ['id']
         indexes = [
@@ -238,33 +238,33 @@ class RFQVendor(models.Model):
 
 
 class RFQVendorLine(models.Model):
-    rfq_vendor = models.ForeignKey(RFQVendor, on_delete=models.CASCADE, related_name='lines', verbose_name=_("Fornecedor"))
+    rfq_vendor = models.ForeignKey(RFQVendor, on_delete=models.CASCADE, related_name='lines', verbose_name=_("Supplier"))
     rfq_item   = models.ForeignKey(RFQItem, on_delete=models.CASCADE, related_name='vendor_lines', verbose_name=_("Item"))
 
     unit_price = models.DecimalField(
         max_digits=14, decimal_places=4,
         null=True, blank=True,
-        verbose_name=_("Preço unit. HT"),
+        verbose_name=_("Unit price excl. VAT"),
     )
     package_qty = models.DecimalField(
         max_digits=12, decimal_places=4,
         null=True, blank=True,
-        verbose_name=_("Qtd por embalagem"),
+        verbose_name=_("Quantity per package"),
     )
     minimum_order_qty = models.DecimalField(
         max_digits=12, decimal_places=4,
         null=True, blank=True,
-        verbose_name=_("Qtd mínima"),
+        verbose_name=_("Minimum order quantity"),
     )
-    lead_time_days = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("Lead time (dias)"))
-    valid_until = models.DateField(null=True, blank=True, verbose_name=_("Válido até"))
+    lead_time_days = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("Lead time (days)"))
+    valid_until = models.DateField(null=True, blank=True, verbose_name=_("Valid until"))
 
-    answered_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Respondido em"))
+    answered_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Answered at"))
     updated_at  = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = _("Linha de resposta")
-        verbose_name_plural = _("Linhas de resposta")
+        verbose_name = _("Response line")
+        verbose_name_plural = _("Response lines")
         unique_together = [('rfq_vendor', 'rfq_item')]
         indexes = [
             models.Index(fields=['rfq_vendor', 'rfq_item']),

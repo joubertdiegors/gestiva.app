@@ -10,6 +10,8 @@ from . import views
 from catalog import views as catalog_views
 
 urlpatterns = [
+    # "/" is not under LocalePrefixPattern; send users to the localized home URL.
+    path('', views.root_redirect, name='site_root'),
     path('i18n/', include('django.conf.urls.i18n')),
     path('login/', views.login_view, name='login'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
@@ -36,6 +38,9 @@ urlpatterns += i18n_patterns(
     path('services/', include('services.urls')),
     path('budget/',   include('budget.urls')),
     path('fleet/',    include('fleet.urls')),
+    # True: every language has a URL prefix (/pt-br/..., /en/...). The cookie is then
+    # respected on paths outside i18n (e.g. /login/) and language switching is reliable.
+    prefix_default_language=True,
 )
 
 if settings.DEBUG:

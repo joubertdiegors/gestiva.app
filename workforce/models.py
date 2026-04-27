@@ -230,7 +230,7 @@ class CollaboratorAddress(models.Model):
     city         = models.CharField(_("City"), max_length=100)
     postal_code  = models.CharField(_("Postal Code"), max_length=20)
     state        = models.CharField(_("State/Region"), max_length=100, blank=True, null=True)
-    country      = models.CharField(_("Country"), max_length=100, default="Belgium")
+    country      = models.CharField(_("Country"), max_length=100, default="Brazil")
     valid_from   = models.DateField(_("Valid From"), default=timezone.now)
     valid_until  = models.DateField(_("Valid Until"), blank=True, null=True)
     created_at   = models.DateTimeField(auto_now_add=True)

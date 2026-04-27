@@ -4,18 +4,18 @@ from decimal import Decimal
 
 
 class ServiceCategory(models.Model):
-    name      = models.CharField(max_length=100, verbose_name=_("Nom"))
+    name      = models.CharField(max_length=100, verbose_name=_("Name"))
     parent    = models.ForeignKey(
         'self', null=True, blank=True,
         on_delete=models.PROTECT,
         related_name='children',
-        verbose_name=_("Categorie parente")
+        verbose_name=_("Parent category")
     )
-    is_active = models.BooleanField(default=True, verbose_name=_("Actif"))
+    is_active = models.BooleanField(default=True, verbose_name=_("Active"))
 
     class Meta:
-        verbose_name        = _("Categorie de service")
-        verbose_name_plural = _("Categories de services")
+        verbose_name        = _("Service category")
+        verbose_name_plural = _("Service categories")
         unique_together     = [('name', 'parent')]
 
     def __str__(self):
@@ -24,47 +24,45 @@ class ServiceCategory(models.Model):
 
 class Service(models.Model):
     code        = models.CharField(max_length=30, unique=True, verbose_name=_("Code"))
-    name        = models.CharField(max_length=200, verbose_name=_("Nom"))
-    description = models.TextField(blank=True, default='', verbose_name=_("Description technique"))
+    name        = models.CharField(max_length=200, verbose_name=_("Name"))
+    description = models.TextField(blank=True, default='', verbose_name=_("Technical description"))
     category    = models.ForeignKey(
         ServiceCategory, null=True, blank=True,
         on_delete=models.PROTECT,
         related_name='services',
-        verbose_name=_("Categorie")
+        verbose_name=_("Category")
     )
     unit = models.ForeignKey(
         'catalog.UnitOfMeasure',
         on_delete=models.PROTECT,
         related_name='services',
-        verbose_name=_("Unite du service"),
-        help_text=_("Unite dans laquelle le service est mesure. Ex: m2, m3, ml, un.")
+        verbose_name=_("Service unit of measure"),
+        help_text=_("Unit in which the service is measured, e.g. m², m³, m, ea.")
     )
-    # Tempo estimado de execução por unidade (campo de duração em minutos)
     time_per_unit = models.DecimalField(
         max_digits=8, decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Tempo de execução / unidade (min)"),
-        help_text=_("Tempo estimado em minutos para executar uma unidade do serviço.")
+        verbose_name=_("Execution time / unit (minutes)"),
+        help_text=_("Estimated minutes to execute one unit of the service.")
     )
     labor_cost_per_unit = models.DecimalField(
         max_digits=14, decimal_places=4,
         default=Decimal('0.0000'),
-        verbose_name=_("Cout M.O. / unite")
+        verbose_name=_("Labor cost / unit")
     )
-    # Preço de venda definido manualmente (pode ser 0 para usar o sugerido)
     sale_price_per_unit = models.DecimalField(
         max_digits=14, decimal_places=4,
         default=Decimal('0.0000'),
-        verbose_name=_("Preço de venda / unidade"),
-        help_text=_("Preço cobrado ao cliente por unidade. 0 = usar preço sugerido.")
+        verbose_name=_("Sale price / unit"),
+        help_text=_("Price charged to the client per unit. 0 = use suggested price.")
     )
     default_margin_percent = models.DecimalField(
         max_digits=6, decimal_places=2,
         default=Decimal('30.00'),
-        verbose_name=_("Marge par defaut (%)"),
-        help_text=_("Peut etre ajustee dans le devis.")
+        verbose_name=_("Default margin (%)"),
+        help_text=_("Can be adjusted in the quote.")
     )
-    is_active  = models.BooleanField(default=True, verbose_name=_("Actif"))
+    is_active  = models.BooleanField(default=True, verbose_name=_("Active"))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -97,7 +95,7 @@ class Service(models.Model):
 
     @property
     def effective_sale_price(self):
-        """Preço de venda efectivo: manual se definido, senão sugerido."""
+        """Effective sale price: manual when set, otherwise suggested."""
         if self.sale_price_per_unit and self.sale_price_per_unit > 0:
             return self.sale_price_per_unit
         return self.suggested_price_per_unit
@@ -114,22 +112,22 @@ class ServiceMaterial(models.Model):
         'catalog.Product',
         on_delete=models.PROTECT,
         related_name='service_usages',
-        verbose_name=_("Produit")
+        verbose_name=_("Product")
     )
     quantity_per_unit = models.DecimalField(
         max_digits=12, decimal_places=4,
-        verbose_name=_("Quantite par unite de service")
+        verbose_name=_("Quantity per service unit")
     )
     waste_percent = models.DecimalField(
         max_digits=5, decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Perte technique (%)")
+        verbose_name=_("Waste / scrap (%)")
     )
-    note = models.CharField(max_length=200, blank=True, default='', verbose_name=_("Observation"))
+    note = models.CharField(max_length=200, blank=True, default='', verbose_name=_("Note"))
 
     class Meta:
-        verbose_name        = _("Materiau du service")
-        verbose_name_plural = _("Materiaux du service")
+        verbose_name        = _("Service material")
+        verbose_name_plural = _("Service materials")
         unique_together     = [('service', 'product')]
 
     def __str__(self):

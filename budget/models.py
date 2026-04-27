@@ -7,82 +7,80 @@ from decimal import Decimal
 class Budget(models.Model):
 
     class Status(models.TextChoices):
-        DRAFT    = 'draft',    _('Rascunho')
-        SENT     = 'sent',     _('Enviado')
-        APPROVED = 'approved', _('Aprovado')
-        REJECTED = 'rejected', _('Recusado')
-        EXPIRED  = 'expired',  _('Expirado')
+        DRAFT    = 'draft',    _('Draft')
+        SENT     = 'sent',     _('Sent')
+        APPROVED = 'approved', _('Approved')
+        REJECTED = 'rejected', _('Rejected')
+        EXPIRED  = 'expired',  _('Expired')
 
-    number     = models.CharField(max_length=30, unique=True, verbose_name=_("Número"))
-    title      = models.CharField(max_length=200, verbose_name=_("Título"))
+    number     = models.CharField(max_length=30, unique=True, verbose_name=_("Number"))
+    title      = models.CharField(max_length=200, verbose_name=_("Title"))
 
     client = models.ForeignKey(
         'clients.Client', null=True, blank=True,
         on_delete=models.PROTECT,
         related_name='budgets',
-        verbose_name=_("Cliente")
+        verbose_name=_("Client")
     )
     project = models.ForeignKey(
         'projects.Project', null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='budgets',
-        verbose_name=_("Obra / Projecto")
+        verbose_name=_("Project / site")
     )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.DRAFT,
-        verbose_name=_("Estado")
+        verbose_name=_("Status")
     )
     issue_date = models.DateField(
         null=True, blank=True,
-        verbose_name=_("Data de emissão")
+        verbose_name=_("Issue date")
     )
     valid_until = models.DateField(
         null=True, blank=True,
-        verbose_name=_("Válido até")
+        verbose_name=_("Valid until")
     )
     global_margin_percent = models.DecimalField(
         max_digits=6, decimal_places=2,
         null=True, blank=True,
-        verbose_name=_("Margem global (%)"),
-        help_text=_("Se preenchida, substitui a margem de cada linha.")
+        verbose_name=_("Global margin (%)"),
+        help_text=_("If set, overrides each line's margin.")
     )
     discount_percent = models.DecimalField(
         max_digits=6, decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Desconto global (%)")
+        verbose_name=_("Global discount (%)")
     )
-    # IVA global — aplicado quando item não tem IVA próprio
     vat_rate = models.DecimalField(
         max_digits=6, decimal_places=2,
         default=Decimal('23.00'),
-        verbose_name=_("IVA padrão (%)"),
-        help_text=_("Usado como padrão para novos itens. Cada item pode ter IVA próprio.")
+        verbose_name=_("Default VAT (%)"),
+        help_text=_("Default for new items. Each item may have its own VAT rate.")
     )
-    notes        = models.TextField(blank=True, default='', verbose_name=_("Notas internas"))
-    notes_client = models.TextField(blank=True, default='', verbose_name=_("Notas para o cliente"))
+    notes        = models.TextField(blank=True, default='', verbose_name=_("Internal notes"))
+    notes_client = models.TextField(blank=True, default='', verbose_name=_("Notes for client"))
 
-    # Condições de pagamento — texto descritivo (fase 1); estruturado na fase 2
     payment_terms = models.TextField(
         blank=True, default='',
-        verbose_name=_("Condições de pagamento"),
-        help_text=_("Ex: 30% na assinatura, 40% no início, 30% na entrega.")
+        verbose_name=_("Payment terms"),
+        help_text=_("E.g. 30% on signature, 40% at start, 30% on delivery.")
     )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='budgets_created',
-        verbose_name=_("Criado por")
+        verbose_name=_("Created by")
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    sent_at    = models.DateTimeField(null=True, blank=True, verbose_name=_("Enviado em"))
+    sent_at    = models.DateTimeField(null=True, blank=True, verbose_name=_("Sent at"))
 
     class Meta:
-        verbose_name        = _("Orçamento")
-        verbose_name_plural = _("Orçamentos")
+        verbose_name        = _("Budget")
+        verbose_name_plural = _("Budgets")
         ordering            = ['-created_at']
         indexes = [
             models.Index(fields=['status', '-created_at']),
@@ -90,8 +88,6 @@ class Budget(models.Model):
 
     def __str__(self):
         return f"{self.number} — {self.title}"
-
-    # ── aggregates ──────────────────────────────────────────────────────────
 
     @property
     def subtotal_cost(self):
@@ -111,7 +107,7 @@ class Budget(models.Model):
 
     @property
     def total_vat(self):
-        """Soma o IVA de cada item (cada um tem o seu próprio rate)."""
+        """Sum VAT for each line (each line may have its own rate)."""
         return sum((item.vat_amount for item in self.items.all()), Decimal('0'))
 
     @property
@@ -128,7 +124,6 @@ class Budget(models.Model):
             return Decimal('0')
         return (self.gross_margin_amount / self.total_ht * Decimal('100')).quantize(Decimal('0.01'))
 
-    # ── auto-number ──────────────────────────────────────────────────────────
     @classmethod
     def next_number(cls):
         import datetime
@@ -152,28 +147,28 @@ class Budget(models.Model):
 
 class BudgetChapter(models.Model):
     """
-    Capítulo / lote hierárquico de um orçamento.
-    Suporta até 4 níveis via FK recursiva.
+    Hierarchical chapter / lot within a budget.
+    Supports up to 4 levels via recursive FK.
     """
     budget = models.ForeignKey(
         Budget,
         on_delete=models.CASCADE,
         related_name='chapters',
-        verbose_name=_("Orçamento")
+        verbose_name=_("Budget")
     )
     parent = models.ForeignKey(
         'self',
         null=True, blank=True,
         on_delete=models.CASCADE,
         related_name='children',
-        verbose_name=_("Capítulo pai")
+        verbose_name=_("Parent chapter")
     )
-    title = models.CharField(max_length=200, verbose_name=_("Título"))
-    order = models.PositiveIntegerField(default=0, verbose_name=_("Ordem"))
+    title = models.CharField(max_length=200, verbose_name=_("Title"))
+    order = models.PositiveIntegerField(default=0, verbose_name=_("Order"))
 
     class Meta:
-        verbose_name        = _("Capítulo")
-        verbose_name_plural = _("Capítulos")
+        verbose_name        = _("Chapter")
+        verbose_name_plural = _("Chapters")
         ordering            = ['budget', 'order']
 
     def __str__(self):
@@ -208,34 +203,34 @@ class BudgetItem(models.Model):
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name='items',
-        verbose_name=_("Capítulo")
+        verbose_name=_("Chapter")
     )
     service = models.ForeignKey(
         'services.Service',
         on_delete=models.PROTECT,
         related_name='budget_items',
-        verbose_name=_("Serviço")
+        verbose_name=_("Service")
     )
-    service_name_snapshot = models.CharField(max_length=200, verbose_name=_("Serviço"))
-    service_code_snapshot = models.CharField(max_length=30,  verbose_name=_("Código"))
-    service_unit_snapshot = models.CharField(max_length=20,  verbose_name=_("Unidade"))
-    description           = models.TextField(blank=True, default='', verbose_name=_("Descrição (override)"))
-    quantity              = models.DecimalField(max_digits=12, decimal_places=4, verbose_name=_("Quantidade"))
+    service_name_snapshot = models.CharField(max_length=200, verbose_name=_("Service (snapshot)"))
+    service_code_snapshot = models.CharField(max_length=30,  verbose_name=_("Code"))
+    service_unit_snapshot = models.CharField(max_length=20,  verbose_name=_("Unit"))
+    description           = models.TextField(blank=True, default='', verbose_name=_("Description (override)"))
+    quantity              = models.DecimalField(max_digits=12, decimal_places=4, verbose_name=_("Quantity"))
     unit_price_override   = models.DecimalField(
         max_digits=14, decimal_places=4,
         null=True, blank=True,
-        verbose_name=_("Preço unit. (override)"),
-        help_text=_("Se preenchido, substitui o preço calculado pelo catálogo.")
+        verbose_name=_("Unit price (override)"),
+        help_text=_("If set, replaces the catalog-calculated unit price.")
     )
-    labor_cost_per_unit   = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal('0'), verbose_name=_("Custo M.O. / unidade"))
-    margin_percent        = models.DecimalField(max_digits=6, decimal_places=2, verbose_name=_("Margem (%)"))
-    discount_percent      = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'), verbose_name=_("Desconto (%)"))
-    vat_rate              = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('23.00'), verbose_name=_("IVA (%)"))
-    order                 = models.PositiveIntegerField(default=0, verbose_name=_("Ordem"))
+    labor_cost_per_unit   = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal('0'), verbose_name=_("Labor cost / unit"))
+    margin_percent        = models.DecimalField(max_digits=6, decimal_places=2, verbose_name=_("Margin (%)"))
+    discount_percent      = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0'), verbose_name=_("Discount (%)"))
+    vat_rate              = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('23.00'), verbose_name=_("VAT (%)"))
+    order                 = models.PositiveIntegerField(default=0, verbose_name=_("Order"))
 
     class Meta:
-        verbose_name        = _("Linha de orçamento")
-        verbose_name_plural = _("Linhas de orçamento")
+        verbose_name        = _("Budget line")
+        verbose_name_plural = _("Budget lines")
         ordering            = ['budget', 'chapter', 'order']
 
     def __str__(self):
@@ -255,7 +250,7 @@ class BudgetItem(models.Model):
 
     @property
     def computed_unit_price(self):
-        """Preço unitário calculado a partir do custo + margem."""
+        """Unit price from cost + margin."""
         if not self.quantity:
             return Decimal('0')
         margin = Decimal('1') + (self.margin_percent / Decimal('100'))
@@ -263,7 +258,7 @@ class BudgetItem(models.Model):
 
     @property
     def effective_unit_price(self):
-        """Usa override se definido, senão o calculado."""
+        """Uses override when set, otherwise computed."""
         if self.unit_price_override and self.unit_price_override > 0:
             return self.unit_price_override
         return self.computed_unit_price
@@ -299,27 +294,27 @@ class BudgetItemMaterial(models.Model):
         'catalog.Product',
         on_delete=models.PROTECT,
         related_name='budget_usages',
-        verbose_name=_("Produto")
+        verbose_name=_("Product")
     )
     supplier = models.ForeignKey(
         'suppliers.Supplier',
         null=True, blank=True,
         on_delete=models.PROTECT,
         related_name='budget_material_usages',
-        verbose_name=_("Fornecedor")
+        verbose_name=_("Supplier")
     )
-    product_name_snapshot = models.CharField(max_length=255, verbose_name=_("Produto (snapshot)"))
-    unit_snapshot         = models.CharField(max_length=20,  verbose_name=_("Unidade (snapshot)"))
-    quantity              = models.DecimalField(max_digits=14, decimal_places=4, verbose_name=_("Quantidade"))
+    product_name_snapshot = models.CharField(max_length=255, verbose_name=_("Product (snapshot)"))
+    unit_snapshot         = models.CharField(max_length=20,  verbose_name=_("Unit (snapshot)"))
+    quantity              = models.DecimalField(max_digits=14, decimal_places=4, verbose_name=_("Quantity"))
     unit_price_snapshot   = models.DecimalField(
         max_digits=14, decimal_places=4,
-        verbose_name=_("Preço unit. HT (snapshot)"),
-        help_text=_("Preço congelado no momento da emissão do orçamento.")
+        verbose_name=_("Unit price excl. VAT (snapshot)"),
+        help_text=_("Price frozen when the budget was issued.")
     )
 
     class Meta:
-        verbose_name        = _("Material da linha")
-        verbose_name_plural = _("Materiais da linha")
+        verbose_name        = _("Line material")
+        verbose_name_plural = _("Line materials")
 
     def __str__(self):
         return f"{self.product_name_snapshot} × {self.quantity}"

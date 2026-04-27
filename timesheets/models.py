@@ -6,11 +6,10 @@ from decimal import Decimal
 
 class Timesheet(models.Model):
     """
-    Registo de horas reais trabalhadas por um colaborador num projeto num dia.
-    Ligado opcionalmente ao PlanningWorker do mesmo dia.
+    Record of actual hours worked by a collaborator on a project on a given day.
+    Optionally linked to PlanningWorker for the same day.
     """
 
-    # ── Relações principais ──────────────────────────────
     worker = models.ForeignKey(
         'workforce.Collaborator',
         verbose_name=_("Worker"),
@@ -24,7 +23,6 @@ class Timesheet(models.Model):
         related_name='timesheets',
     )
 
-    # ── Ligação opcional ao planning do dia ─────────────
     planning_worker = models.OneToOneField(
         'planning.PlanningWorker',
         verbose_name=_("Planning entry"),
@@ -34,13 +32,11 @@ class Timesheet(models.Model):
         related_name='timesheet',
     )
 
-    # ── Data e horas ─────────────────────────────────────
     date = models.DateField(_("Date"))
 
     start_time = models.TimeField(_("Start time"), null=True, blank=True)
     end_time   = models.TimeField(_("End time"),   null=True, blank=True)
 
-    # Horas registadas manualmente (se não usar start/end)
     hours = models.DecimalField(
         _("Hours worked"),
         max_digits=5,
@@ -49,7 +45,6 @@ class Timesheet(models.Model):
         blank=True,
     )
 
-    # ── Valor calculado ──────────────────────────────────
     hourly_rate_snapshot = models.DecimalField(
         _("Hourly rate (snapshot)"),
         max_digits=10,
@@ -59,7 +54,6 @@ class Timesheet(models.Model):
         help_text=_("Rate at the time of entry, frozen for audit."),
     )
 
-    # ── Extras ───────────────────────────────────────────
     is_overtime = models.BooleanField(_("Overtime"), default=False)
     overtime_rate = models.DecimalField(
         _("Overtime multiplier"),
@@ -70,11 +64,9 @@ class Timesheet(models.Model):
 
     notes = models.TextField(_("Notes"), blank=True)
 
-    # ── Auditoria ────────────────────────────────────────
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # ── Meta ─────────────────────────────────────────────
     class Meta:
         verbose_name = _("Timesheet")
         verbose_name_plural = _("Timesheets")
@@ -96,11 +88,9 @@ class Timesheet(models.Model):
     def __str__(self):
         return f"{self.worker.name} — {self.project.name} — {self.date}"
 
-    # ── Propriedades calculadas ───────────────────────────
-
     @property
     def computed_hours(self):
-        """Horas calculadas a partir de start/end ou do campo manual."""
+        """Hours from start/end times or manual hours field."""
         if self.start_time and self.end_time:
             from datetime import datetime, date
             start = datetime.combine(date.today(), self.start_time)
@@ -111,7 +101,7 @@ class Timesheet(models.Model):
 
     @property
     def effective_rate(self):
-        """Taxa aplicada (com multiplicador de overtime se for caso)."""
+        """Applied rate (with overtime multiplier when applicable)."""
         rate = self.hourly_rate_snapshot or Decimal('0')
         if self.is_overtime:
             return rate * self.overtime_rate
@@ -119,10 +109,8 @@ class Timesheet(models.Model):
 
     @property
     def total_cost(self):
-        """Custo total deste registo."""
+        """Total cost for this entry."""
         return round(self.computed_hours * self.effective_rate, 2)
-
-    # ── Validação ─────────────────────────────────────────
 
     def clean(self):
         if self.start_time and self.end_time:
@@ -136,10 +124,7 @@ class Timesheet(models.Model):
                 _("Enter either start/end times or a number of hours worked.")
             )
 
-    # ── Snapshot automático do valor/hora ─────────────────
-
     def save(self, *args, **kwargs):
-        # Guardar snapshot do valor/hora na data do registo (se ainda não preenchido)
         if not self.hourly_rate_snapshot and self.worker_id:
             rate_obj = self.worker.hourly_rates.filter(
                 start_date__lte=self.date,

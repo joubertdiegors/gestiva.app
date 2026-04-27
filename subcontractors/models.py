@@ -5,8 +5,8 @@ from django.utils.translation import gettext_lazy as _
 class Subcontractor(models.Model):
 
     CATEGORY_CHOICES = [
-        ('professional', _('Professionnel')),
-        ('private',      _('Privé')),
+        ('professional', _('Professional')),
+        ('private', _('Private')),
     ]
 
     STATUS_CHOICES = [
@@ -77,8 +77,8 @@ class SubcontractorAddress(models.Model):
     city        = models.CharField(_("City"), max_length=100)
     postal_code = models.CharField(_("Postal Code"), max_length=20)
     state       = models.CharField(_("State"), max_length=100, blank=True, null=True)
-    country     = models.CharField(_("Country"), max_length=100, default="Belgium")
-    is_default  = models.BooleanField(_("Default Address"), default=False)
+    country = models.CharField(_('Country'), max_length=100, default='Brazil')
+    is_default = models.BooleanField(_('Primary address'), default=False)
 
     class Meta:
         verbose_name = _("Address")
@@ -91,8 +91,8 @@ class SubcontractorAddress(models.Model):
 class SubcontractorContact(models.Model):
 
     CONTACT_TYPE_CHOICES = [
-        ('general',    _('Général')),
-        ('financial',  _('Finance')),
+        ('general', _('General')),
+        ('financial', _('Financial')),
         ('commercial', _('Commercial')),
     ]
 
@@ -108,7 +108,7 @@ class SubcontractorContact(models.Model):
     phone      = models.CharField(_("Phone"), max_length=50, blank=True, null=True)
     email      = models.EmailField(_("Email"), blank=True, null=True)
     website    = models.URLField(_("Website"), blank=True, null=True)
-    is_default = models.BooleanField(_("Main Contact"), default=False)
+    is_default = models.BooleanField(_('Primary contact'), default=False)
 
     class Meta:
         verbose_name = _("Contact")

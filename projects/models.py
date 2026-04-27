@@ -33,7 +33,6 @@ class Project(models.Model):
         related_name='projects'
     )
 
-    # 👤 Contatos do cliente responsáveis pelo projeto
     contacts = models.ManyToManyField(
         'clients.ClientContact',
         verbose_name=_("Contacts"),
@@ -43,7 +42,6 @@ class Project(models.Model):
 
     address = models.TextField(_("Address"), blank=True)
 
-    # 👥 Responsáveis
     managers = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         verbose_name=_("Managers"),
@@ -51,20 +49,16 @@ class Project(models.Model):
         blank=True
     )
 
-    # 📅 Datas
     start_date = models.DateField(_("Start date"), null=True, blank=True)
     end_date = models.DateField(_("End date"), null=True, blank=True)
 
-    # 📝 Informações
     notes = models.TextField(_("Notes"), blank=True, null=True)
 
-    # 🔐 Registro obrigatório
     has_work_registration = models.BooleanField(
         _("Has work registration"),
         default=False
     )
 
-    # 🔗 Tipo de registro
     work_registration_type = models.ForeignKey(
         'projects.WorkRegistrationType',
         verbose_name=_("Registration type"),
@@ -73,7 +67,6 @@ class Project(models.Model):
         null=True
     )
 
-    # 🔢 Número do registro
     work_registration_number = models.CharField(
         _("Registration number"),
         max_length=100,
@@ -81,7 +74,6 @@ class Project(models.Model):
         null=True
     )
 
-    # 🔄 Status
     status = models.CharField(
         _("Status"),
         max_length=20,
@@ -89,7 +81,6 @@ class Project(models.Model):
         default='active'
     )
 
-    # 🔐 Auditoria
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("Created by"),
@@ -110,14 +101,12 @@ class Project(models.Model):
     updated_at = models.DateTimeField(_("Updated at"), auto_now=True)
 
     def clean(self):
-        # 🔥 REGRA 1 — Datas válidas
         if self.start_date and self.end_date:
             if self.end_date < self.start_date:
                 raise ValidationError({
                     'end_date': _("End date cannot be before start date.")
                 })
 
-        # 🔥 REGRA 2 — Registro obrigatório
         if self.has_work_registration:
             if not self.work_registration_type:
                 raise ValidationError({
@@ -128,7 +117,6 @@ class Project(models.Model):
                     'work_registration_number': _("Enter the registration number.")
                 })
         else:
-            # 🔥 LIMPA dados se não for obrigatório
             self.work_registration_type = None
             self.work_registration_number = None
 

@@ -102,6 +102,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.i18n',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -157,19 +158,20 @@ LOCALE_PATHS = [
     os.path.join(BASE_DIR, 'locale'),
 ]
 
-LANGUAGE_CODE = 'en'
+# UI locale: Brazilian Portuguese (msgids in code remain English where gettext is used)
+LANGUAGE_CODE = 'pt-br'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
 USE_TZ = True
 
 LANGUAGES = [
-    ('fr', 'Français'),
-    ('nl', 'Nederlands'),
-    ('en', 'English'),
-    ('pt-br', 'Português (Brasil)'),
+    ('pt-br', _('Portuguese (Brazil)')),
+    ('en', _('English')),
+    ('fr', _('French')),
+    ('nl', _('Dutch')),
 ]
 
 DATE_INPUT_FORMATS = ['%Y-%m-%d']

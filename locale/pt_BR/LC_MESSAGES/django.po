@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Construart\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-19 02:00+0200\n"
-"PO-Revision-Date: 2026-04-17 00:00+0000\n"
+"POT-Creation-Date: 2026-04-28 01:24+0200\n"
+"PO-Revision-Date: 2026-04-28 01:10\n"
 "Last-Translator: Construart\n"
 "Language-Team: Portuguese (Brazil)\n"
 "Language: pt_BR\n"
@@ -39,40 +39,43 @@ msgstr "Descrição"
 msgid "Cor"
 msgstr "Cor"
 
-msgid "Grupo"
+msgid "Group"
 msgstr "Grupo"
 
-msgid "Laranja"
+msgid "Description"
+msgstr "Descrição"
+
+msgid "Color"
+msgstr "Cor"
+
+msgid "Orange"
 msgstr "Laranja"
 
-msgid "Verde"
+msgid "Green"
 msgstr "Verde"
 
-msgid "Amarelo"
-msgstr "Amarelo"
+msgid "Amber"
+msgstr "Âmbar"
 
-msgid "Vermelho"
+msgid "Red"
 msgstr "Vermelho"
 
-msgid "Cinzento"
+msgid "Gray"
 msgstr "Cinza"
 
-msgid "Perfil de Acesso"
-msgstr "Perfil de Acesso"
-
-msgid "Perfis de Acesso"
-msgstr "Perfis de Acesso"
-
-msgid "Telefone"
-msgstr "Telefone"
-
-msgid "Perfil de acesso"
+msgid "Access profile"
 msgstr "Perfil de acesso"
 
-msgid "Utilizador"
+msgid "Access profiles"
+msgstr "Perfis de acesso"
+
+msgid "Phone"
+msgstr "Telefone"
+
+msgid "User"
 msgstr "Usuário"
 
-msgid "Utilizadores"
+msgid "Users"
 msgstr "Usuários"
 
 msgid "Projetos"
@@ -92,6 +95,9 @@ msgstr "Planejamento"
 
 msgid "Timesheets"
 msgstr "Folhas de Horas"
+
+msgid "Utilizadores"
+msgstr "Usuários"
 
 msgid "Ver"
 msgstr "Ver"
@@ -144,6 +150,9 @@ msgstr "Não disponível"
 msgid "Desmarcar tudo"
 msgstr "Desmarcar tudo"
 
+msgid "Perfis de Acesso"
+msgstr "Perfis de Acesso"
+
 msgid "Defina o que cada perfil pode ver e fazer no sistema"
 msgstr "Defina o que cada perfil pode ver e fazer no sistema"
 
@@ -194,6 +203,12 @@ msgstr "Nome de usuário"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Telefone"
+msgstr "Telefone"
+
+msgid "Perfil de acesso"
+msgstr "Perfil de acesso"
 
 msgid "Perfil"
 msgstr "Perfil"
@@ -253,6 +268,9 @@ msgstr "Inativos"
 
 msgid "Limpar"
 msgstr "Limpar"
+
+msgid "Utilizador"
+msgstr "Usuário"
 
 msgid "Estado"
 msgstr "Status"
@@ -343,115 +361,1047 @@ msgstr "Editar Perfil"
 msgid "Perfil '%(name)s' eliminado."
 msgstr "Perfil '%(name)s' excluído."
 
-msgid "Privé"
-msgstr "Privado"
+msgid "Data de emissão"
+msgstr "Data de emissão"
 
-msgid "Professionnel"
-msgstr "Profissional"
+msgid "Válido até"
+msgstr "Válido até"
 
-msgid "Monsieur"
-msgstr "Senhor"
+msgid "Draft"
+msgstr "Rascunho"
 
-msgid "Madame"
-msgstr "Senhora"
+msgid "Sent"
+msgstr "Enviado"
 
-msgid "Entreprise"
-msgstr "Empresa"
+msgid "Approved"
+msgstr "Aprovado"
 
-msgid "Raison sociale"
-msgstr "Razão social"
+msgid "Rejected"
+msgstr "Rejeitado"
 
-msgid "Nom commercial"
-msgstr "Nome comercial"
+msgid "Expired"
+msgstr "Expirado"
 
-msgid "Catégorie"
-msgstr "Categoria"
+msgid "Number"
+msgstr "Número"
 
-msgid "Forme juridique"
-msgstr "Forma jurídica"
-
-msgid "TVA"
-msgstr "CNPJ / NIF"
-
-msgid "Taxe TVA (%)"
-msgstr "Taxa IVA (%)"
-
-msgid "Responsable"
-msgstr "Responsável"
-
-msgid "Informations"
-msgstr "Informações"
-
-msgid "Actif"
-msgstr "Ativo"
-
-msgid "Créé le"
-msgstr "Criado em"
-
-msgid "Mis à jour le"
-msgstr "Atualizado em"
+msgid "Title"
+msgstr "Título"
 
 msgid "Client"
 msgstr "Cliente"
 
+msgid "Project / site"
+msgstr "Projeto / local"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Issue date"
+msgstr "Data de emissão"
+
+msgid "Valid until"
+msgstr "Válido até"
+
+msgid "Global margin (%)"
+msgstr "Margem global (%)"
+
+msgid "If set, overrides each line's margin."
+msgstr "Se definido, substitui a margem de cada linha."
+
+msgid "Global discount (%)"
+msgstr "Desconto global (%)"
+
+msgid "Default VAT (%)"
+msgstr "IVA padrão (%)"
+
+msgid "Default for new items. Each item may have its own VAT rate."
+msgstr "Padrão para novos itens. Cada item pode ter sua própria taxa de IVA."
+
+msgid "Internal notes"
+msgstr "Notas internas"
+
+msgid "Notes for client"
+msgstr "Notas para o cliente"
+
+msgid "Payment terms"
+msgstr "Condições de pagamento"
+
+msgid "E.g. 30% on signature, 40% at start, 30% on delivery."
+msgstr "Por exemplo 30% na assinatura, 40% no início, 30% na entrega."
+
+msgid "Created by"
+msgstr "Criado por"
+
+msgid "Sent at"
+msgstr "Enviado em"
+
+msgid "Budget"
+msgstr "Orçamento"
+
+msgid "Budgets"
+msgstr "Orçamentos"
+
+msgid "Parent chapter"
+msgstr "Capítulo pai"
+
+msgid "Order"
+msgstr "Ordem"
+
+msgid "Chapter"
+msgstr "Capítulo"
+
+msgid "Chapters"
+msgstr "Capítulos"
+
+msgid "Service"
+msgstr "Serviço"
+
+msgid "Service (snapshot)"
+msgstr "Serviço (instantâneo)"
+
+msgid "Code"
+msgstr "Código"
+
+msgid "Unit"
+msgstr "Unidade"
+
+msgid "Description (override)"
+msgstr "Descrição (substituir)"
+
+msgid "Quantity"
+msgstr "Quantidade"
+
+msgid "Unit price (override)"
+msgstr "Preço unitário (substituir)"
+
+msgid "If set, replaces the catalog-calculated unit price."
+msgstr "Se definido, substitui o preço unitário calculado pelo catálogo."
+
+msgid "Labor cost / unit"
+msgstr "Custo de mão de obra/unidade"
+
+msgid "Margin (%)"
+msgstr "Margem (%)"
+
+msgid "Discount (%)"
+msgstr "Desconto (%)"
+
+msgid "VAT (%)"
+msgstr "IVA (%)"
+
+msgid "Budget line"
+msgstr "Linha de orçamento"
+
+msgid "Budget lines"
+msgstr "Linhas orçamentárias"
+
+msgid "Product"
+msgstr "Produto"
+
+msgid "Supplier"
+msgstr "Fornecedor"
+
+msgid "Product (snapshot)"
+msgstr "Produto (instantâneo)"
+
+msgid "Unit (snapshot)"
+msgstr "Unidade (instantâneo)"
+
+msgid "Unit price excl. VAT (snapshot)"
+msgstr "Preço unitário excluindo IVA (instantâneo)"
+
+msgid "Price frozen when the budget was issued."
+msgstr "Preço congelado quando o orçamento foi emitido."
+
+msgid "Line material"
+msgstr "Material de linha"
+
+msgid "Line materials"
+msgstr "Materiais de linha"
+
+msgid "Orçamentos"
+msgstr "Orçamentos"
+
+msgid "Editar / Itens"
+msgstr "Editar / Itens"
+
+msgid "← Lista"
+msgstr "← Lista"
+
+msgid "Informações"
+msgstr "Informações"
+
+msgid "Cliente"
+msgstr "Cliente"
+
+msgid "Obra / Projecto"
+msgstr "Obra / Projeto"
+
+msgid "Margem global"
+msgstr "Margem global"
+
+msgid "Desconto global"
+msgstr "Desconto global"
+
+msgid "IVA padrão"
+msgstr "IVA padrão"
+
+msgid "Cond. pagamento"
+msgstr "Cond. pagamento"
+
+msgid "Notas internas"
+msgstr "Notas internas"
+
+msgid "Notas p/ cliente"
+msgstr "Notas p/ cliente"
+
+msgid "Resumo Financeiro"
+msgstr "Resumo Financeiro"
+
+msgid "Subtotal custo"
+msgstr "Custo subtotal"
+
+msgid "Subtotal HT"
+msgstr "Subtotal HT"
+
+msgid "Desconto"
+msgstr "Desconto"
+
+msgid "Total HT"
+msgstr "HT total"
+
+msgid "IVA"
+msgstr "IVA"
+
+msgid "Margem bruta"
+msgstr "Margem bruta"
+
+msgid "Total TTC"
+msgstr "Total de TTC"
+
+msgid "Itens do Orçamento"
+msgstr "Itens do Orçamento"
+
+msgid "Gerir itens"
+msgstr "Gerir itens"
+
+msgid "Unid."
+msgstr "Unidade."
+
+msgid "Qtd"
+msgstr "Qtd"
+
+msgid "P. Unit."
+msgstr "P. Unidade."
+
+#, python-format
+msgid "Desc.%%"
+msgstr "Desc.%%"
+
+#, python-format
+msgid "IVA%%"
+msgstr "IVA%%"
+
+msgid "Nenhum item. "
+msgstr "Nenhum item. "
+
+msgid "Adicionar →"
+msgstr "Adicionar→"
+
+msgid "Ver resumo"
+msgstr "Ver resumo"
+
+msgid "Capítulos e Itens"
+msgstr "Capítulos e Itens"
+
+msgid "Dados do Orçamento"
+msgstr "Dados do Orçamento"
+
+msgid "Estrutura"
+msgstr "Estrutura"
+
+msgid "Capítulo"
+msgstr "Capítulo"
+
+msgid "Item"
+msgstr "Item"
+
+msgid "Unidade"
+msgstr "Unidade"
+
+msgid "Preço unit."
+msgstr "Preço unit."
+
+msgid "Identificação"
+msgstr "Identificação"
+
+msgid "Número"
+msgstr "Número"
+
+msgid "Título"
+msgstr "Título"
+
+msgid "Obra"
+msgstr "Obra"
+
+msgid "Emissão"
+msgstr "Emissão"
+
+msgid "Financeiro"
+msgstr "Financeiro"
+
+#, python-format
+msgid "Margem global (%%)"
+msgstr "Margem global (%%)"
+
+#, python-format
+msgid "Desconto global (%%)"
+msgstr "Desconto global (%%)"
+
+#, python-format
+msgid "IVA padrão (%%)"
+msgstr "IVA padrão (%%)"
+
+msgid "Condições de pagamento"
+msgstr "Condições de pagamento"
+
+msgid "Notas"
+msgstr "Notas"
+
+msgid "Notas para o cliente"
+msgstr "Notas para o cliente"
+
+msgid "Resumo"
+msgstr "Resumo"
+
+msgid "Novo Capítulo"
+msgstr "Novo Capítulo"
+
+msgid "Capítulo pai"
+msgstr "Capítulo pai"
+
+msgid "Raiz"
+msgstr "Raiz"
+
+msgid "Novo Item"
+msgstr "Novo item"
+
+msgid "Serviço"
+msgstr "Serviço"
+
+msgid "Seleccione um serviço"
+msgstr "Selecione um serviço"
+
+msgid "Sem capítulo"
+msgstr "Sem capítulo"
+
+msgid "Descrição (override)"
+msgstr "Descrição (override)"
+
+msgid "Opcional — substitui a descrição do catálogo"
+msgstr "Opcional — substitui a descrição do catálogo"
+
+msgid "Quantidade"
+msgstr "Quantidade"
+
+msgid "Custo M.O. / unid."
+msgstr "Custo M.O. / unid."
+
+#, python-format
+msgid "Margem (%%)"
+msgstr "Margem (%%)"
+
+#, python-format
+msgid "Desconto item (%%)"
+msgstr "Desconto no item (%%)"
+
+#, python-format
+msgid "IVA (%%)"
+msgstr "IVA (%%)"
+
+msgid "Preço unit. (override)"
+msgstr "Preço unit. (override)"
+
+msgid "Automático"
+msgstr "Automático"
+
+msgid "Deixe em branco para usar o preço calculado."
+msgstr "Deixe em branco para usar o preço calculado."
+
+msgid "Dados do catálogo"
+msgstr "Dados do catálogo"
+
+msgid "Custo total/unit"
+msgstr "Custo total/unidade"
+
+msgid "Preço sugerido"
+msgstr "Preço sugerido"
+
+msgid "Editar Capítulo"
+msgstr "Editar Capítulo"
+
+msgid "Título obrigatório."
+msgstr "Título obrigatório."
+
+msgid "Editar Item"
+msgstr "Editar item"
+
+msgid "Seleccione um serviço."
+msgstr "Selecione um serviço."
+
+msgid "Quantidade obrigatória."
+msgstr "Quantidade obrigatória."
+
+msgid "Margem obrigatória."
+msgstr "Margem obrigatória."
+
+msgid "Erro de ligação."
+msgstr "Erro de conexão."
+
+msgid "Eliminar este item?"
+msgstr "Excluir este item?"
+
+msgid "Nenhum item. Clique em «+ Item» para adicionar."
+msgstr "Nenhum item. Clique em «+ Item» para adicionar."
+
+msgid "Eliminar este capítulo?"
+msgstr "Excluir este capítulo?"
+
+msgid "Novo Orçamento"
+msgstr "Novo Orçamento"
+
+msgid "Editar Orçamento"
+msgstr "Editar Orçamento"
+
+msgid "Novo"
+msgstr "novo"
+
+msgid ""
+"Preencha os dados do orçamento. Os itens/capítulos são adicionados após "
+"guardar."
+msgstr ""
+"Preencha os dados do orçamento. Os itens/capítulos são adicionados após "
+"salvar."
+
+msgid "← Voltar"
+msgstr "← Voltar"
+
+msgid "Criar obra rápida"
+msgstr "Criar obra rápida"
+
+msgid "Nova obra"
+msgstr "Nova obra"
+
+msgid "Seleccione um projecto/obra existente ou crie um novo."
+msgstr "Selecione um projeto/obra existente ou crie um novo."
+
+msgid "Datas e Validade"
+msgstr "Dados e Validade"
+
+msgid "Condições Financeiras"
+msgstr "Condições Financeiras"
+
+msgid "Se preenchida, substitui a margem de cada item."
+msgstr "Se preenchido, substitua a margem de cada item."
+
+msgid "Pré-preenchido em cada novo item."
+msgstr "Pré-preenchido em cada novo item."
+
+msgid "Não aparecem no documento enviado ao cliente."
+msgstr "Não aparecem no documento enviado ao cliente."
+
+msgid "Aparecem no documento do orçamento."
+msgstr "Aparecem no documento do orçamento."
+
+msgid "Guardar e adicionar itens →"
+msgstr "Salvar e adicionar itens →"
+
+msgid "Nova Obra / Projecto"
+msgstr "Nova Obra / Projeto"
+
+msgid "Nome da obra"
+msgstr "Nome da obra"
+
+msgid "Criar"
+msgstr "Criar"
+
+msgid "Sem obra"
+msgstr "Sem obra"
+
+msgid "Seleccione o cliente primeiro."
+msgstr "Selecione o cliente primeiro."
+
+msgid "Nome obrigatório."
+msgstr "Nome obrigatório."
+
+msgid "Repor colunas"
+msgstr "Relatório colunas"
+
+msgid "Configurar colunas"
+msgstr "Configurar colunas"
+
+msgid "Novo orçamento"
+msgstr "Novo orçamento"
+
+msgid "Acções em lote:"
+msgstr "Acções em lote:"
+
+msgid "Eliminar seleccionados"
+msgstr "Excluir seleccionados"
+
+msgid "Validade"
+msgstr "Validade"
+
+msgid "Margem"
+msgstr "Margem"
+
+msgid "Todos"
+msgstr "Todos"
+
+msgid "Rascunho"
+msgstr "Rascunho"
+
+msgid "Enviado"
+msgstr "Enviado"
+
+msgid "Aprovado"
+msgstr "Aprovado"
+
+msgid "Recusado"
+msgstr "Recusado"
+
+msgid "Expirado"
+msgstr "Expirado"
+
+msgid "Eliminar este orçamento?"
+msgstr "Excluir este orçamento?"
+
+msgid "Nenhum orçamento encontrado."
+msgstr "Nenhum orçamento encontrado."
+
+msgid "Criar primeiro orçamento →"
+msgstr "Criar primeiro orçamento →"
+
+msgid "orçamento(s)? Esta ação não pode ser desfeita."
+msgstr "orçamento(s)? Esta ação não pode ser desfeita."
+
+msgid "Acção em lote disponível na próxima versão."
+msgstr "Acção em lote disponível na próxima versão."
+
+msgid "Editar capítulo"
+msgstr "Editar capítulo"
+
+msgid "Eliminar capítulo"
+msgstr "Excluir capítulo"
+
+msgid "Cliente e nome são obrigatórios."
+msgstr "Cliente e nome são obrigatórios."
+
+msgid "Capítulo tem itens associados."
+msgstr "Capítulo tem itens associados."
+
+msgid "Capítulo tem sub-capítulos. Elimine-os primeiro."
+msgstr "Capítulo tem sub-capítulos. Elimine-os primeiro."
+
+msgid "— Sem categoria pai —"
+msgstr "— Sem categoria pai —"
+
+msgid "— Sem categoria —"
+msgstr "— Sem categoria —"
+
+msgid "Symbol"
+msgstr "Símbolo"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "Unit of measure"
+msgstr "Unidade de medida"
+
+msgid "Units of measure"
+msgstr "Unidades de medida"
+
+msgid "Parent category"
+msgstr "Categoria pai"
+
+msgid "Active"
+msgstr "Ativo"
+
+msgid "Product category"
+msgstr "Categoria de produto"
+
+msgid "Product categories"
+msgstr "Categorias de produtos"
+
+msgid "Product name"
+msgstr "Nome do produto"
+
+msgid "Brand"
+msgstr "Marca"
+
+msgid "Barcode"
+msgstr "Código de barras"
+
+msgid "Category"
+msgstr "Categoria"
+
+msgid "Base unit"
+msgstr "Unidade básica"
+
+msgid "Internal reference unit, e.g. kg, m², ea."
+msgstr "Unidade de referência interna, por ex. kg, m², ea."
+
+msgid "VAT rate (%)"
+msgstr "Taxa de IVA (%)"
+
+msgid "Sale margin (%)"
+msgstr "Margem de venda (%)"
+
+msgid "Notes"
+msgstr "Observações"
+
+msgid "Product active"
+msgstr "Produto ativo"
+
+msgid "Only approved products appear in quotes."
+msgstr "Somente produtos aprovados aparecem entre aspas."
+
+msgid "Products"
+msgstr "Produtos"
+
+msgid "Categorias de Produtos"
+msgstr "Categorias de Produtos"
+
+msgid "Catálogo"
+msgstr "Catálogo"
+
+msgid "Categorias"
+msgstr "Categorias"
+
+msgid "Hierarquia de categorias para organizar o catálogo."
+msgstr "Hierarquia de categorias para organizar o catálogo."
+
+msgid "Nova categoria"
+msgstr "Nova categoria"
+
+msgid "Nome"
+msgstr "Nome"
+
+msgid "Categoria pai"
+msgstr "Categoria pai"
+
+msgid "Produtos"
+msgstr "Produtos"
+
+msgid "Activa"
+msgstr "Ativo"
+
+msgid "Inactiva"
+msgstr "Inativa"
+
+msgid "Nenhuma categoria registada. Clique em «Nova categoria» para começar."
+msgstr "Nenhuma categoria registada. Clique em «Nova categoria» para começar."
+
+msgid "Fechar"
+msgstr "Fechar"
+
+msgid "Sem categoria pai (raiz)"
+msgstr "Sem categoria pai (raiz)"
+
+msgid "Categoria activa"
+msgstr "Categoria ativa"
+
+msgid "Editar categoria"
+msgstr "Editar categoria"
+
+msgid "A guardar…"
+msgstr "A salvar…"
+
+msgid "O nome é obrigatório."
+msgstr "O nome é obrigatório."
+
+msgid "Erro de ligação. Tente novamente."
+msgstr "Erro de conexão. Tente novamente."
+
+msgid "Eliminar esta categoria?"
+msgstr "Excluir esta categoria?"
+
+msgid "Nenhuma categoria registada."
+msgstr "Nenhuma categoria registada."
+
+msgid "Excluir este produto? Esta ação não pode ser desfeita."
+msgstr "Excluir este produto? Esta ação não pode ser desfeita."
+
+msgid "Excluir"
+msgstr "Excluir"
+
+msgid "Este produto está em uso e não pode ser excluído."
+msgstr "Este produto está em uso e não pode ser excluído."
+
+msgid "Activo"
+msgstr "Ativo"
+
+msgid "Inactivo"
+msgstr "Inativo"
+
+msgid "Pendente"
+msgstr "Pendente"
+
+msgid "Categoria"
+msgstr "Categoria"
+
+msgid "Unidade base"
+msgstr "Unidade básica"
+
+msgid "Código de barras"
+msgstr "Código de barras"
+
+msgid "Margem de venda"
+msgstr "Margem de venda"
+
+msgid "Melhor preço de compra HT"
+msgstr "Melhor preço de compra HT"
+
+msgid "Preço de venda HT"
+msgstr "Preço de venda HT"
+
+msgid "Preço de venda TTC"
+msgstr "Preço de venda TTC"
+
+msgid "Observações"
+msgstr "Observações"
+
+msgid "Criado por"
+msgstr "Criado por criado"
+
+msgid "Ofertas de fornecedores"
+msgstr "Ofertas de fornecedores"
+
+msgid "Adicionar preço"
+msgstr "Adicionar preço"
+
+msgid "Ver fornecedores"
+msgstr "Ver fornecedores"
+
+msgid "Fornecedor"
+msgstr "Fornecedor"
+
+msgid "Ref. fornecedor"
+msgstr "Ref. fornecedor"
+
+msgid "Preço unit. HT"
+msgstr "Preço unit. HT"
+
+msgid "Embalagem"
+msgstr "Embalagem"
+
+msgid "Preferido"
+msgstr "Preferido"
+
+msgid "Sim"
+msgstr "Sim"
+
+msgid "Não"
+msgstr "Não"
+
+msgid "Nenhum fornecedor associado a este produto."
+msgstr "Nenhum fornecedor associado a este produto."
+
+msgid "Preço por fornecedor"
+msgstr "Preço por fornecedor"
+
+msgid "— selecione —"
+msgstr "— selecione —"
+
+msgid "Lead time (dias)"
+msgstr "Prazo de entrega (dias)"
+
+msgid "Qtd por embalagem"
+msgstr "Qtd por embalagem"
+
+msgid "Unid. embalagem"
+msgstr "Unidade. embalagem"
+
+msgid "—"
+msgstr "-"
+
+msgid "Qtd mínima"
+msgstr "Qtd mínima"
+
+msgid "Descrição fornecedor"
+msgstr "Descrição fornecedor"
+
+msgid "Válido de"
+msgstr "Válido de"
+
+msgid "Motivo (histórico)"
+msgstr "Motivo (histórico)"
+
+msgid "Ex: tabela 2026, negociação…"
+msgstr "Ex: tabela 2026, negociação…"
+
+msgid "Histórico de preço"
+msgstr "Histórico de preço"
+
+msgid "Data"
+msgstr "Data"
+
+msgid "Preço"
+msgstr "Preço"
+
+msgid "Por"
+msgstr "Por"
+
+msgid "Motivo"
+msgstr "Motivo"
+
+msgid "Carregando…"
+msgstr "Carregando…"
+
+msgid "Editar preço"
+msgstr "Editar preço"
+
+msgid "Novo preço"
+msgstr "Novo preço"
+
+msgid "Corrija os campos em vermelho."
+msgstr "Corrija os campos em vermelho."
+
+msgid "Erro ao guardar. Tente novamente."
+msgstr "Erro ao salvar. Tente novamente."
+
+msgid "Eliminar este preço?"
+msgstr "Excluir este preço?"
+
+msgid "Sem histórico ainda."
+msgstr "Sem histórico ainda."
+
+msgid "Erro ao carregar histórico."
+msgstr "Erro ao carregar histórico."
+
+msgid "Produto canónico — o fornecedor é vinculado via Procurement."
+msgstr "Produto canónico — o fornecedor é vinculado via Procurement."
+
+msgid "← Cancelar"
+msgstr "← Cancelar"
+
+msgid "Marca"
+msgstr "Marca"
+
+msgid "Ex: kg, m², un — unidade interna de referência."
+msgstr "Ex: kg, m², un — unidade interna de referência."
+
+msgid "Preços e IVA"
+msgstr "Preços e IVA"
+
+#, python-format
+msgid "Taxa IVA (%%)"
+msgstr "Taxa IVA (%%)"
+
+#, python-format
+msgid "IVA belga: 0, 6, 12 ou 21%%"
+msgstr "IVA belga: 0, 6, 12 ou 21%%"
+
+#, python-format
+msgid "Margem de venda (%%)"
+msgstr "Margem de venda (%%)"
+
+msgid "Aplicada sobre o melhor preço de compra."
+msgstr "Aplicada sobre o melhor preço de compra."
+
+msgid "Produto activo"
+msgstr "Produto ativo"
+
+msgid "Aprovado para orçamentos"
+msgstr "Aprovado para orçamentos"
+
+msgid "Criar produto"
+msgstr "Criar produto"
+
+msgid "Catálogo canónico de materiais e produtos."
+msgstr "Catálogo canónico de materiais e produtos."
+
+msgid "Novo produto"
+msgstr "Novo produto"
+
+msgid "Pesquisar nome, marca, código barras…"
+msgstr "Pesquisar nome, marca, código barras…"
+
+msgid "Todas as categorias"
+msgstr "Todas as categorias"
+
+msgid "Produto"
+msgstr "Produto"
+
+#, python-format
+msgid ""
+"\n"
+"      %(start)s–%(end)s de %(count)s produtos\n"
+"      "
+msgstr ""
+"\n"
+"      %(start)s–%(end)s de %(count)s produtos\n"
+"      "
+
+msgid "Nenhum produto encontrado com esses filtros."
+msgstr "Nenhum produto encontrado com esses filtros."
+
+msgid "Limpar filtros"
+msgstr "Limpar filtros"
+
+msgid "Ainda não há produtos no catálogo."
+msgstr "Ainda não há produtos no catálogo."
+
+msgid "Criar primeiro produto"
+msgstr "Criar primeiro produto"
+
+msgid "Unidades de Medida"
+msgstr "Unidades de Medida"
+
+msgid "Unidades base utilizadas em produtos e serviços."
+msgstr "Unidades base utilizadas em produtos e serviços."
+
+msgid "Nova unidade"
+msgstr "Nova unidade"
+
+msgid "Símbolo"
+msgstr "Símbolo"
+
+msgid "Nenhuma unidade registada. Clique em «Nova unidade» para começar."
+msgstr "Nenhuma unidade registada. Clique em «Nova unidade» para começar."
+
+msgid "Quilograma, Metro quadrado…"
+msgstr "Quilograma, Metro quadrado…"
+
+msgid "Editar unidade"
+msgstr "Editar unidade"
+
+msgid "Símbolo e Nome são obrigatórios."
+msgstr "Símbolo e Nome são obrigatórios."
+
+msgid "Eliminar esta unidade de medida?"
+msgstr "Excluir esta unidade de medida?"
+
+msgid "Nenhuma unidade registada."
+msgstr "Nenhuma unidade registada."
+
+msgid "Esta unidade está em uso por produtos e não pode ser eliminada."
+msgstr "Esta unidade está em uso por produtos e não pode ser eliminada."
+
+msgid "Esta categoria tem produtos associados."
+msgstr "Esta categoria tem produtos associados."
+
+msgid "Esta categoria tem subcategorias. Elimine-as primeiro."
+msgstr "Esta categoria tem subcategorias. Elimine-as primeiro."
+
+msgid "Activos"
+msgstr "Ativos"
+
+msgid "Inactivos"
+msgstr "Inativos"
+
+msgid "Aprovados"
+msgstr "Aprovados"
+
+msgid "Pendentes"
+msgstr "Pendentes"
+
+msgid "Produto criado com sucesso."
+msgstr "Produto criado com sucesso."
+
+msgid "Produto actualizado."
+msgstr "Produto atualizado."
+
+msgid ""
+"Este produto está a ser usado (fornecedores/serviços/devis) e não pode ser "
+"eliminado."
+msgstr ""
+"Este produto está a ser usado (fornecedores/serviços/devis) e não pode ser "
+"eliminado."
+
+msgid "Este produto está a ser usado noutro registo e não pode ser eliminado."
+msgstr "Este produto está a ser usado noutro registo e não pode ser eliminado."
+
+msgid "Produto eliminado com sucesso."
+msgstr "Produto eliminado com sucesso."
+
+msgid "Private"
+msgstr "Privado"
+
+msgid "Professional"
+msgstr "Profissional"
+
+msgid "Legal name"
+msgstr "Nome legal"
+
+msgid "Trade name"
+msgstr "Nome comercial"
+
+msgid "Legal form"
+msgstr "Forma jurídica"
+
+msgid "VAT number"
+msgstr "Número de IVA"
+
+msgid "Account manager"
+msgstr "Gerente de contas"
+
+msgid "Created at"
+msgstr "Criado em"
+
+msgid "Updated at"
+msgstr "Atualizado em"
+
 msgid "Clients"
 msgstr "Clientes"
 
-msgid "Libellé"
+msgid "Label"
 msgstr "Rótulo"
 
-msgid "Rue"
+msgid "Street"
 msgstr "Rua"
 
-msgid "Numéro"
-msgstr "Número"
-
-msgid "Complément"
+msgid "Complement"
 msgstr "Complemento"
 
-msgid "Ville"
+msgid "City"
 msgstr "Cidade"
 
-msgid "Code postal"
-msgstr "CEP"
+msgid "Postal code"
+msgstr "Código postal"
 
-msgid "Région"
+msgid "State"
 msgstr "Estado"
 
-msgid "Pays"
+msgid "Country"
 msgstr "País"
 
-msgid "Adresse par défaut"
-msgstr "Endereço padrão"
+msgid "Primary address"
+msgstr "Endereço principal"
 
-msgid "Adresse"
+msgid "Address"
 msgstr "Endereço"
 
-msgid "Adresses"
+msgid "Addresses"
 msgstr "Endereços"
 
-msgid "Général"
-msgstr "Geral"
+msgid "General"
+msgstr "Em geral"
 
-msgid "Finance"
+msgid "Financial"
 msgstr "Financeiro"
 
 msgid "Commercial"
 msgstr "Comercial"
 
-msgid "Type de contact"
+msgid "Contact type"
 msgstr "Tipo de contato"
 
-msgid "Nom"
-msgstr "Nome"
-
-msgid "Téléphone"
-msgstr "Telefone"
-
-msgid "Site web"
+msgid "Website"
 msgstr "Site"
 
-msgid "Contact principal"
+msgid "Primary contact"
 msgstr "Contato principal"
 
 msgid "Contact"
@@ -463,138 +1413,513 @@ msgstr "Contatos"
 msgid "Voltar"
 msgstr "Voltar"
 
-#, fuzzy
-#| msgid "Informations"
-msgid "Informações"
-msgstr "Informações"
-
-#, fuzzy
-#| msgid "Nom commercial"
 msgid "Nome comercial"
 msgstr "Nome comercial"
 
-#, fuzzy
-#| msgid "Taxe TVA (%)"
 msgid "Taxa TVA"
-msgstr "Taxa IVA (%)"
+msgstr "Taxa TVA"
 
-#, fuzzy
-#| msgid "Responsable"
 msgid "Responsável"
 msgstr "Responsável"
 
-msgid "Notas"
-msgstr "Notas"
-
-#, fuzzy
-#| msgid "Contacts"
-msgid "Contactos"
-msgstr "Contatos"
-
-msgid "Sem contactos registados."
-msgstr "Sem contatos cadastrados."
+msgid "Sem projetos."
+msgstr "Sem projetos."
 
 msgid "Endereços"
 msgstr "Endereços"
 
+msgid "Rótulo"
+msgstr "Rótulo"
+
+msgid "Morada"
+msgstr "Endereço"
+
+msgid "Cidade"
+msgstr "Cidade"
+
 msgid "Principal"
 msgstr "Principal"
 
-msgid "Sem endereços registados."
-msgstr "Sem endereços cadastrados."
+msgid "Nenhum endereço registado."
+msgstr "Nenhum endereço registado."
 
-#, python-format
-msgid "Projetos (%(counter)s)"
-msgid_plural "Projetos (%(counter)s)"
-msgstr[0] ""
-msgstr[1] ""
+msgid "Contactos"
+msgstr "Contatos"
 
-#, fuzzy
-#| msgid "Projetos"
-msgid "Sem projetos."
-msgstr "Projetos"
+msgid "Tipo"
+msgstr "Tipo"
 
-msgid "Novo projeto para este cliente"
-msgstr "Novo projeto para este cliente"
+msgid "Nenhum contacto registado."
+msgstr "Nenhum contato registado."
 
-#, fuzzy
-#| msgid "Notificações"
-msgid "Identificação"
-msgstr "Notificações"
+msgid "Endereço"
+msgstr "Endereço"
 
-#, fuzzy
-#| msgid "Raison sociale"
-msgid "Razão social / Nome"
-msgstr "Razão social"
+msgid "Ex: Sede, Armazém…"
+msgstr "Ex: Sede, Armazém…"
 
-#, fuzzy
-#| msgid "Forme juridique"
+msgid "Rua"
+msgstr "rua"
+
+msgid "Complemento"
+msgstr "Complemento"
+
+msgid "Código Postal"
+msgstr "Código Postal"
+
+msgid "Região"
+msgstr "Região"
+
+msgid "País"
+msgstr "País"
+
+msgid "Endereço principal"
+msgstr "Endereço principal"
+
+msgid "Contacto"
+msgstr "Contato"
+
+msgid "Geral"
+msgstr "geral"
+
+msgid "Comercial"
+msgstr "Comercial"
+
+msgid "Contacto principal"
+msgstr "Contato principal"
+
+msgid "Editar endereço"
+msgstr "Editar endereço"
+
+msgid "Novo endereço"
+msgstr "Novo endereço"
+
+msgid "Eliminar este endereço?"
+msgstr "Excluir este endereço?"
+
+msgid "Editar contacto"
+msgstr "Editar contato"
+
+msgid "Novo contacto"
+msgstr "Novo contato"
+
+msgid "Eliminar este contacto?"
+msgstr "Excluir este contato?"
+
+msgid "Profissional"
+msgstr "Profissional"
+
+msgid "Privado"
+msgstr "Privado"
+
 msgid "Forma jurídica"
 msgstr "Forma jurídica"
 
-#, fuzzy
-#| msgid "Catégorie"
-msgid "Categoria"
-msgstr "Categoria"
+msgid "Número de TVA"
+msgstr "Número de TVA"
 
-msgid "Número VAT"
-msgstr "CNPJ / NIF"
-
-#, fuzzy, python-format
-#| msgid "Taxe TVA (%)"
+#, python-format
 msgid "Taxa TVA (%%)"
-msgstr "Taxa IVA (%)"
+msgstr "Taxa TVA (%%)"
 
-#, fuzzy
-#| msgid "Estado"
 msgid "Notas e Estado"
-msgstr "Status"
+msgstr "Notas e Estado"
 
-#, fuzzy
-#| msgid "Clientes"
+msgid "Notas / Informações"
+msgstr "Notas / Informações"
+
 msgid "Cliente ativo"
-msgstr "Clientes"
+msgstr "Cliente ativo"
 
-#, fuzzy
-#| msgid "Guardar"
 msgid "Guardar cliente"
-msgstr "Salvar"
+msgstr "Salvar cliente"
+
+msgid "Razão social"
+msgstr "Razão social"
+
+msgid "Nome completo"
+msgstr "Nome completo"
+
+msgid "Nome comercial / Fantasia"
+msgstr "Nome Comercial / Fantasia"
 
 msgid "Donos de obra e empresas clientes"
 msgstr "Proprietários de obra e empresas clientes"
 
-#, fuzzy
-#| msgid "Clientes"
 msgid "Novo cliente"
-msgstr "Clientes"
+msgstr "Novo cliente"
 
 msgid "Pesquisar por nome, VAT..."
 msgstr "Pesquisar por nome, CNPJ..."
 
-msgid "Todos"
-msgstr "Todos"
-
 #, python-format
 msgid "%(counter)s projeto"
 msgid_plural "%(counter)s projetos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(counter)s projeto"
+msgstr[1] "%(counter)s projetos"
 
-#, fuzzy
-#| msgid "Clientes"
 msgid "Sem clientes"
-msgstr "Clientes"
+msgstr "Sem clientes"
 
 msgid "Adicione o primeiro cliente para começar."
 msgstr "Adicione o primeiro cliente para começar."
 
-msgid "Data"
+msgid "Contatos"
+msgstr "Contatos"
+
+msgid "Todos os contatos de clientes, fornecedores e subcontratados"
+msgstr "Todos os contatos de clientes, fornecedores e subcontratados"
+
+msgid "Pesquisar nome, empresa, email, telefone..."
+msgstr "Pesquisar nome, empresa, email, telefone..."
+
+msgid "Todos os tipos"
+msgstr "Todos os tipos"
+
+msgid "Fornecedores"
+msgstr "Fornecedores"
+
+msgid "Todos os tipos de contato"
+msgstr "Todos os tipos de contato"
+
+msgid "Apenas principal"
+msgstr "Apenas principal"
+
+msgid "Origem"
+msgstr "Origem"
+
+msgid "Empresa / Entidade"
+msgstr "Empresa / Entidade"
+
+msgid "Nome do Contato"
+msgstr "Nome do contato"
+
+msgid "Empresa"
+msgstr "Empresa"
+
+msgid "Contato"
+msgstr "Contato"
+
+msgid "Sem contatos"
+msgstr "Sem contatos"
+
+msgid "Nenhum contato cadastrado ainda."
+msgstr "Nenhum contato cadastrado ainda."
+
+msgid "Nenhum resultado"
+msgstr "Nenhum resultado"
+
+msgid "Tente ajustar os filtros de pesquisa."
+msgstr "Tente ajustar os filtros de pesquisa."
+
+msgid "contato encontrado"
+msgstr "contato encontrado"
+
+msgid "contatos encontrados"
+msgstr "contatos encontrados"
+
+msgid "Subcontratado"
+msgstr "Subcontratado"
+
+msgid "Portuguese (Brazil)"
+msgstr "Português (Brasil)"
+
+msgid "English"
+msgstr "Inglês"
+
+msgid "French"
+msgstr "Francês"
+
+msgid "Dutch"
+msgstr "Neerlandês"
+
+msgid "Fleet"
+msgstr "Frota"
+
+msgid "Vehicle Category"
+msgstr "Categoria do veículo"
+
+msgid "Vehicle Categories"
+msgstr "Categorias de veículos"
+
+msgid "In Maintenance"
+msgstr "Em manutenção"
+
+msgid "Sold"
+msgstr "Vendido"
+
+msgid "Diesel"
+msgstr "Diesel"
+
+msgid "Petrol"
+msgstr "Gasolina"
+
+msgid "Electric"
+msgstr "Elétrico"
+
+msgid "Hybrid"
+msgstr "Híbrido"
+
+msgid "CNG"
+msgstr "GNV"
+
+msgid "License Plate"
+msgstr "Matrícula"
+
+msgid "Model"
+msgstr "Modelo"
+
+msgid "Year"
+msgstr "Ano"
+
+msgid "VIN / Chassis"
+msgstr "Vin/chassis"
+
+msgid "Fuel Type"
+msgstr "Tipo de combustível"
+
+msgid "Current KM"
+msgstr "Km atual"
+
+msgid "Default Driver"
+msgstr "Driver padrão"
+
+msgid "Vehicle"
+msgstr "Veículo"
+
+msgid "Vehicles"
+msgstr "Veículos"
+
+msgid "Insurance (RC / Omnium)"
+msgstr "Seguros (RC/Omnium)"
+
+msgid "Technical inspection"
+msgstr "Inspeção técnica"
+
+msgid "Registration certificate"
+msgstr "Certificado de registro"
+
+msgid "Road tax / circulation tax"
+msgstr "Imposto rodoviário / imposto de circulação"
+
+msgid "Leasing / Renting Contract"
+msgstr "Contrato de Leasing/Aluguel"
+
+msgid "Tachograph Calibration"
+msgstr "Calibração do Tacógrafo"
+
+msgid "ADR Certificate"
+msgstr "Certificado ADR"
+
+msgid "Other"
+msgstr "Outro"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Issue Date"
+msgstr "Data de emissão"
+
+msgid "Expiry Date"
+msgstr "Data de validade"
+
+msgid "Insurer / Entity"
+msgstr "Seguradora / Entidade"
+
+msgid "Reference / Policy No."
+msgstr "Referência/Política No."
+
+msgid "Cost (€)"
+msgstr "Custo (€)"
+
+msgid "File"
+msgstr "Arquivo"
+
+msgid "Vehicle Document"
+msgstr "Documento do veículo"
+
+msgid "Vehicle Documents"
+msgstr "Documentos do veículo"
+
+msgid "Preventive"
+msgstr "Preventivo"
+
+msgid "Corrective"
+msgstr "Corretivo"
+
+msgid "Scheduled"
+msgstr "Agendado"
+
+msgid "In Progress"
+msgstr "Em andamento"
+
+msgid "Done"
+msgstr "Feito"
+
+msgid "Scheduled Date"
+msgstr "Data agendada"
+
+msgid "Completed Date"
+msgstr "Data de conclusão"
+
+msgid "KM at Service"
+msgstr "KM em serviço"
+
+msgid "Next Service KM"
+msgstr "Próximo serviço KM"
+
+msgid "Workshop / Garage"
+msgstr "Oficina / Garagem"
+
+msgid "Invoice Ref."
+msgstr "Ref. da fatura"
+
+msgid "Maintenance"
+msgstr "Manutenção"
+
+msgid "Maintenances"
+msgstr "Manutenção"
+
+msgid "Driver"
+msgstr "Motorista"
+
+msgid "Date"
 msgstr "Data"
 
-#, fuzzy
-#| msgid "Utilizador"
+msgid "KM at Fueling"
+msgstr "KM no abastecimento"
+
+msgid "Liters"
+msgstr "Litros"
+
+msgid "Price / Liter (€)"
+msgstr "Preço / Litro (€)"
+
+msgid "Total Cost (€)"
+msgstr "Custo Total (€)"
+
+msgid "Station"
+msgstr "Estação"
+
+msgid "Full Tank"
+msgstr "Tanque cheio"
+
+msgid "Fueling"
+msgstr "Abastecendo"
+
+msgid "Fuelings"
+msgstr "Abastecimentos"
+
+msgid "Pending"
+msgstr "Pendente"
+
+msgid "Paid"
+msgstr "Pago"
+
+msgid "Contested"
+msgstr "Contestado"
+
+msgid "Offence Date"
+msgstr "Data da Ofensa"
+
+msgid "Location"
+msgstr "Localização"
+
+msgid "Offence Description"
+msgstr "Descrição da ofensa"
+
+msgid "Amount (€)"
+msgstr "Montante (€)"
+
+msgid "Penalty Points"
+msgstr "Pontos de Penalidade"
+
+msgid "Reference / PV No."
+msgstr "Referência / PV No."
+
+msgid "Payment Date"
+msgstr "Data de Pagamento"
+
+msgid "Deduct from Payroll"
+msgstr "Deduzir da folha de pagamento"
+
+msgid "Payroll Deducted"
+msgstr "Folha de pagamento deduzida"
+
+msgid "Payroll Deduction Date"
+msgstr "Data de desconto na folha de pagamento"
+
+msgid "Fine"
+msgstr "Multa"
+
+msgid "Fines"
+msgstr "Multas"
+
+msgid "Toll (Viapass / Telepass)"
+msgstr "Portagem (Viapass/Telepass)"
+
+msgid "Parking"
+msgstr "Estacionamento"
+
+msgid "Car Wash"
+msgstr "Lavagem"
+
+msgid "Tax / Fee"
+msgstr "Imposto / Taxa"
+
+msgid "Tyre"
+msgstr "Pneu"
+
+msgid "Vehicle Expense"
+msgstr "Despesa com veículo"
+
+msgid "Vehicle Expenses"
+msgstr "Despesas com veículos"
+
+msgid "New Vehicle"
+msgstr "Novo veículo"
+
+msgid "Edit Vehicle"
+msgstr "Editar veículo"
+
+msgid "New Category"
+msgstr "Nova categoria"
+
+msgid "Edit Category"
+msgstr "Editar categoria"
+
+msgid "Add Document"
+msgstr "Adicionar documento"
+
+msgid "Edit Document"
+msgstr "Editar documento"
+
+msgid "Add Maintenance"
+msgstr "Adicionar manutenção"
+
+msgid "Edit Maintenance"
+msgstr "Editar manutenção"
+
+msgid "Add Fueling"
+msgstr "Adicionar abastecimento"
+
+msgid "Edit Fueling"
+msgstr "Editar Abastecimento"
+
+msgid "Add Fine"
+msgstr "Adicionar multa"
+
+msgid "Edit Fine"
+msgstr "Editar bem"
+
+msgid "Add Expense"
+msgstr "Adicionar despesa"
+
+msgid "Edit Expense"
+msgstr "Editar despesa"
+
 msgid "Atualizar"
-msgstr "Usuário"
+msgstr "Atualizar"
 
 msgid "Apagar dia"
 msgstr "Excluir dia"
@@ -629,10 +1954,8 @@ msgstr "Clique aqui para escrever algo…"
 msgid "Obras"
 msgstr "Obras"
 
-#, fuzzy
-#| msgid "Pesquisar cliente, obra, documento…"
 msgid "Pesquisar obra, cliente, endereço…"
-msgstr "Pesquisar cliente, obra, documento…"
+msgstr "Pesquisar obra, cliente, endereço…"
 
 msgid "Todas as obras activas já estão no board."
 msgstr "Todas as obras ativas já estão no quadro."
@@ -640,23 +1963,412 @@ msgstr "Todas as obras ativas já estão no quadro."
 msgid "Funcionários"
 msgstr "Funcionários"
 
-#, fuzzy
-#| msgid "Pesquisar nome, email ou username…"
 msgid "Pesquisar nome, empresa…"
-msgstr "Pesquisar nome, e-mail ou nome de usuário…"
+msgstr "Pesquisar nome, empresa…"
 
-#, fuzzy
-#| msgid "Selecionar tudo"
 msgid "Já selecionados"
-msgstr "Selecionar tudo"
+msgstr "Já selecionados"
 
 msgid "A carregar…"
 msgstr "Carregando…"
 
-#, fuzzy
-#| msgid "Pesquisar cliente, obra, documento…"
 msgid "Pesquisar subcontratado…"
-msgstr "Pesquisar cliente, obra, documento…"
+msgstr "Pesquisar subcontratado…"
+
+msgid "Opcional. Se o preço mudar, salva no histórico."
+msgstr "Opcional. Se o preço mudar, salva no histórico."
+
+msgid "A data final deve ser maior ou igual à data inicial."
+msgstr "A data final deve ser maior ou igual à data inicial."
+
+msgid "Quantidade por embalagem deve ser maior que zero."
+msgstr "A quantidade por embalagem deve ser maior que zero."
+
+msgid "Quantidade mínima deve ser maior que zero."
+msgstr "Quantidade mínima deve ser maior que zero."
+
+msgid "Supplier reference"
+msgstr "Referência do fornecedor"
+
+msgid "Supplier description"
+msgstr "Descrição do fornecedor"
+
+msgid "Unit price excl. VAT"
+msgstr "Preço unitário excluindo CUBA"
+
+msgid "Price per base unit of the product."
+msgstr "Preço por unidade base do produto."
+
+msgid "Quantity per package"
+msgstr "Quantidade por pacote"
+
+msgid "Package unit"
+msgstr "Unidade de pacote"
+
+msgid "Minimum order quantity"
+msgstr "Quantidade mínima do pedido"
+
+msgid "Lead time (days)"
+msgstr "Prazo de entrega (dias)"
+
+msgid "Preferred supplier"
+msgstr "Fornecedor preferido"
+
+msgid "Valid from"
+msgstr "Válido a partir de"
+
+msgid "Supplier offer"
+msgstr "Oferta do fornecedor"
+
+msgid "Supplier offers"
+msgstr "Ofertas de fornecedores"
+
+msgid "Offer"
+msgstr "Oferecer"
+
+msgid "Price excl. VAT"
+msgstr "Preço sem incluir CUBA"
+
+msgid "Changed by"
+msgstr "Alterado por"
+
+msgid "Reason"
+msgstr "Razão"
+
+msgid "Price history entry"
+msgstr "Entrada no histórico de preços"
+
+msgid "Price history"
+msgstr "Histórico de preços"
+
+msgid "Partial"
+msgstr "Parcial"
+
+msgid "Closed"
+msgstr "Fechado"
+
+msgid "Cancelled"
+msgstr "Cancelado"
+
+msgid "Response due date"
+msgstr "Data de vencimento da resposta"
+
+msgid "Requested by"
+msgstr "Solicitado por"
+
+msgid "Request for quotation (RFQ)"
+msgstr "Solicitação de cotação (RFQ)"
+
+msgid "Requests for quotation (RFQ)"
+msgstr "Solicitações de cotação (RFQ)"
+
+msgid "RFQ"
+msgstr "Solicitação de cotação"
+
+msgid "Selected vendor"
+msgstr "Fornecedor selecionado"
+
+msgid "RFQ line"
+msgstr "Linha de solicitação de cotação"
+
+msgid "RFQ lines"
+msgstr "Linhas de RFQ"
+
+msgid "Answered"
+msgstr "Respondido"
+
+msgid "Declined"
+msgstr "Recusado"
+
+msgid "Message"
+msgstr "Mensagem"
+
+msgid "Payment term"
+msgstr "Prazo de pagamento"
+
+msgid "Quote valid until"
+msgstr "Orçamento válido até"
+
+msgid "Quote contact"
+msgstr "Cotar contato"
+
+msgid "Quote contact name"
+msgstr "Cite o nome do contato"
+
+msgid "Commercial contact at the supplier for this RFQ."
+msgstr "Contato comercial no fornecedor para esta RFQ."
+
+msgid "Quote contact phone"
+msgstr "Cotar telefone de contato"
+
+msgid "Quote contact email"
+msgstr "Orçamento e-mail de contato"
+
+msgid "Invited supplier"
+msgstr "Fornecedor convidado"
+
+msgid "Invited suppliers"
+msgstr "Fornecedores convidados"
+
+msgid "Answered at"
+msgstr "Respondido em"
+
+msgid "Response line"
+msgstr "Linha de resposta"
+
+msgid "Response lines"
+msgstr "Linhas de resposta"
+
+msgid "Cotações (RFQ)"
+msgstr "Cotações (RFQ)"
+
+msgid "Prazo"
+msgstr "Prazo"
+
+msgid "Incluir produto"
+msgstr "Incluir produto"
+
+msgid "Incluir fornecedor"
+msgstr "Incluir fornecedor"
+
+msgid "Enviar pedido"
+msgstr "Enviar pedido"
+
+msgid "Aplicar vencedores ao cadastro"
+msgstr "Solicitar vitórias ao cadastro"
+
+msgid "Produtos do orçamento"
+msgstr "Produtos do orçamento"
+
+msgid ""
+"Selecione produtos e depois ajuste as quantidades. Envie o pedido quando "
+"estiver pronto."
+msgstr ""
+"Selecione produtos e depois ajuste as quantidades. Envie o pedido quando "
+"estiver pronto."
+
+msgid "U.M."
+msgstr "U.M."
+
+msgid "Ações"
+msgstr "Ações"
+
+msgid "Ainda sem produtos. Use «Incluir produto» para adicionar."
+msgstr "Ainda sem produtos. Use «Incluir produto» para adicionar."
+
+msgid "Interlocutores e condições comerciais"
+msgstr "Interlocutores e condições comerciais"
+
+msgid ""
+"Dados de contacto para acompanhamento do orçamento e condições propostas por "
+"fornecedor."
+msgstr ""
+"Dados de contato para acompanhamento do orçamento e condições propostas por "
+"fornecedor."
+
+msgid "Incluir fornecedores"
+msgstr "Incluir fornecedores"
+
+msgid "Responsável (cadastro)"
+msgstr "Responsável (cadastro)"
+
+msgid "E-mail"
+msgstr "E-mail"
+
+msgid "Prazo de pagamento"
+msgstr "Prazo de pagamento"
+
+msgid "Validade do orçamento"
+msgstr "Validade do orçamento"
+
+msgid "Sem contactos no fornecedor."
+msgstr "Sem contatos no fornecedor."
+
+msgid "Ex: 30DFF"
+msgstr "Ex: 30DFF"
+
+msgid "Inclua fornecedores para solicitar orçamento."
+msgstr "Inclua fornecedores para solicitar orçamento."
+
+msgid "Matriz de cotação (comparativo por fornecedor)"
+msgstr "Matriz de cotação (comparativo por fornecedor)"
+
+msgid ""
+"O mesmo item aparece em cada fornecedor para registro de preço e comparação."
+msgstr ""
+"O mesmo item aparece em cada fornecedor para registro de preço e comparação."
+
+msgid "Produto (referência)"
+msgstr "Produto (referência)"
+
+msgid "Valor"
+msgstr "Valentia"
+
+msgid "Vencedor"
+msgstr "Vencedor"
+
+msgid "Incluir produtos no pedido"
+msgstr "Incluir produtos sem pedido"
+
+msgid "Pesquisar por nome…"
+msgstr "Pesquisar por nome…"
+
+msgid "Selecionar visíveis"
+msgstr "Selecionar visíveis"
+
+msgid "Já no pedido"
+msgstr "Já no pedido"
+
+msgid "Não há produtos ativos no catálogo."
+msgstr "Não há produtos ativos no catálogo."
+
+msgid "Incluir"
+msgstr "Incluir"
+
+msgid "Incluir fornecedores no pedido"
+msgstr "Incluir fornecedores no pedido"
+
+msgid "Não há fornecedores ativos."
+msgstr "Não há fornecedores ativos."
+
+msgid "Marque ao menos um produto que ainda não esteja no pedido."
+msgstr "Marque ao menos um produto que ainda não esteja no pedido."
+
+msgid "Não foi possível incluir produtos."
+msgstr "Não foi possível incluir produtos."
+
+msgid "Erro ao incluir produtos."
+msgstr "Erro ao incluir produtos."
+
+msgid "Marque ao menos um fornecedor que ainda não participe no pedido."
+msgstr "Marque ao menos um fornecedor que ainda não participe no pedido."
+
+msgid "Não foi possível incluir fornecedores."
+msgstr "Não foi possível incluir fornecedores."
+
+msgid "Erro ao incluir fornecedores."
+msgstr "Erro ao incluir fornecedores."
+
+msgid "Erro ao guardar."
+msgstr "Erro ao salvar."
+
+msgid "Remover este fornecedor?"
+msgstr "Remover este fornecedor?"
+
+msgid "Enviar este pedido de orçamento aos fornecedores?"
+msgstr "Enviar este pedido de orçamento aos fornecedores?"
+
+msgid "Erro ao enviar."
+msgstr "Erro ao enviar."
+
+msgid "Erro ao guardar condições."
+msgstr "Erro ao salvar condições."
+
+msgid "Erro ao guardar resposta."
+msgstr "Erro ao salvar resposta."
+
+msgid "Aplicar os vencedores selecionados ao cadastro de preços?"
+msgstr "Aplicar os vencedores selecionados ao cadastro de preços?"
+
+msgid "Erro ao aplicar."
+msgstr "Erro ao aplicar."
+
+msgid "Procurement"
+msgstr "Compras"
+
+msgid "Selecione produtos, escolha fornecedores e envie o pedido de orçamento."
+msgstr ""
+"Selecione produtos, escolha fornecedores e envie o pedido de orçamento."
+
+msgid "Nova cotação"
+msgstr "Nova cotação"
+
+msgid "Pesquisar"
+msgstr "Pesquisar"
+
+msgid "Ex: RFQ-000123"
+msgstr "Ex: RFQ-000123"
+
+msgid "Filtrar"
+msgstr "Filtrar"
+
+msgid "Criado em"
+msgstr "Criado em Criado"
+
+msgid "Abrir"
+msgstr "Abrir"
+
+msgid "Nenhuma cotação encontrada."
+msgstr "Nenhuma cotação encontrada."
+
+msgid "Anterior"
+msgstr "Anterior"
+
+msgid "Página"
+msgstr "Página"
+
+msgid "Próxima"
+msgstr "Próxima"
+
+msgid "Já existe um preço cadastrado para este fornecedor neste produto."
+msgstr "Já existe um preço cadastrado para este fornecedor neste produto."
+
+msgid "RFQ não está em rascunho."
+msgstr "RFQ não está em rascunho."
+
+msgid "Selecione um produto."
+msgstr "Selecione um produto."
+
+msgid "Informe a quantidade."
+msgstr "Informe uma quantidade."
+
+msgid "Este produto já está na lista."
+msgstr "Este produto já está na lista."
+
+msgid "Selecione ao menos 1 produto."
+msgstr "Selecione ao menos 1 produto."
+
+msgid "Os produtos selecionados já estão no pedido."
+msgstr "Os produtos selecionados já estão no pedido."
+
+msgid "Não foi possível adicionar produtos."
+msgstr "Não foi possível adicionar produtos."
+
+msgid "Selecione um fornecedor."
+msgstr "Selecione um fornecedor."
+
+msgid "Este fornecedor já foi adicionado."
+msgstr "Este fornecedor já foi adicionado."
+
+msgid "Selecione ao menos 1 fornecedor."
+msgstr "Selecione ao menos 1 fornecedor."
+
+msgid "Os fornecedores selecionados já participam no pedido."
+msgstr "Os fornecedores selecionados já participam no pedido."
+
+msgid "Não foi possível adicionar fornecedores."
+msgstr "Não foi possível adicionar fornecedores."
+
+msgid "RFQ já foi enviado ou fechado."
+msgstr "RFQ já foi enviado ou fechado."
+
+msgid "Adicione ao menos 1 produto."
+msgstr "Adicione ao menos 1 produto."
+
+msgid "Adicione ao menos 1 fornecedor."
+msgstr "Adicione ao menos 1 fornecedor."
+
+msgid "Envie o RFQ antes de registrar respostas."
+msgstr "Envie o RFQ antes das respostas do registrador."
+
+msgid "Preço inválido."
+msgstr "Preço inválido."
+
+msgid "Envie o RFQ antes de aplicar preços."
+msgstr "Envie o RFQ antes de aplicar preços."
+
+msgid "Selecione um fornecedor vencedor em pelo menos 1 item."
+msgstr "Selecione um fornecedor vencedor em pelo menos 1 item."
 
 msgid "Start date"
 msgstr "Data de início"
@@ -664,17 +2376,11 @@ msgstr "Data de início"
 msgid "End date"
 msgstr "Data de término"
 
-msgid "Name"
-msgstr "Nome"
-
 msgid "Work Registration Type"
 msgstr "Tipo de Registro de Obra"
 
 msgid "Work Registration Types"
 msgstr "Tipos de Registro de Obra"
-
-msgid "Active"
-msgstr "Ativo"
 
 msgid "Paused"
 msgstr "Pausado"
@@ -682,14 +2388,8 @@ msgstr "Pausado"
 msgid "Finished"
 msgstr "Concluído"
 
-msgid "Address"
-msgstr "Endereço"
-
 msgid "Managers"
 msgstr "Responsáveis"
-
-msgid "Notes"
-msgstr "Observações"
 
 msgid "Has work registration"
 msgstr "Possui registro de obra"
@@ -700,20 +2400,8 @@ msgstr "Tipo de registro"
 msgid "Registration number"
 msgstr "Número do registro"
 
-msgid "Status"
-msgstr "Status"
-
-msgid "Created by"
-msgstr "Criado por"
-
 msgid "Updated by"
 msgstr "Atualizado por"
-
-msgid "Created at"
-msgstr "Criado em"
-
-msgid "Updated at"
-msgstr "Atualizado em"
 
 msgid "End date cannot be before start date."
 msgstr "A data de término não pode ser anterior à data de início."
@@ -730,17 +2418,351 @@ msgstr "Projeto"
 msgid "Projects"
 msgstr "Projetos"
 
+msgid "Informações gerais"
+msgstr "Informações gerais"
+
+msgid "Nome do projeto"
+msgstr "Nome do projeto"
+
+msgid "Contactos do cliente"
+msgstr "Contatos do cliente"
+
+msgid "Morada da obra"
+msgstr "Endereço da obra"
+
+msgid "Equipa responsável"
+msgstr "Equipa responsável"
+
+msgid "Gestores"
+msgstr "Gestores"
+
+msgid "Datas"
+msgstr "Dados"
+
+msgid "Data de início"
+msgstr "Data de início"
+
+msgid "Data de fim"
+msgstr "Dados de fim"
+
+msgid "Registo de obra"
+msgstr "Registro de obra"
+
+msgid "Esta obra tem registo obrigatório"
+msgstr "Esta obra tem registo obrigatório"
+
+msgid "Tipo de registo"
+msgstr "Tipo de registro"
+
+msgid "Número de registo"
+msgstr "Número de registo"
+
+msgid "Guardar projeto"
+msgstr "Salvar projeto"
+
+msgid "Observação opcional"
+msgstr "Observação opcional"
+
+msgid "— Selecione o produto —"
+msgstr "— Selecione o produto —"
+
+msgid "Service category"
+msgstr "Categoria de serviço"
+
+msgid "Service categories"
+msgstr "Categorias de serviço"
+
+msgid "Technical description"
+msgstr "Descrição técnica"
+
+msgid "Service unit of measure"
+msgstr "Unidade de medida de serviço"
+
+msgid "Unit in which the service is measured, e.g. m², m³, m, ea."
+msgstr "Unidade em que o serviço é medido, por ex. m², m³, m, ea."
+
+msgid "Execution time / unit (minutes)"
+msgstr "Tempo de execução/unidade (minutos)"
+
+msgid "Estimated minutes to execute one unit of the service."
+msgstr "Minutos estimados para execução de uma unidade do serviço."
+
+msgid "Sale price / unit"
+msgstr "Preço de venda / unidade"
+
+msgid "Price charged to the client per unit. 0 = use suggested price."
+msgstr "Preço cobrado ao cliente por unidade. 0 = usar preço sugerido."
+
+msgid "Default margin (%)"
+msgstr "Margem padrão (%)"
+
+msgid "Can be adjusted in the quote."
+msgstr "Pode ser ajustado na cotação."
+
+msgid "Services"
+msgstr "Serviços"
+
+msgid "Quantity per service unit"
+msgstr "Quantidade por unidade de serviço"
+
+msgid "Waste / scrap (%)"
+msgstr "Resíduos/sucata (%)"
+
+msgid "Note"
+msgstr "Observação"
+
+msgid "Service material"
+msgstr "Material de serviço"
+
+msgid "Service materials"
+msgstr "Materiais de serviço"
+
+msgid "Categorias de Serviços"
+msgstr "Categorias de Serviços"
+
+msgid "Serviços"
+msgstr "Serviços"
+
+msgid "Hierarquia de categorias para organizar o catálogo de serviços."
+msgstr "Hierarquia de categorias para organizar o catálogo de serviços."
+
+msgid "Lista de Serviços"
+msgstr "Lista de Serviços"
+
+msgid "Excluir este serviço? Esta ação não pode ser desfeita."
+msgstr "Excluir este serviço? Esta ação não pode ser desfeita."
+
+msgid ""
+"Este serviço tem materiais associados e não pode ser excluído diretamente."
+msgstr ""
+"Este serviço tem materiais associados e não pode ser excluído diretamente."
+
+msgid "Código"
+msgstr "Código"
+
+msgid "Unidade de medida"
+msgstr "Unidade de medida"
+
+msgid "Tempo de execução / unidade"
+msgstr "Tempo de execução / unidade"
+
+msgid "min"
+msgstr "min"
+
+msgid "Descrição técnica"
+msgstr "Descrição técnica"
+
+msgid "Margem padrão"
+msgstr "Margem padrão"
+
+msgid "Custos e Preço"
+msgstr "Custos e Preço"
+
+msgid "Custo materiais"
+msgstr "Materiais personalizados"
+
+msgid "Custo M.O."
+msgstr "Custo M.O."
+
+msgid "Custo total estimado"
+msgstr "Custo total estimado"
+
+msgid "Preço de venda efectivo"
+msgstr "Preço de venda efectivo"
+
+msgid "automático"
+msgstr "automático"
+
+msgid "Materiais por unidade"
+msgstr "Materiais por unidade"
+
+msgid "Gerir materiais"
+msgstr "Gerir materiais"
+
+msgid "Qtd / unid."
+msgstr "Qtd / unid."
+
+msgid "Perda"
+msgstr "Perda"
+
+msgid "Qtd efectiva"
+msgstr "Qtd efetivamente"
+
+msgid "Custo"
+msgstr "Custo"
+
+msgid "Obs."
+msgstr "Obs."
+
+msgid "Nenhum material associado a este serviço."
+msgstr "Nenhum material associado a este serviço."
+
+msgid "Adicionar materiais →"
+msgstr "Adicionar materiais →"
+
+msgid ""
+"Defina o serviço, o tempo de execução, o preço e os materiais necessários "
+"por unidade."
+msgstr ""
+"Defina o serviço, o tempo de execução, o preço e os materiais necessários "
+"por unidade."
+
+msgid "Identificador único. Ex: CIM-001, PINT-002"
+msgstr "Identificador único. Ex: CIM-001, PINT-002"
+
+msgid "Unidade em que o serviço é cobrado. Ex: m², ml, un."
+msgstr "Unidade em que o serviço é cobrado. Ex: m², ml, un."
+
+msgid "Nome do serviço"
+msgstr "Nome do serviço"
+
+msgid "Tempo de execução / unidade (min)"
+msgstr "Tempo de execução / unidade (min)"
+
+msgid "Minutos necessários para executar 1 unidade do serviço."
+msgstr "Minutos necessários para executar 1 unidade do serviço."
+
+msgid "Custo de M.O. / unidade (€)"
+msgstr "Custo de M.O. /unidade (€)"
+
+msgid "Custo de mão de obra por unidade do serviço."
+msgstr "Custo de mão de obra por unidade do serviço."
+
+#, python-format
+msgid "Margem padrão (%%)"
+msgstr "Margem padrão (%%)"
+
+msgid "Margem aplicada ao custo total para calcular o preço sugerido."
+msgstr "Margem aplicada ao custo total para calcular o preço sugerido."
+
+msgid "Preço de venda / unidade (€)"
+msgstr "Preço de venda / unidade (€)"
+
+msgid ""
+"Preço cobrado ao cliente. Deixe 0 para usar o preço sugerido automaticamente."
+msgstr ""
+"Preço cobrado ao cliente. Deixe 0 para usar o preço sugerido automaticamente."
+
+msgid "Serviço activo"
+msgstr "Serviço ativo"
+
+msgid "Criar serviço"
+msgstr "Criar serviço"
+
+msgid "Materiais por unidade de serviço"
+msgstr "Materiais por unidade de serviço"
+
+msgid "Adicionar material"
+msgstr "Adicionar material"
+
+#, python-format
+msgid "Perda (%%)"
+msgstr "Perda (%%)"
+
+msgid "Nenhum material adicionado ainda."
+msgstr "Nenhum material adicionado ainda."
+
+msgid "Preço de venda"
+msgstr "Preço de venda"
+
+msgid ""
+"Após criar o serviço, poderá adicionar os materiais necessários por unidade."
+msgstr ""
+"Após criar o serviço, poderá adicionar os materiais necessários por unidade."
+
+msgid "Quantidade / unidade serviço"
+msgstr "Quantidade / unidade serviço"
+
+#, python-format
+msgid "Perda técnica (%%)"
+msgstr "Perda técnica (%%)"
+
+msgid "Observação"
+msgstr "Observação"
+
+#, python-format
+msgid "Ex: incluir 10%% de corte"
+msgstr "Ex: incluir 10%% de corte"
+
+msgid "Editar material"
+msgstr "Editar material"
+
+msgid "Eliminar este material?"
+msgstr "Excluir este material?"
+
+msgid "Colunas visíveis"
+msgstr "Colunas visíveis"
+
+msgid "Novo serviço"
+msgstr "Novo serviço"
+
+msgid "Custo Mat."
+msgstr "Tapete personalizado."
+
+msgid "Custo Total"
+msgstr "Custo Total"
+
+#, python-format
+msgid "Margem %%"
+msgstr "Margem %%"
+
+msgid "Preço Venda"
+msgstr "Preço Venda"
+
+msgid "Tempo/un (min)"
+msgstr "Tempo/un (min)"
+
+msgid "Materiais"
+msgstr "Materiais"
+
+#, python-format
+msgid ""
+"\n"
+"      %(start)s–%(end)s de %(count)s serviços\n"
+"      "
+msgstr ""
+"\n"
+"   %(start)s–%(end)s de %(count)s serviços\n"
+"   "
+
+msgid "Ainda não há serviços cadastrados."
+msgstr "Ainda não há serviços cadastrados."
+
+msgid "Criar primeiro serviço"
+msgstr "Criar primeiro serviço"
+
+msgid "Esta categoria tem serviços associados."
+msgstr "Esta categoria tem serviços associados."
+
+msgid "Serviço criado com sucesso."
+msgstr "Serviço criado com sucesso."
+
+msgid "Serviço actualizado."
+msgstr "Serviço atualizado."
+
+msgid "Este serviço está em uso e não pode ser eliminado."
+msgstr "Este serviço está em uso e não pode ser eliminado."
+
+msgid "Serviço eliminado com sucesso."
+msgstr "Serviço eliminado com sucesso."
+
 msgid "Blocked"
 msgstr "Bloqueado"
+
+msgid "Trade Name"
+msgstr "Nome comercial"
 
 msgid "VAT Number"
 msgstr "CNPJ / NIF"
 
-msgid "Contact Name"
-msgstr "Nome do contato"
+msgid "Legal Form"
+msgstr "Formulário Jurídico"
 
-msgid "Phone"
-msgstr "Telefone"
+msgid "VAT Rate (%)"
+msgstr "Taxa de IVA (%)"
+
+msgid "Responsible"
+msgstr "Responsável"
 
 msgid "Subcontractor"
 msgstr "Subcontratado"
@@ -748,14 +2770,140 @@ msgstr "Subcontratado"
 msgid "Subcontractors"
 msgstr "Subcontratados"
 
+msgid "Postal Code"
+msgstr "Código postal"
+
+msgid "Contact Type"
+msgstr "Tipo de contato"
+
+msgid "Equipe"
+msgstr "Equipe"
+
+msgid "Função"
+msgstr "Função"
+
+msgid "Valor/hora"
+msgstr "Valor/hora"
+
+msgid "Ninguém na equipe. Adicione um colaborador com «Novo»."
+msgstr "Ninguém na equipe. Adicione um colaborador com «Novo»."
+
+msgid "Notas e Informações"
+msgstr "Notas e Informações"
+
+msgid "Guardar subcontratado"
+msgstr "Salvar subcontratado"
+
+msgid "Nome da empresa"
+msgstr "Nome da empresa"
+
+msgid "Empresas e prestadores externos"
+msgstr "Empresas e prestadores externos"
+
+msgid "Novo subcontratado"
+msgstr "Novo subcontratado"
+
+msgid "Pesquisar por nome, VAT, responsável..."
+msgstr "Pesquisar por nome, VAT, responsável..."
+
+msgid "Pausados"
+msgstr "Pausados"
+
+msgid "Bloqueados"
+msgstr "Bloqueados"
+
+msgid "na equipe"
+msgstr "na equipe"
+
+msgid "Sem subcontratados"
+msgstr "Sem subcontratados"
+
+msgid "Adicione o primeiro subcontratado para começar."
+msgstr "Adicione o primeiro subcontratado para começar."
+
+msgid "Suppliers"
+msgstr "Fornecedores"
+
+msgid "Excluir este fornecedor? Esta ação não pode ser desfeita."
+msgstr "Excluir este fornecedor? Esta ação não pode ser desfeita."
+
+msgid "Este fornecedor está em uso e não pode ser excluído."
+msgstr "Este fornecedor está em uso e não pode ser excluído."
+
+msgid "Preços (produtos)"
+msgstr "Preços (produtos)"
+
+msgid "Ref."
+msgstr "Ref."
+
+msgid "Nenhum preço cadastrado."
+msgstr "Nenhum preço cadastrado."
+
+msgid "Preço do produto"
+msgstr "Preço do produto"
+
+msgid "Fornecedor ativo"
+msgstr "Fornecedor ativo"
+
+msgid "Guardar fornecedor"
+msgstr "Salvar fornecedor"
+
+msgid "Empresas e prestadores de serviços"
+msgstr "Empresas e prestadores de serviços"
+
+msgid "Novo fornecedor"
+msgstr "Novo fornecedor"
+
+msgid "Sem fornecedores"
+msgstr "Sem fornecedores"
+
+msgid "Adicione o primeiro fornecedor para começar."
+msgstr "Adicione o primeiro fornecedor para começar."
+
+msgid ""
+"Este fornecedor está em uso (ofertas de produto e/ou materiais em orçamento) "
+"e não pode ser eliminado."
+msgstr ""
+"Este fornecedor está em uso (ofertas de produto e/ou materiais em orçamento) "
+"e não pode ser eliminado."
+
+msgid "Este fornecedor está em uso noutro registo e não pode ser eliminado."
+msgstr "Este fornecedor está em uso noutro registo e não pode ser eliminado."
+
+msgid "Fornecedor eliminado com sucesso."
+msgstr "Fornecedor eliminado com sucesso."
+
 msgid "Expandir menu"
 msgstr "Expandir menu"
 
 msgid "Recolher menu"
 msgstr "Recolher menu"
 
+#, fuzzy
+#| msgid "Expandir menu"
+msgid "Expandir"
+msgstr "Expandir"
+
+#, fuzzy
+#| msgid "Recolher menu"
+msgid "Recolher"
+msgstr "Recolher"
+
 msgid "Fechar aba"
 msgstr "Fechar aba"
+
+#, fuzzy
+#| msgid "Fechar aba"
+msgid "Fechar esta aba"
+msgstr "Fechar esta aba"
+
+#, fuzzy
+#| msgid "Fechar aba"
+msgid "Fechar todas as abas"
+msgstr "Fechar todas as abas"
+
+msgid "Menu"
+msgstr "Menu"
 
 msgid "Dashboard"
 msgstr "Painel"
@@ -769,18 +2917,14 @@ msgstr "Notificações"
 msgid "Ajuda"
 msgstr "Ajuda"
 
-#, fuzzy
-#| msgid "Notificações"
 msgid "Configurações"
-msgstr "Notificações"
+msgstr "Configurações"
 
 msgid "Usuários"
 msgstr "Usuários"
 
-#, fuzzy
-#| msgid "Perfis de Acesso"
 msgid "Gestão de Acessos"
-msgstr "Perfis de Acesso"
+msgstr "Gestão de Acessos"
 
 msgid "Meus Dados"
 msgstr "Meus Dados"
@@ -791,11 +2935,20 @@ msgstr "Alterar Senha"
 msgid "Sair"
 msgstr "Sair"
 
+msgid "Planejamento"
+msgstr "Planejamento"
+
 msgid "Controle de Horas"
 msgstr "Controle de Horas"
 
 msgid "Lista de Horas"
 msgstr "Lista de Horas"
+
+msgid "Lista c/ valores"
+msgstr "Lista c/ valores"
+
+msgid "Lista (valores)"
+msgstr "Lista (valores)"
 
 msgid "Quadro de Horas"
 msgstr "Quadro de Horas"
@@ -803,24 +2956,23 @@ msgstr "Quadro de Horas"
 msgid "Lista de Clientes/Prospects"
 msgstr "Lista de Clientes/Prospects"
 
-#, fuzzy
-#| msgid "Clientes"
 msgid "Novo Cliente"
-msgstr "Clientes"
+msgstr "Novo Cliente"
 
 msgid "Novo Cliente/Prospect"
 msgstr "Novo Cliente/Prospect"
 
-#, fuzzy
-#| msgid "Contacts"
-msgid "Contatos"
-msgstr "Contatos"
-
 msgid "Lista de Orçamentos"
 msgstr "Lista de Orçamentos"
 
-msgid "Fornecedores"
-msgstr "Fornecedores"
+msgid "Lista de Subcontratados"
+msgstr "Lista de Subcontratados"
+
+msgid "Equipe dos Subcontratados"
+msgstr "Equipe dos Subcontratados"
+
+msgid "Novo Subcontratado"
+msgstr "Novo Subcontratado"
 
 msgid "Lista de Fornecedores"
 msgstr "Lista de Fornecedores"
@@ -828,32 +2980,232 @@ msgstr "Lista de Fornecedores"
 msgid "Novo Fornecedor"
 msgstr "Novo Fornecedor"
 
-#, fuzzy
-#| msgid "Subcontratados"
-msgid "Lista de Subcontratados"
-msgstr "Subcontratados"
+msgid "Cotações"
+msgstr "Cotações"
 
-msgid "Equipe"
-msgstr "Equipe"
+msgid "Novo Serviço"
+msgstr "Novo Serviço"
+
+msgid "Novo Produto"
+msgstr "Novo Produto"
+
+msgid "Unidades"
+msgstr "Unidades"
+
+msgid "Frota"
+msgstr "Frota"
+
+msgid "Frota — Dashboard"
+msgstr "Frota — Painel"
+
+msgid "Dashboard Frota"
+msgstr "Painel Frota"
+
+msgid "Veículos"
+msgstr "Veículos"
+
+msgid "Novo Veículo"
+msgstr "Novo Veículo"
+
+msgid "Multas"
+msgstr "Multas"
+
+msgid "Categorias de Veículo"
+msgstr "Categorias de Veículo"
+
+msgid "Tabelas Auxiliares"
+msgstr "Tabelas Auxiliares"
+
+msgid "Nacionalidades"
+msgstr "Nacionalidades"
+
+msgid "Idiomas"
+msgstr "Idiomas"
+
+msgid "Caixas de Seguro"
+msgstr "Caixas de Seguro"
+
+msgid "Formas Jurídicas"
+msgstr "Formas Jurídicas"
 
 #, fuzzy
-#| msgid "Subcontratados"
-msgid "Equipe dos Subcontratados"
-msgstr "Subcontratados"
+#| msgid "Idiomas"
+msgid "Idioma"
+msgstr "Idioma"
 
-#, fuzzy
-#| msgid "Subcontratados"
-msgid "Novo Subcontratado"
-msgstr "Subcontratados"
+msgid "Em breve…"
+msgstr "Em breve…"
+
+msgid "Back"
+msgstr "Voltar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Save"
+msgstr "Salvar"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "No categories yet."
+msgstr "Nenhuma categoria ainda."
+
+msgid "Add Category"
+msgstr "Adicionar categoria"
+
+msgid "Fleet — Dashboard"
+msgstr "Frota — Painel"
+
+msgid "Overview of vehicles, documents, and alerts"
+msgstr "Visão geral de veículos, documentos e alertas"
+
+msgid "Active Vehicles"
+msgstr "Veículos Ativos"
+
+msgid "Expired Documents"
+msgstr "Documentos expirados"
+
+msgid "Pending Fines"
+msgstr "Multas Pendentes"
+
+msgid "Payroll Deductions Pending"
+msgstr "Deduções de folha de pagamento pendentes"
+
+msgid "Documents Expiring in 60 Days"
+msgstr "Documentos que expiram em 60 dias"
+
+msgid "No documents expiring soon."
+msgstr "Nenhum documento expira em breve."
+
+msgid "Scheduled Maintenances"
+msgstr "Manutenção Programada"
+
+msgid "No maintenances scheduled."
+msgstr "Não há manutenções programadas."
+
+msgid "Active Fleet"
+msgstr "Frota Ativa"
+
+msgid "Offence Details"
+msgstr "Detalhes da ofensa"
+
+msgid "Payment & Payroll"
+msgstr "Pagamento e folha de pagamento"
+
+msgid "All vehicle fines and payroll deductions"
+msgstr "Todas as multas de veículos e descontos em folha de pagamento"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "Payroll Pending"
+msgstr "Folha de pagamento pendente"
+
+msgid "Offence"
+msgstr "Ofensa"
+
+msgid "Amount"
+msgstr "Quantia"
+
+msgid "Points"
+msgstr "Pontos"
+
+msgid "Payroll"
+msgstr "Folha de pagamento"
+
+msgid "No fines found."
+msgstr "Nenhuma multa encontrada."
+
+msgid "Total cost (maintenance + fuel + fines + expenses)"
+msgstr "Custo total (manutenção + combustível + multas + despesas)"
+
+msgid "Documents"
+msgstr "Documentos"
+
+msgid "Add"
+msgstr "Adicionar"
+
+msgid "Entity / Insurer"
+msgstr "Entidade / Seguradora"
+
+msgid "Reference"
+msgstr "Referência"
+
+msgid "Expiry"
+msgstr "Termo"
+
+msgid "Cost"
+msgstr "Custo"
+
+msgid "No documents."
+msgstr "Sem documentos."
+
+msgid "Completed"
+msgstr "Concluído"
+
+msgid "Workshop"
+msgstr "Oficina"
+
+msgid "No maintenances."
+msgstr "Sem manutenções."
+
+msgid "KM"
+msgstr "km"
+
+msgid "€/L"
+msgstr "€/L"
+
+msgid "Total"
+msgstr "Total"
+
+msgid "No fuelings."
+msgstr "Sem abastecimentos."
+
+msgid "Deducted"
+msgstr "Deduzido"
+
+msgid "No fines."
+msgstr "Sem multas."
+
+msgid "Expenses"
+msgstr "Despesas"
+
+msgid "No expenses."
+msgstr "Sem despesas."
+
+msgid "Back to Vehicle"
+msgstr "Voltar ao veículo"
+
+msgid "Identification"
+msgstr "Identificação"
+
+msgid "Technical"
+msgstr "Técnico"
+
+msgid "Company fleet management"
+msgstr "Gestão de frota da empresa"
+
+msgid "Search plate, brand, model..."
+msgstr "Pesquise placa, marca, modelo..."
+
+msgid "Search"
+msgstr "Pesquisar"
+
+msgid "View"
+msgstr "Ver"
+
+msgid "No vehicles found."
+msgstr "Nenhum veículo encontrado."
+
+msgid "Add First Vehicle"
+msgstr "Adicionar primeiro veículo"
 
 msgid "Worker"
 msgstr "Colaborador"
 
 msgid "Planning entry"
 msgstr "Entrada de planejamento"
-
-msgid "Date"
-msgstr "Data"
 
 msgid "Start time"
 msgstr "Hora de início"
@@ -879,12 +3231,16 @@ msgstr "Multiplicador de hora extra"
 msgid "Timesheet"
 msgstr "Folha de horas"
 
+msgid "View timesheet cost values"
+msgstr "Ver valores de custo do quadro de horários"
+
 msgid "End time must be after start time."
 msgstr "A hora de término deve ser posterior à hora de início."
 
 msgid "Enter either start/end times or a number of hours worked."
-msgstr "Informe hora de início/fim ou o número de horas trabalhadas."
-"Informe os horários de início/término ou o número de horas trabalhadas."
+msgstr ""
+"Informe hora de início/fim ou o número de horas trabalhadas.Informe os "
+"horários de início/término ou o número de horas trabalhadas."
 
 msgid "Dia"
 msgstr "Dia"
@@ -892,1006 +3248,90 @@ msgstr "Dia"
 msgid "Funcionário"
 msgstr "Funcionário"
 
-msgid "Obra"
-msgstr "Obra"
-
 msgid "Horas"
 msgstr "Horas"
 
 msgid "Viatura"
 msgstr "Veículo"
 
-#, fuzzy
-#| msgid "Informations"
 msgid "Informação"
-msgstr "Informações"
+msgstr "Informação"
+
+msgid "Apagar registo (só se já removido do planning)"
+msgstr "Apagar registo (só se já removido do planning)"
 
 msgid "Observação…"
 msgstr "Observação…"
 
-msgid "Messages"
-msgstr ""
+msgid "Apagar este registo de horas?"
+msgstr "Apagar este registro de horas?"
 
-msgid "Site Maps"
-msgstr ""
+msgid "Apagar (já removido do planning)"
+msgstr "Apagar (já removido do planning)"
 
-msgid "Static Files"
-msgstr ""
+msgid "Ainda no planning — remova a atribuição no planning"
+msgstr "Ainda no planning — remova a atribuição no planning"
 
-msgid "Syndication"
-msgstr ""
+msgid "Sem registo de horas guardado"
+msgstr "Sem registo de horas guardadas"
 
-#. Translators: String used to replace omitted page numbers in elided page
-#. range generated by paginators, e.g. [1, 2, '…', 5, 6, 7, '…', 9, 10].
-msgid "…"
-msgstr ""
+msgid "Ver valores"
+msgstr "Ver valores"
 
-msgid "That page number is not an integer"
-msgstr ""
+msgid "Lista de Horas (valores)"
+msgstr "Lista de Horas (valores)"
 
-msgid "That page number is less than 1"
-msgstr ""
+msgid "Valores"
+msgstr "Valores"
 
-msgid "That page contains no results"
-msgstr ""
+msgid "Lista de Horas — custos"
+msgstr "Lista de Horas — custos"
 
-msgid "Enter a valid value."
-msgstr ""
+msgid "Só horas"
+msgstr "Só horas"
 
-msgid "Enter a valid domain name."
-msgstr ""
+msgid "Registos"
+msgstr "Registros"
 
-msgid "Enter a valid URL."
-msgstr ""
+msgid "Total horas"
+msgstr "Total de horas"
 
-msgid "Enter a valid integer."
-msgstr ""
+msgid "Total (€)"
+msgstr "Total (€)"
 
-msgid "Enter a valid email address."
-msgstr ""
+msgid "Horas extra"
+msgstr "Horas extras"
 
-#. Translators: "letters" means latin letters: a-z and A-Z.
-msgid ""
-"Enter a valid “slug” consisting of letters, numbers, underscores or hyphens."
-msgstr ""
+msgid "extra"
+msgstr "extra"
 
 msgid ""
-"Enter a valid “slug” consisting of Unicode letters, numbers, underscores, or "
-"hyphens."
+"Não é possível apagar: este registo ainda consta do planning. Remova a "
+"atribuição no planning e volte a tentar."
 msgstr ""
+"Não é possível apagar: este registo ainda consta do planning. Remova a "
+"atribuição no planning e volte a tentar."
 
-#, python-format
-msgid "Enter a valid %(protocol)s address."
-msgstr ""
-
-msgid "IPv4"
-msgstr ""
-
-msgid "IPv6"
-msgstr ""
-
-msgid "IPv4 or IPv6"
-msgstr ""
-
-msgid "Enter only digits separated by commas."
-msgstr ""
-
-#, python-format
-msgid "Ensure this value is %(limit_value)s (it is %(show_value)s)."
-msgstr ""
-
-#, python-format
-msgid "Ensure this value is less than or equal to %(limit_value)s."
-msgstr ""
-
-#, python-format
-msgid "Ensure this value is greater than or equal to %(limit_value)s."
-msgstr ""
-
-#, python-format
-msgid "Ensure this value is a multiple of step size %(limit_value)s."
-msgstr ""
-
-#, python-format
-msgid ""
-"Ensure this value is a multiple of step size %(limit_value)s, starting from "
-"%(offset)s, e.g. %(offset)s, %(valid_value1)s, %(valid_value2)s, and so on."
-msgstr ""
-
-#, python-format
-msgid ""
-"Ensure this value has at least %(limit_value)d character (it has "
-"%(show_value)d)."
-msgid_plural ""
-"Ensure this value has at least %(limit_value)d characters (it has "
-"%(show_value)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid ""
-"Ensure this value has at most %(limit_value)d character (it has "
-"%(show_value)d)."
-msgid_plural ""
-"Ensure this value has at most %(limit_value)d characters (it has "
-"%(show_value)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-#, fuzzy
-#| msgid "Enter the registration number."
-msgid "Enter a number."
-msgstr "Informe o número do registro."
-
-#, python-format
-msgid "Ensure that there are no more than %(max)s digit in total."
-msgid_plural "Ensure that there are no more than %(max)s digits in total."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "Ensure that there are no more than %(max)s decimal place."
-msgid_plural "Ensure that there are no more than %(max)s decimal places."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid ""
-"Ensure that there are no more than %(max)s digit before the decimal point."
-msgid_plural ""
-"Ensure that there are no more than %(max)s digits before the decimal point."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid ""
-"File extension “%(extension)s” is not allowed. Allowed extensions are: "
-"%(allowed_extensions)s."
-msgstr ""
-
-#, fuzzy
-#| msgid "Overlapping hourly rate periods are not allowed."
-msgid "Null characters are not allowed."
-msgstr "Não são permitidos períodos sobrepostos de valor por hora."
-
-msgid "and"
-msgstr ""
-
-#, python-format
-msgid "%(model_name)s with this %(field_labels)s already exists."
-msgstr ""
-
-#, python-format
-msgid "Constraint “%(name)s” is violated."
-msgstr ""
-
-#, python-format
-msgid "Value %(value)r is not a valid choice."
-msgstr ""
-
-msgid "This field cannot be null."
-msgstr ""
-
-msgid "This field cannot be blank."
-msgstr ""
-
-#, python-format
-msgid "%(model_name)s with this %(field_label)s already exists."
-msgstr ""
-
-#. Translators: The 'lookup_type' is one of 'date', 'year' or
-#. 'month'. Eg: "Title must be unique for pub_date year"
-#, python-format
-msgid ""
-"%(field_label)s must be unique for %(date_field_label)s %(lookup_type)s."
-msgstr ""
-
-#, python-format
-msgid "Field of type: %(field_type)s"
-msgstr ""
-
-#, python-format
-msgid "“%(value)s” value must be either True or False."
-msgstr ""
-
-#, python-format
-msgid "“%(value)s” value must be either True, False, or None."
-msgstr ""
-
-msgid "Boolean (Either True or False)"
-msgstr ""
-
-#, python-format
-msgid "String (up to %(max_length)s)"
-msgstr ""
-
-msgid "String (unlimited)"
-msgstr ""
-
-msgid "Comma-separated integers"
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid date format. It must be in YYYY-MM-DD "
-"format."
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (YYYY-MM-DD) but it is an invalid "
-"date."
-msgstr ""
-
-msgid "Date (without time)"
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in YYYY-MM-DD "
-"HH:MM[:ss[.uuuuuu]][TZ] format."
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (YYYY-MM-DD HH:MM[:ss[.uuuuuu]]"
-"[TZ]) but it is an invalid date/time."
-msgstr ""
-
-msgid "Date (with time)"
-msgstr ""
-
-#, python-format
-msgid "“%(value)s” value must be a decimal number."
-msgstr ""
-
-#, fuzzy
-#| msgid "Registration number"
-msgid "Decimal number"
-msgstr "Número do registro"
-
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in [DD] "
-"[[HH:]MM:]ss[.uuuuuu] format."
-msgstr ""
-
-#, fuzzy
-#| msgid "Informations"
-msgid "Duration"
-msgstr "Informações"
-
-#, fuzzy
-#| msgid "Address"
-msgid "Email address"
-msgstr "Endereço"
-
-msgid "File path"
-msgstr ""
-
-#, python-format
-msgid "“%(value)s” value must be a float."
-msgstr ""
-
-#, fuzzy
-#| msgid "Registration number"
-msgid "Floating point number"
-msgstr "Número do registro"
-
-#, python-format
-msgid "“%(value)s” value must be an integer."
-msgstr ""
-
-msgid "Integer"
-msgstr ""
-
-msgid "Big (8 byte) integer"
-msgstr ""
-
-msgid "Small integer"
-msgstr ""
-
-#, fuzzy
-#| msgid "Address"
-msgid "IPv4 address"
-msgstr "Endereço"
-
-#, fuzzy
-#| msgid "Address"
-msgid "IP address"
-msgstr "Endereço"
-
-#, python-format
-msgid "“%(value)s” value must be either None, True or False."
-msgstr ""
-
-msgid "Boolean (Either True, False or None)"
-msgstr ""
-
-msgid "Positive big integer"
-msgstr ""
-
-msgid "Positive integer"
-msgstr ""
-
-msgid "Positive small integer"
-msgstr ""
-
-#, python-format
-msgid "Slug (up to %(max_length)s)"
-msgstr ""
-
-msgid "Text"
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has an invalid format. It must be in HH:MM[:ss[.uuuuuu]] "
-"format."
-msgstr ""
-
-#, python-format
-msgid ""
-"“%(value)s” value has the correct format (HH:MM[:ss[.uuuuuu]]) but it is an "
-"invalid time."
-msgstr ""
-
-#, fuzzy
-#| msgid "Timesheet"
-msgid "Time"
-msgstr "Folha de horas"
-
-msgid "URL"
-msgstr ""
-
-msgid "Raw binary data"
-msgstr ""
-
-#, python-format
-msgid "“%(value)s” is not a valid UUID."
-msgstr ""
-
-msgid "Universally unique identifier"
-msgstr ""
-
-msgid "File"
-msgstr ""
-
-msgid "Image"
-msgstr ""
-
-msgid "A JSON object"
-msgstr ""
-
-msgid "Value must be valid JSON."
-msgstr ""
-
-#, python-format
-msgid "%(model)s instance with %(field)s %(value)r is not a valid choice."
-msgstr ""
-
-msgid "Foreign Key (type determined by related field)"
-msgstr ""
-
-msgid "One-to-one relationship"
-msgstr ""
-
-#, python-format
-msgid "%(from)s-%(to)s relationship"
-msgstr ""
-
-#, python-format
-msgid "%(from)s-%(to)s relationships"
-msgstr ""
-
-msgid "Many-to-many relationship"
-msgstr ""
-
-#. Translators: If found as last label character, these punctuation
-#. characters will prevent the default label_suffix to be appended to the label
-msgid ":?.!"
-msgstr ""
-
-msgid "This field is required."
-msgstr ""
-
-#, fuzzy
-#| msgid "Enter the registration number."
-msgid "Enter a whole number."
-msgstr "Informe o número do registro."
-
-msgid "Enter a valid date."
-msgstr ""
-
-msgid "Enter a valid time."
-msgstr ""
-
-msgid "Enter a valid date/time."
-msgstr ""
-
-msgid "Enter a valid duration."
-msgstr ""
-
-#, python-brace-format
-msgid "The number of days must be between {min_days} and {max_days}."
-msgstr ""
-
-msgid "No file was submitted. Check the encoding type on the form."
-msgstr ""
-
-msgid "No file was submitted."
-msgstr ""
-
-msgid "The submitted file is empty."
-msgstr ""
-
-#, python-format
-msgid "Ensure this filename has at most %(max)d character (it has %(length)d)."
-msgid_plural ""
-"Ensure this filename has at most %(max)d characters (it has %(length)d)."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Please either submit a file or check the clear checkbox, not both."
-msgstr ""
-
-msgid ""
-"Upload a valid image. The file you uploaded was either not an image or a "
-"corrupted image."
-msgstr ""
-
-#, python-format
-msgid "Select a valid choice. %(value)s is not one of the available choices."
-msgstr ""
-
-msgid "Enter a list of values."
-msgstr ""
-
-msgid "Enter a complete value."
-msgstr ""
-
-msgid "Enter a valid UUID."
-msgstr ""
-
-msgid "Enter a valid JSON."
-msgstr ""
-
-#. Translators: This is the default suffix added to form field labels
-msgid ":"
-msgstr ""
-
-#, python-format
-msgid "(Hidden field %(name)s) %(error)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"ManagementForm data is missing or has been tampered with. Missing fields: "
-"%(field_names)s. You may need to file a bug report if the issue persists."
-msgstr ""
-
-#, python-format
-msgid "Please submit at most %(num)d form."
-msgid_plural "Please submit at most %(num)d forms."
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "Please submit at least %(num)d form."
-msgid_plural "Please submit at least %(num)d forms."
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Order"
-msgstr ""
-
-msgid "Delete"
-msgstr ""
-
-#, python-format
-msgid "Please correct the duplicate data for %(field)s."
-msgstr ""
-
-#, python-format
-msgid "Please correct the duplicate data for %(field)s, which must be unique."
-msgstr ""
-
-#, python-format
-msgid ""
-"Please correct the duplicate data for %(field_name)s which must be unique "
-"for the %(lookup)s in %(date_field)s."
-msgstr ""
-
-msgid "Please correct the duplicate values below."
-msgstr ""
-
-msgid "The inline value did not match the parent instance."
-msgstr ""
-
-msgid "Select a valid choice. That choice is not one of the available choices."
-msgstr ""
-
-#, python-format
-msgid "“%(pk)s” is not a valid value."
-msgstr ""
-
-#, python-format
-msgid ""
-"%(datetime)s couldn’t be interpreted in time zone %(current_timezone)s; it "
-"may be ambiguous or it may not exist."
-msgstr ""
-
-msgid "Clear"
-msgstr ""
-
-msgid "Currently"
-msgstr ""
-
-msgid "Change"
-msgstr ""
-
-msgid "Unknown"
-msgstr ""
-
-msgid "Yes"
-msgstr ""
-
-#, fuzzy
-#| msgid "Nom"
-msgid "No"
-msgstr "Nome"
+msgid "Comma-separated BE categories, e.g. B,BE,C"
+msgstr "Categorias BE separadas por vírgula, por ex. B, SER, C"
 
-#. Translators: Please do not add spaces around commas.
-msgid "yes,no,maybe"
-msgstr ""
-
-#, python-format
-msgid "%(size)d byte"
-msgid_plural "%(size)d bytes"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%s KB"
-msgstr ""
-
-#, python-format
-msgid "%s MB"
-msgstr ""
-
-#, python-format
-msgid "%s GB"
-msgstr ""
-
-#, python-format
-msgid "%s TB"
-msgstr ""
-
-#, python-format
-msgid "%s PB"
-msgstr ""
-
-msgid "p.m."
-msgstr ""
-
-msgid "a.m."
-msgstr ""
-
-msgid "PM"
-msgstr ""
-
-msgid "AM"
-msgstr ""
-
-msgid "midnight"
-msgstr ""
-
-msgid "noon"
-msgstr ""
-
-msgid "Monday"
-msgstr ""
-
-msgid "Tuesday"
-msgstr ""
-
-msgid "Wednesday"
-msgstr ""
-
-msgid "Thursday"
-msgstr ""
-
-msgid "Friday"
-msgstr ""
-
-msgid "Saturday"
-msgstr ""
-
-msgid "Sunday"
-msgstr ""
-
-msgid "Mon"
-msgstr ""
-
-#, fuzzy
-#| msgid "Rue"
-msgid "Tue"
-msgstr "Rua"
-
-msgid "Wed"
-msgstr ""
-
-msgid "Thu"
-msgstr ""
-
-msgid "Fri"
-msgstr ""
-
-#, fuzzy
-#| msgid "Status"
-msgid "Sat"
-msgstr "Status"
-
-msgid "Sun"
-msgstr ""
-
-msgid "January"
-msgstr ""
-
-msgid "February"
-msgstr ""
-
-msgid "March"
-msgstr ""
-
-msgid "April"
-msgstr ""
-
-msgid "May"
-msgstr ""
-
-msgid "June"
-msgstr ""
-
-msgid "July"
-msgstr ""
-
-msgid "August"
-msgstr ""
-
-msgid "September"
-msgstr ""
-
-msgid "October"
-msgstr ""
-
-msgid "November"
-msgstr ""
-
-msgid "December"
-msgstr ""
-
-msgid "jan"
-msgstr ""
-
-msgid "feb"
-msgstr ""
-
-#, fuzzy
-#| msgid "Limpar"
-msgid "mar"
-msgstr "Limpar"
-
-msgid "apr"
-msgstr ""
-
-#, fuzzy
-#| msgid "Company"
-msgid "may"
-msgstr "Empresa"
-
-msgid "jun"
-msgstr ""
-
-msgid "jul"
-msgstr ""
-
-msgid "aug"
-msgstr ""
-
-msgid "sep"
-msgstr ""
-
-#, fuzzy
-#| msgid "Contact"
-msgid "oct"
-msgstr "Contato"
-
-msgid "nov"
-msgstr ""
-
-msgid "dec"
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Jan."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Feb."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "March"
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "April"
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "May"
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "June"
-msgstr ""
+msgid "Abbreviation"
+msgstr "Abreviação"
 
-msgctxt "abbrev. month"
-msgid "July"
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Aug."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Sept."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Oct."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Nov."
-msgstr ""
-
-msgctxt "abbrev. month"
-msgid "Dec."
-msgstr ""
-
-msgctxt "alt. month"
-msgid "January"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "February"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "March"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "April"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "May"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "June"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "July"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "August"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "September"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "October"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "November"
-msgstr ""
-
-msgctxt "alt. month"
-msgid "December"
-msgstr ""
-
-msgid "This is not a valid IPv6 address."
-msgstr ""
-
-#, python-format
-msgctxt "String to return when truncating text"
-msgid "%(truncated_text)s…"
-msgstr ""
-
-#, fuzzy
-#| msgid "Cor"
-msgid "or"
-msgstr "Cor"
-
-#. Translators: This string is used as a separator between list elements
-msgid ", "
-msgstr ""
-
-#, python-format
-msgid "%(num)d year"
-msgid_plural "%(num)d years"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(num)d month"
-msgid_plural "%(num)d months"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(num)d week"
-msgid_plural "%(num)d weeks"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(num)d day"
-msgid_plural "%(num)d days"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(num)d hour"
-msgid_plural "%(num)d hours"
-msgstr[0] ""
-msgstr[1] ""
-
-#, python-format
-msgid "%(num)d minute"
-msgid_plural "%(num)d minutes"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "Forbidden"
-msgstr ""
-
-msgid "CSRF verification failed. Request aborted."
-msgstr ""
-
-msgid ""
-"You are seeing this message because this HTTPS site requires a “Referer "
-"header” to be sent by your web browser, but none was sent. This header is "
-"required for security reasons, to ensure that your browser is not being "
-"hijacked by third parties."
-msgstr ""
+msgid "Legal Forms"
+msgstr "Formulários Jurídicos"
 
-msgid ""
-"If you have configured your browser to disable “Referer” headers, please re-"
-"enable them, at least for this site, or for HTTPS connections, or for “same-"
-"origin” requests."
-msgstr ""
-
-msgid ""
-"If you are using the <meta name=\"referrer\" content=\"no-referrer\"> tag or "
-"including the “Referrer-Policy: no-referrer” header, please remove them. The "
-"CSRF protection requires the “Referer” header to do strict referer checking. "
-"If you’re concerned about privacy, use alternatives like <a "
-"rel=\"noreferrer\" …> for links to third-party sites."
-msgstr ""
-
-msgid ""
-"You are seeing this message because this site requires a CSRF cookie when "
-"submitting forms. This cookie is required for security reasons, to ensure "
-"that your browser is not being hijacked by third parties."
-msgstr ""
-
-msgid ""
-"If you have configured your browser to disable cookies, please re-enable "
-"them, at least for this site, or for “same-origin” requests."
-msgstr ""
-
-msgid "More information is available with DEBUG=True."
-msgstr ""
-
-msgid "No year specified"
-msgstr ""
-
-msgid "Date out of range"
-msgstr ""
-
-msgid "No month specified"
-msgstr ""
-
-msgid "No day specified"
-msgstr ""
-
-msgid "No week specified"
-msgstr ""
-
-#, python-format
-msgid "No %(verbose_name_plural)s available"
-msgstr ""
-
-#, python-format
-msgid ""
-"Future %(verbose_name_plural)s not available because "
-"%(class_name)s.allow_future is False."
-msgstr ""
-
-#, python-format
-msgid "Invalid date string “%(datestr)s” given format “%(format)s”"
-msgstr ""
-
-#, python-format
-msgid "No %(verbose_name)s found matching the query"
-msgstr ""
+msgid "Nationality"
+msgstr "Nacionalidade"
 
-msgid "Page is not “last”, nor can it be converted to an int."
-msgstr ""
-
-#, python-format
-msgid "Invalid page (%(page_number)s): %(message)s"
-msgstr ""
-
-#, python-format
-msgid "Empty list and “%(class_name)s.allow_empty” is False."
-msgstr ""
-
-msgid "Directory indexes are not allowed here."
-msgstr ""
-
-#, python-format
-msgid "“%(path)s” does not exist"
-msgstr ""
-
-#, python-format
-msgid "Index of %(directory)s"
-msgstr ""
-
-msgid "The install worked successfully! Congratulations!"
-msgstr ""
+msgid "Nationalities"
+msgstr "Nacionalidades"
 
-#, python-format
-msgid ""
-"View <a href=\"https://docs.djangoproject.com/en/%(version)s/releases/\" "
-"target=\"_blank\" rel=\"noopener\">release notes</a> for Django %(version)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"You are seeing this page because <a href=\"https://docs.djangoproject.com/en/"
-"%(version)s/ref/settings/#debug\" target=\"_blank\" "
-"rel=\"noopener\">DEBUG=True</a> is in your settings file and you have not "
-"configured any URLs."
-msgstr ""
-
-msgid "Django Documentation"
-msgstr ""
-
-msgid "Topics, references, &amp; how-to’s"
-msgstr ""
+msgid "Language"
+msgstr "Linguagem"
 
-msgid "Tutorial: A Polling App"
-msgstr ""
-
-msgid "Get started with Django"
-msgstr ""
-
-msgid "Django Community"
-msgstr ""
-
-msgid "Connect, get help, or contribute"
-msgstr ""
+msgid "Languages"
+msgstr "Idiomas"
 
 msgid "Insurance Fund"
 msgstr "Caixa de Seguro"
@@ -1913,6 +3353,30 @@ msgstr "Inativo"
 
 msgid "Company"
 msgstr "Empresa"
+
+msgid "Photo"
+msgstr "Foto"
+
+msgid "ID Number"
+msgstr "Número de identificação"
+
+msgid "ID Expiry Date"
+msgstr "Data de expiração do documento de identidade"
+
+msgid "Birth Date"
+msgstr "Data de nascimento"
+
+msgid "Phone 2"
+msgstr "Telefone 2"
+
+msgid "Email 2"
+msgstr "E-mail 2"
+
+msgid "Entry Date"
+msgstr "Data de entrada"
+
+msgid "Exit Date"
+msgstr "Data de saída"
 
 msgid "Collaborator"
 msgstr "Colaborador"
@@ -1937,6 +3401,283 @@ msgstr "Já existe um valor por hora ativo."
 
 msgid "Overlapping hourly rate periods are not allowed."
 msgstr "Não são permitidos períodos sobrepostos de valor por hora."
+
+msgid "State/Region"
+msgstr "Estado/Região"
+
+msgid "Valid From"
+msgstr "Válido a partir de"
+
+msgid "Valid Until"
+msgstr "Válido até"
+
+msgid "Collaborator Address"
+msgstr "Endereço do Colaborador"
+
+msgid "Collaborator Addresses"
+msgstr "Endereços de colaboradores"
+
+msgid "License Number"
+msgstr "Número de licença"
+
+msgid "Categories"
+msgstr "Categorias"
+
+msgid "Issuing Municipality"
+msgstr "Município Emissor"
+
+msgid "Scan"
+msgstr "Digitalizar"
+
+msgid "Takes vehicle home"
+msgstr "Leva o veículo para casa"
+
+msgid "Does the collaborator take a company vehicle home?"
+msgstr "O colaborador leva veículo da empresa para casa?"
+
+msgid "Private use authorized"
+msgstr "Uso privado autorizado"
+
+msgid "Is the collaborator authorized to use the vehicle for private purposes?"
+msgstr ""
+"O colaborador está autorizado a utilizar o veículo para fins particulares?"
+
+msgid "Has garage at home"
+msgstr "Tem garagem em casa"
+
+msgid "Has fixed parking space"
+msgstr "Possui vaga de garagem fixa"
+
+msgid "Needs annual parking card"
+msgstr "Necessita cartão de estacionamento anual"
+
+msgid "Parking paid by company"
+msgstr "Estacionamento pago pela empresa"
+
+msgid "Driver License"
+msgstr "Carteira de motorista"
+
+msgid "Driver Licenses"
+msgstr "Carteiras de motorista"
+
+msgid "Registration Date"
+msgstr "Data de registro"
+
+msgid "Parking Permit"
+msgstr "Autorização de estacionamento"
+
+msgid "Parking Permits"
+msgstr "Autorizações de estacionamento"
+
+msgid "Update Date"
+msgstr "Data de atualização"
+
+msgid "Resolved At"
+msgstr "Resolvido em"
+
+msgid "Insurance Note"
+msgstr "Nota de Seguro"
+
+msgid "Insurance Notes"
+msgstr "Notas de Seguro"
+
+msgid "Novo colaborador"
+msgstr "Novo colaborador"
+
+msgid "Apenas a taxa atual pode ser editada."
+msgstr "Apenas a taxa atual pode ser editada."
+
+msgid "Atual"
+msgstr "Real"
+
+msgid "Nacionalidade criada com sucesso."
+msgstr "Nacionalidade criada com sucesso."
+
+msgid "Nova Nacionalidade"
+msgstr "Nova Nacionalidade"
+
+msgid "Nacionalidade actualizada."
+msgstr "Nacionalidade atualizada."
+
+msgid "Nacionalidade eliminada."
+msgstr "Nacionalidade eliminada."
+
+msgid "Idioma criado com sucesso."
+msgstr "Idioma criado com sucesso."
+
+msgid "Novo Idioma"
+msgstr "Novo Idioma"
+
+msgid "Idioma actualizado."
+msgstr "Idioma atualizado."
+
+msgid "Idioma eliminado."
+msgstr "Idioma removido."
+
+msgid "Caixa de seguro criada com sucesso."
+msgstr "Caixa de seguro criada com sucesso."
+
+msgid "Nova Caixa de Seguro"
+msgstr "Nova Caixa de Seguro"
+
+msgid "Caixa de seguro actualizada."
+msgstr "Caixa de seguro atualizada."
+
+msgid "Caixa de seguro eliminada."
+msgstr "Caixa de seguro eliminada."
+
+msgid "Forma jurídica criada com sucesso."
+msgstr "Forma jurídica criada com sucesso."
+
+msgid "Nova Forma Jurídica"
+msgstr "Nova Forma Jurídica"
+
+msgid "Forma jurídica actualizada."
+msgstr "Forma jurídica atualizada."
+
+msgid "Forma jurídica eliminada."
+msgstr "Forma jurídica eliminada."
+
+#~ msgid "Enter a number."
+#~ msgstr "Digite um número."
+
+#~ msgid "Null characters are not allowed."
+#~ msgstr "Caracteres nulos não são permitidos."
+
+#~ msgid "Decimal number"
+#~ msgstr "Número decimal"
+
+#~ msgid "Duration"
+#~ msgstr "Duração"
+
+#~ msgid "Email address"
+#~ msgstr "Endereço de email"
+
+#~ msgid "Floating point number"
+#~ msgstr "Número de ponto flutuante"
+
+#~ msgid "IPv4 address"
+#~ msgstr "Endereço IPv4"
+
+#~ msgid "IP address"
+#~ msgstr "Endereço IP"
+
+#~ msgid "Time"
+#~ msgstr "Tempo"
+
+#~ msgid "Enter a whole number."
+#~ msgstr "Insira um número inteiro."
+
+#~ msgid "No"
+#~ msgstr "Não"
+
+#~ msgid "Tue"
+#~ msgstr "ter"
+
+#~ msgid "Sat"
+#~ msgstr "Sentado"
+
+#~ msgid "mar"
+#~ msgstr "março"
+
+#~ msgid "may"
+#~ msgstr "poderia"
+
+#~ msgid "oct"
+#~ msgstr "outubro"
+
+#~ msgid "or"
+#~ msgstr "ou"
+
+#~ msgid "Grupo"
+#~ msgstr "Grupo"
+
+#~ msgid "Laranja"
+#~ msgstr "Laranja"
+
+#~ msgid "Verde"
+#~ msgstr "Verde"
+
+#~ msgid "Amarelo"
+#~ msgstr "Amarelo"
+
+#~ msgid "Vermelho"
+#~ msgstr "Vermelho"
+
+#~ msgid "Cinzento"
+#~ msgstr "Cinza"
+
+#~ msgid "Perfil de Acesso"
+#~ msgstr "Perfil de Acesso"
+
+#~ msgid "Monsieur"
+#~ msgstr "Senhor"
+
+#~ msgid "Madame"
+#~ msgstr "Senhora"
+
+#~ msgid "Entreprise"
+#~ msgstr "Empresa"
+
+#~ msgid "Raison sociale"
+#~ msgstr "Razão social"
+
+#~ msgid "Nom commercial"
+#~ msgstr "Nome comercial"
+
+#~ msgid "Catégorie"
+#~ msgstr "Categoria"
+
+#~ msgid "Forme juridique"
+#~ msgstr "Forma jurídica"
+
+#~ msgid "Informations"
+#~ msgstr "Informações"
+
+#~ msgid "Actif"
+#~ msgstr "Ativo"
+
+#~ msgid "Créé le"
+#~ msgstr "Criado em"
+
+#~ msgid "Mis à jour le"
+#~ msgstr "Atualizado em"
+
+#~ msgid "Libellé"
+#~ msgstr "Rótulo"
+
+#~ msgid "Numéro"
+#~ msgstr "Número"
+
+#~ msgid "Ville"
+#~ msgstr "Cidade"
+
+#~ msgid "Région"
+#~ msgstr "Estado"
+
+#~ msgid "Pays"
+#~ msgstr "País"
+
+#~ msgid "Adresse par défaut"
+#~ msgstr "Endereço padrão"
+
+#~ msgid "Adresse"
+#~ msgstr "Endereço"
+
+#~ msgid "Général"
+#~ msgstr "Geral"
+
+#~ msgid "Nom"
+#~ msgstr "Nome"
+
+#~ msgid "Téléphone"
+#~ msgstr "Telefone"
+
+#~ msgid "Site web"
+#~ msgstr "Site"
+
+#~ msgid "Novo projeto para este cliente"
+#~ msgstr "Novo projeto para este cliente"
 
 #~ msgid "Cadastros"
 #~ msgstr "Cadastros"

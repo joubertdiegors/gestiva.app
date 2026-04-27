@@ -1,7 +1,12 @@
 {% load i18n static %}
 {% translate "Expandir menu" as expand_sidebar_label %}
 {% translate "Recolher menu" as collapse_sidebar_label %}
+{% translate "Expandir" as expand_sidebar_short %}
+{% translate "Recolher" as collapse_sidebar_short %}
 {% translate "Fechar aba" as close_tab_label %}
+{% translate "Fechar esta aba" as close_this_tab_label %}
+{% translate "Fechar todas as abas" as close_all_tabs_label %}
+{% translate "Menu" as menu_title %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -849,7 +854,7 @@
   <!-- ══ TOPBAR ══ -->
   <header class="topbar" id="topbar">
 
-    <button class="topbar-btn" id="mobileMenuBtn" style="display:none;margin-left:8px;" title="Menu">☰</button>
+    <button class="topbar-btn" id="mobileMenuBtn" style="display:none;margin-left:8px;" title="{{ menu_title }}">☰</button>
 
     <a class="topbar-brand" id="topbarBrand" href="{% url 'home' %}" title="{% trans "Dashboard" %}">
       {# Para usar logomarca: coloque o arquivo em static/images/logo.png e substitua a linha abaixo #}
@@ -929,11 +934,11 @@
   <!-- ══ SIDEBAR ══ -->
   <nav class="sidebar" id="sidebar">
 
-    <button class="sidebar-toggle" id="sidebarToggle" title="{% trans "Expandir menu" %}">
+    <button class="sidebar-toggle" id="sidebarToggle" title="{{ expand_sidebar_label }}">
       <span class="toggle-icon" aria-hidden="true">
         <span></span><span></span><span></span>
       </span>
-      <span class="toggle-label">Recolher</span>
+      <span class="toggle-label">{{ expand_sidebar_short }}</span>
     </button>
 
     <div class="nav-scroll">
@@ -941,9 +946,9 @@
       <!-- Dashboard -->
       <a href="{% url 'dashboard' %}"
          class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-         data-tab-label="Dashboard" data-tab-icon="🏠">
+         data-tab-label="{% trans "Dashboard" %}" data-tab-icon="🏠">
         <span class="nav-icon">🏠</span>
-        <span class="nav-label">Dashboard</span>
+        <span class="nav-label">{% trans "Dashboard" %}</span>
       </a>
 
       <!-- Planejamento -->
@@ -1266,22 +1271,22 @@
         <div class="nav-accordion-panel {% if 'nationalities' in request.path or 'languages' in request.path or 'insurance-funds' in request.path or 'legal-forms' in request.path %}open{% endif %}" id="acc-aux-tables">
           <a href="{% url 'workforce:nationality_list' %}"
              class="nav-sub-link {% if 'nationalities' in request.path %}active{% endif %}"
-             data-tab-label="Nacionalidades" data-tab-icon="🌍">
+             data-tab-label="{% trans "Nacionalidades" %}" data-tab-icon="🌍">
             <span class="nav-sub-dot"></span>{% trans "Nacionalidades" %}
           </a>
           <a href="{% url 'workforce:language_list' %}"
              class="nav-sub-link {% if 'languages' in request.path %}active{% endif %}"
-             data-tab-label="Idiomas" data-tab-icon="💬">
+             data-tab-label="{% trans "Idiomas" %}" data-tab-icon="💬">
             <span class="nav-sub-dot"></span>{% trans "Idiomas" %}
           </a>
           <a href="{% url 'workforce:insurance_fund_list' %}"
              class="nav-sub-link {% if 'insurance-funds' in request.path %}active{% endif %}"
-             data-tab-label="Caixas de Seguro" data-tab-icon="🏛️">
+             data-tab-label="{% trans "Caixas de Seguro" %}" data-tab-icon="🏛️">
             <span class="nav-sub-dot"></span>{% trans "Caixas de Seguro" %}
           </a>
           <a href="{% url 'workforce:legal_form_list' %}"
              class="nav-sub-link {% if 'legal-forms' in request.path %}active{% endif %}"
-             data-tab-label="Formas Jurídicas" data-tab-icon="📄">
+             data-tab-label="{% trans "Formas Jurídicas" %}" data-tab-icon="📄">
             <span class="nav-sub-dot"></span>{% trans "Formas Jurídicas" %}
           </a>
         </div>
@@ -1290,9 +1295,8 @@
 
     </div>
 
-    <!-- Language switcher -->
     <div class="nav-footer">
-      <div class="lang-switcher">
+      <div class="lang-switcher" role="navigation" aria-label="{% trans 'Idioma' %}">
         {% get_current_language as current_lang %}
         {% get_available_languages as available_langs %}
         {% for lang_code, lang_name in available_langs %}
@@ -1304,7 +1308,8 @@
               type="submit"
               class="lang-btn {% if lang_code == current_lang %}is-active{% endif %}"
               title="{{ lang_name }}"
-            >{{ lang_code }}</button>
+              aria-pressed="{% if lang_code == current_lang %}true{% else %}false{% endif %}"
+            >{{ lang_code|slice:'2'|upper }}</button>
           </form>
         {% endfor %}
       </div>
@@ -1330,17 +1335,17 @@
       border-radius:var(--radius); box-shadow:var(--shadow-md);
       padding:4px 0; min-width:160px; font-family:sans-serif; font-size:13px;
     ">
-      <button id="ctx-close-this" style="
+      <button id="ctx-close-this" type="button" style="
         display:block; width:100%; text-align:left;
         padding:8px 16px; background:none; border:none;
         color:var(--text); cursor:pointer;
-      ">Fechar esta aba</button>
+      ">{{ close_this_tab_label }}</button>
       <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-      <button id="ctx-close-all" style="
+      <button id="ctx-close-all" type="button" style="
         display:block; width:100%; text-align:left;
         padding:8px 16px; background:none; border:none;
         color:var(--red); cursor:pointer; font-weight:500;
-      ">Fechar todas as abas</button>
+      ">{{ close_all_tabs_label }}</button>
     </div>
 
     <!-- Page content -->
@@ -1370,6 +1375,8 @@
     const STORAGE_SIDEBAR = 'crt_sidebar_expanded';
     const EXPAND_SIDEBAR_LABEL = '{{ expand_sidebar_label|escapejs }}';
     const COLLAPSE_SIDEBAR_LABEL = '{{ collapse_sidebar_label|escapejs }}';
+    const EXPAND_SHORT = '{{ expand_sidebar_short|escapejs }}';
+    const COLLAPSE_SHORT = '{{ collapse_sidebar_short|escapejs }}';
     const CLOSE_TAB_LABEL = '{{ close_tab_label|escapejs }}';
 
     function isMobile() { return window.innerWidth <= 768; }
@@ -1388,7 +1395,7 @@
         brandName.style.marginLeft = '';
         tabbar.style.left = '';
         toggleBtn.title = COLLAPSE_SIDEBAR_LABEL;
-        if (toggleLabel) toggleLabel.textContent = 'Recolher';
+        if (toggleLabel) toggleLabel.textContent = COLLAPSE_SHORT;
       } else {
         document.documentElement.removeAttribute('data-sidebar');
         sidebar.classList.remove('is-expanded');
@@ -1399,7 +1406,7 @@
         brandName.style.marginLeft = '';
         tabbar.style.left = '';
         toggleBtn.title = EXPAND_SIDEBAR_LABEL;
-        if (toggleLabel) toggleLabel.textContent = 'Recolher';
+        if (toggleLabel) toggleLabel.textContent = EXPAND_SHORT;
       }
       sessionStorage.setItem(STORAGE_SIDEBAR, expanded ? '1' : '0');
     }
@@ -1536,7 +1543,7 @@
 
 
     // ── Tab system ──────────────────────────────────────────────────────
-    const SCHEMA_VERSION  = 6;
+    const SCHEMA_VERSION  = 7;
     const STORAGE_TABS    = 'crt_tabs';
     const STORAGE_VERSION = 'crt_tabs_v';
     const MAX_TABS        = 8;
