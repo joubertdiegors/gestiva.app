@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Clientes" %} — Construart{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Clientes" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .client-grid { display: grid; gap: 12px; }
+  .client-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px;
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 20px; box-shadow: var(--shadow);
+    text-decoration: none; color: var(--text); transition: all .15s;
+  }
+  .client-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(200,98,42,.1); }
+  .client-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .client-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text3); font-family: sans-serif; }
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input {
+    flex: 1; min-width: 200px; padding: 8px 14px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Georgia', serif;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── Responsivo ── */
+  @media (max-width: 640px) {
+    .client-card {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .client-card > span.badge { justify-self: start; }
+    .client-card > div:last-child { display: flex; gap: 8px; }
+    .filter-bar input { min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Clientes" %}</h1>
+    <p class="page-sub">{% trans "Donos de obra e empresas clientes" %}</p>
+  </div>
+  <a href="{% url 'clients:create' %}" class="btn btn-primary">+ {% trans "Novo cliente" %}</a>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="{% trans 'Pesquisar por nome, VAT...' %}" oninput="filterCards()">
+  <div style="display:flex; gap:6px;">
+    <button class="sf-btn active" onclick="setStatus('all', this)">{% trans "Todos" %}</button>
+    <button class="sf-btn" onclick="setStatus('active', this)">{% trans "Ativos" %}</button>
+    <button class="sf-btn" onclick="setStatus('inactive', this)">{% trans "Inativos" %}</button>
+  </div>
+</div>
+
+{% if clients %}
+<div class="client-grid" id="client-grid">
+  {% for c in clients %}
+  <div class="client-card" data-status="{% if c.is_active %}active{% else %}inactive{% endif %}"
+       data-search="{{ c.name|lower }} {{ c.vat_number|default:''|lower }} {{ c.responsible|default:''|lower }}">
+    <div>
+      <div class="client-name">{{ c.name }}</div>
+      <div class="client-meta">
+        {% if c.category %}<span>{{ c.get_category_display }}</span>{% endif %}
+        {% if c.vat_number %}<span>🔢 {{ c.vat_number }}</span>{% endif %}
+        {% if c.responsible %}<span>👤 {{ c.responsible }}</span>{% endif %}
+        <span>📁 {% blocktrans count counter=c.projects.count %}{{ counter }} projeto{% plural %}{{ counter }} projetos{% endblocktrans %}</span>
+      </div>
+    </div>
+    <span class="badge {% if c.is_active %}badge-green{% else %}badge-gray{% endif %}">
+      {% if c.is_active %}{% trans "Ativo" %}{% else %}{% trans "Inativo" %}{% endif %}
+    </span>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'clients:detail' c.pk %}" class="btn btn-ghost btn-sm">{% trans "Ver" %}</a>
+      <a href="{% url 'clients:update' c.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="icon">👤</div>
+  <h3>{% trans "Sem clientes" %}</h3>
+  <p>{% trans "Adicione o primeiro cliente para começar." %}</p>
+  <a href="{% url 'clients:create' %}" class="btn btn-primary" style="margin-top:16px">+ {% trans "Novo cliente" %}</a>
+</div>
+{% endif %}
+
+<script>
+let currentStatus = 'all';
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.client-card').forEach(card => {
+    const ms = !q || card.dataset.search.includes(q);
+    const mst = currentStatus === 'all' || card.dataset.status === currentStatus;
+    card.style.display = (ms && mst) ? '' : 'none';
+  });
+}
+function setStatus(s, btn) {
+  currentStatus = s;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+</script>
+{% endblock %}

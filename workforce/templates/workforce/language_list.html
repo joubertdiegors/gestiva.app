@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Idiomas — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'workforce:list' %}">Colaboradores</a>
+  <span class="sep">›</span>
+  <span class="current">Idiomas</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; font-family: sans-serif; }
+  .ref-table thead th {
+    padding: 10px 18px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .ref-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .ref-table tbody tr:last-child { border-bottom: none; }
+  .ref-table tbody tr:hover { background: var(--surface2); }
+  .ref-table td { padding: 11px 18px; color: var(--text); vertical-align: middle; }
+  .ref-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .btn-icon { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; text-decoration: none; transition: background .12s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+  .btn-icon.danger:hover { color: var(--red); border-color: var(--red); }
+  .empty-state { padding: 48px 24px; text-align: center; color: var(--text3); font-family: sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Idiomas</h1>
+    <p class="page-sub">Tabela auxiliar usada no cadastro de funcionários</p>
+  </div>
+  <a href="{% url 'workforce:language_create' %}" class="btn btn-primary">+ Novo Idioma</a>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;">
+  {% if languages %}
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Funcionários</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lang in languages %}
+        <tr>
+          <td><strong>{{ lang.name }}</strong></td>
+          <td style="color:var(--text3);">{{ lang.collaborators.count }}</td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'workforce:language_edit' lang.pk %}" class="btn-icon" title="Editar">✏️</a>
+              <form method="post" action="{% url 'workforce:language_delete' lang.pk %}" style="display:inline;" onsubmit="return confirm('Eliminar «{{ lang.name }}»?')">
+                {% csrf_token %}
+                <button type="submit" class="btn-icon danger" title="Eliminar">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      Nenhum idioma cadastrado.<br>
+      <a href="{% url 'workforce:language_create' %}" class="btn btn-primary" style="margin-top:14px;display:inline-block;">+ Adicionar primeiro</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

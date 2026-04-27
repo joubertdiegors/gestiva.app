@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Perfis de Acesso" %} — Construart{% endblock %}
+
+{% block tab_parent %}{% url 'accounts:list' %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .profile-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+  @media (max-width: 480px) { .profile-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .card-actions { flex-direction: column; } .card-actions .btn { width: 100%; justify-content: center; } }
+  .profile-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; transition:box-shadow .15s; }
+  .profile-card:hover { box-shadow:var(--shadow-md); }
+  .profile-card-header { padding:16px 20px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .profile-card-title { font-size:15px; font-weight:500; }
+  .profile-card-desc { font-size:12px; color:var(--text3); font-family:sans-serif; margin-top:3px; }
+  .profile-card-body { padding:0 20px 16px; }
+  .profile-card-footer { padding:12px 20px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--surface2); }
+  .perm-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:10px; }
+  .perm-pill { font-size:10px; font-family:sans-serif; padding:2px 7px; border-radius:10px; background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+  .user-count { font-size:12px; color:var(--text3); font-family:sans-serif; display:flex; align-items:center; gap:4px; }
+  .card-actions { display:flex; gap:6px; }
+  .empty-profiles { text-align:center; padding:60px 32px; color:var(--text3); }
+  .empty-profiles .icon { font-size:48px; margin-bottom:16px; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'accounts:list' %}">{% trans "Utilizadores" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Perfis de Acesso" %}</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Perfis de Acesso" %}</h1>
+    <p class="page-sub">{% trans "Defina o que cada perfil pode ver e fazer no sistema" %}</p>
+  </div>
+  {% if perms.accounts.add_user %}
+  <a href="{% url 'accounts:profile_create' %}" class="btn btn-primary">
+    ＋ {% trans "Novo perfil" %}
+  </a>
+  {% endif %}
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+{% if profiles %}
+<div class="profile-grid">
+  {% for profile in profiles %}
+  <div class="profile-card">
+    <div class="profile-card-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge {{ profile.get_badge_class }}">{{ profile.group.name }}</span>
+        </div>
+        {% if profile.description %}
+        <div class="profile-card-desc">{{ profile.description }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="profile-card-body">
+      <!-- Permission summary pills -->
+      <div class="perm-pills">
+        {% for perm in profile.group.permissions.all|slice:":8" %}
+          <span class="perm-pill">{{ perm.name }}</span>
+        {% empty %}
+          <span style="font-size:12px;color:var(--text3);font-family:sans-serif">
+            {% trans "Sem permissões atribuídas" %}
+          </span>
+        {% endfor %}
+        {% with total=profile.group.permissions.count %}
+          {% if total > 8 %}
+            <span class="perm-pill" style="background:var(--accent-light);color:var(--accent);border-color:var(--accent)">
+              +{{ total|add:"-8" }}
+            </span>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+    <div class="profile-card-footer">
+      <div class="user-count">
+        👥 {{ profile.user_count }} {% trans "utilizador(es) activo(s)" %}
+      </div>
+      <div class="card-actions">
+        {% if perms.accounts.change_user %}
+        <a href="{% url 'accounts:profile_edit' profile.pk %}" class="btn btn-ghost btn-sm">
+          ✏️ {% trans "Editar" %}
+        </a>
+        {% endif %}
+        {% if perms.accounts.delete_user %}
+        <form method="post" action="{% url 'accounts:profile_delete' profile.pk %}"
+              onsubmit="return confirm('{% trans "Eliminar este perfil?" %}')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-profiles">
+  <div class="icon">🔐</div>
+  <h3>{% trans "Nenhum perfil criado" %}</h3>
+  <p>{% trans "Crie perfis de acesso para controlar o que cada utilizador pode fazer." %}</p>
+  {% if perms.accounts.add_user %}
+  <a href="{% url 'accounts:profile_create' %}" class="btn btn-primary" style="margin-top:16px">
+    ＋ {% trans "Criar primeiro perfil" %}
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

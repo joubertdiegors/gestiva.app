@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Contatos" %} — Construart{% endblock %}
+{% block tab_parent %}/contacts/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Contatos" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input {
+    flex: 1; min-width: 200px; padding: 8px 14px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Georgia', serif;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .filter-bar select {
+    padding: 8px 12px; border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 13px; font-family: sans-serif; background: var(--surface); color: var(--text);
+    cursor: pointer;
+  }
+  .filter-bar select:focus { outline: none; border-color: var(--accent); }
+  .sf-btn {
+    padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2);
+    background: var(--surface); color: var(--text2); font-size: 13px;
+    cursor: pointer; transition: all .15s; font-family: sans-serif; white-space: nowrap;
+  }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .ct-table { width: 100%; border-collapse: collapse; }
+  .ct-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--text3); font-family: sans-serif; padding: 10px 14px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .ct-table td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    font-size: 14px; vertical-align: middle;
+  }
+  .ct-table tr:last-child td { border-bottom: none; }
+  .ct-table tr:hover td { background: var(--surface2); }
+
+  .source-badge {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 11px; font-family: sans-serif; font-weight: 600; letter-spacing: .4px;
+  }
+  .source-clients      { background: #dbeafe; color: #1e40af; }
+  .source-suppliers    { background: #fef3c7; color: #92400e; }
+  .source-subcontractors { background: #d1fae5; color: #065f46; }
+
+  .type-badge {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 11px; font-family: sans-serif; background: var(--surface2); color: var(--text2);
+  }
+  .principal-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-family: sans-serif; background: #d1fae5; color: #065f46; font-weight: 600;
+  }
+  .ct-link { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .ct-link:hover { text-decoration: underline; }
+  .ct-contact-link { color: var(--text2); font-size: 13px; }
+  .ct-contact-link:hover { color: var(--accent); }
+  .ct-count { font-size: 13px; color: var(--text3); font-family: sans-serif; margin-bottom: 12px; }
+
+  @media (max-width: 768px) {
+    .ct-table thead { display: none; }
+    .ct-table tr { display: block; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; }
+    .ct-table td { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 8px 12px; font-size: 13px; }
+    .ct-table td:last-child { border-bottom: none; }
+    .ct-table td::before { content: attr(data-label); font-size: 11px; color: var(--text3); font-family: sans-serif; text-transform: uppercase; letter-spacing: .6px; margin-right: 8px; white-space: nowrap; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Contatos" %}</h1>
+    <p class="page-sub">{% trans "Todos os contatos de clientes, fornecedores e subcontratados" %}</p>
+  </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-bar">
+  <input type="text" id="search"
+         placeholder="{% trans 'Pesquisar nome, empresa, email, telefone...' %}"
+         oninput="applyFilters()">
+
+  <select id="sel-source">
+    <option value="all">{% trans "Todos os tipos" %}</option>
+    <option value="clients"         {% if source == 'clients' %}selected{% endif %}>{% trans "Clientes" %}</option>
+    <option value="suppliers"       {% if source == 'suppliers' %}selected{% endif %}>{% trans "Fornecedores" %}</option>
+    <option value="subcontractors"  {% if source == 'subcontractors' %}selected{% endif %}>{% trans "Subcontratados" %}</option>
+  </select>
+
+  <select id="sel-type" onchange="applyFilters()">
+    <option value="all">{% trans "Todos os tipos de contato" %}</option>
+    <option value="general">{% trans "Geral" %}</option>
+    <option value="financial">{% trans "Financeiro" %}</option>
+    <option value="commercial">{% trans "Comercial" %}</option>
+  </select>
+
+  <button class="sf-btn" id="btn-principal" onclick="togglePrincipal(this)">
+    ⭐ {% trans "Apenas principal" %}
+  </button>
+</div>
+
+<p class="ct-count" id="ct-count"></p>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if rows %}
+  <table class="ct-table" id="ct-table">
+    <thead>
+      <tr>
+        <th>{% trans "Origem" %}</th>
+        <th>{% trans "Empresa / Entidade" %}</th>
+        <th>{% trans "Nome do Contato" %}</th>
+        <th>{% trans "Tipo" %}</th>
+        <th>{% trans "Telefone" %}</th>
+        <th>{% trans "Email" %}</th>
+        <th>{% trans "Website" %}</th>
+        <th>{% trans "Principal" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="ct-row"
+          data-source="{{ r.source }}"
+          data-type="{{ r.contact_type }}"
+          data-principal="{{ r.is_default|yesno:'1,0' }}"
+          data-search="{{ r.entity_name|lower }} {{ r.name|lower }} {{ r.phone|lower }} {{ r.email|lower }}">
+        <td data-label="{% trans 'Origem' %}">
+          <span class="source-badge source-{{ r.source }}">{{ r.source_label }}</span>
+        </td>
+        <td data-label="{% trans 'Empresa' %}">
+          <a href="{{ r.entity_url }}" class="ct-link">{{ r.entity_name }}</a>
+        </td>
+        <td data-label="{% trans 'Contato' %}">{{ r.name }}</td>
+        <td data-label="{% trans 'Tipo' %}">
+          <span class="type-badge">{{ r.contact_type_label }}</span>
+        </td>
+        <td data-label="{% trans 'Telefone' %}">
+          {% if r.phone %}<a href="tel:{{ r.phone }}" class="ct-contact-link">{{ r.phone }}</a>{% else %}—{% endif %}
+        </td>
+        <td data-label="{% trans 'Email' %}">
+          {% if r.email %}<a href="mailto:{{ r.email }}" class="ct-contact-link">{{ r.email }}</a>{% else %}—{% endif %}
+        </td>
+        <td data-label="{% trans 'Website' %}">
+          {% if r.website %}<a href="{{ r.website }}" target="_blank" rel="noopener" class="ct-contact-link">{{ r.website }}</a>{% else %}—{% endif %}
+        </td>
+        <td data-label="{% trans 'Principal' %}">
+          {% if r.is_default %}<span class="principal-badge">⭐ {% trans "Principal" %}</span>{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding: 60px 20px;">
+    <div class="icon">📋</div>
+    <h3>{% trans "Sem contatos" %}</h3>
+    <p>{% trans "Nenhum contato cadastrado ainda." %}</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Linha vazia quando filtro não retorna nada -->
+<div id="empty-filter" style="display:none;" class="card" style="margin-top:12px;">
+  <div class="empty-state" style="padding:40px 20px;">
+    <div class="icon">🔍</div>
+    <h3>{% trans "Nenhum resultado" %}</h3>
+    <p>{% trans "Tente ajustar os filtros de pesquisa." %}</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  let onlyPrincipal = false;
+
+  const selSource = document.getElementById('sel-source');
+  const selType   = document.getElementById('sel-type');
+
+  // Pré-seleciona source vindo da URL ANTES de rodar os filtros
+  const urlSource = '{{ source }}';
+  if (urlSource && urlSource !== 'all') {
+    selSource.value = urlSource;
+  }
+
+  function applyFilters() {
+    const q      = document.getElementById('search').value.toLowerCase().trim();
+    const source = selSource.value;
+    const type   = selType.value.toLowerCase();
+
+    let visible = 0;
+    document.querySelectorAll('.ct-row').forEach(row => {
+      const ms = !q || row.dataset.search.includes(q);
+      const mo = source === 'all' || row.dataset.source === source;
+      const mt = type === 'all'   || row.dataset.type === type;
+      const mp = !onlyPrincipal   || row.dataset.principal === '1';
+      const show = ms && mo && mt && mp;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    // Navega para o servidor ao trocar source para garantir dados corretos
+    document.getElementById('ct-count').textContent =
+      visible === 0   ? '' :
+      visible === 1   ? '1 {% trans "contato encontrado" %}' :
+                        visible + ' {% trans "contatos encontrados" %}';
+
+    const tableEl = document.getElementById('ct-table');
+    const emptyEl = document.getElementById('empty-filter');
+    if (tableEl) tableEl.style.display = visible === 0 ? 'none' : '';
+    if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
+  }
+
+  window.applyFilters = applyFilters;
+
+  // Ao mudar source, recarrega a página para o servidor filtrar
+  selSource.addEventListener('change', function () {
+    const val = this.value;
+    const url = new URL(window.location.href);
+    if (val === 'all') {
+      url.searchParams.delete('source');
+    } else {
+      url.searchParams.set('source', val);
+    }
+    window.location.href = url.toString();
+  });
+
+  window.togglePrincipal = function(btn) {
+    onlyPrincipal = !onlyPrincipal;
+    btn.classList.toggle('active', onlyPrincipal);
+    applyFilters();
+  };
+
+  applyFilters();
+})();
+</script>
+{% endblock %}

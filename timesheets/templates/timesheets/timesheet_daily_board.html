@@ -1,0 +1,803 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Quadro de Horas{% endblock %}
+
+{% block breadcrumb %}
+  <span class="current">Quadro de Horas</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  html { overflow-y: scroll; }
+  /* ── Layout ── */
+  .db-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .db-main { flex: 1; min-width: 0; }
+  .db-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .db-layout { flex-direction: column; }
+    .db-sidebar { width: 100%; }
+  }
+  @media (max-width: 768px) {
+    .db-layout { flex-direction: column; }
+    .db-sidebar { width: 100%; }
+  }
+  .daily-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 640px) {
+    .board-toolbar { flex-direction: column; align-items: flex-start; }
+    .date-form { width: 100%; flex-wrap: wrap; }
+  }
+
+  /* ── Toolbar ── */
+  .board-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .board-toolbar h1 { margin: 0; font-size: 22px; font-weight: normal; }
+  .date-form { display: flex; align-items: center; gap: 8px; }
+  .date-form label { font-size: 12px; color: var(--text2); font-family: sans-serif; }
+  .date-form input[type="date"] {
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: sans-serif;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .date-form input[type="date"]:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Tabela ── */
+  .daily-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+  }
+  .daily-table th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-family: sans-serif;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .daily-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .daily-table tr:last-child td { border-bottom: none; }
+  .daily-table tr:hover td { background: var(--surface2); }
+  .daily-table tr.row-hidden { display: none; }
+
+  .td-worker { font-weight: 500; }
+  .td-company { font-size: 12px; color: var(--text3); font-family: sans-serif; }
+  .td-project { font-size: 13px; color: var(--text2); }
+
+  /* ── Inputs ── */
+  .hours-input {
+    width: 80px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    font-size: 14px;
+    font-family: sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    text-align: center;
+    transition: border-color .15s;
+  }
+  .hours-input:focus   { outline: none; border-color: var(--accent); }
+  .hours-input.has-value { border-color: var(--accent); background: var(--accent-light); font-weight: 600; }
+  .hours-input.saving    { border-color: var(--text3); opacity: .6; }
+  .hours-input.saved     { border-color: var(--green); background: color-mix(in srgb, var(--green, #16a34a) 8%, var(--surface)); font-weight: 600; }
+  .hours-input.err       { border-color: var(--red); background: var(--red-light, #fee2e2); }
+
+  .notes-input {
+    width: 100%;
+    min-width: 140px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    font-size: 13px;
+    font-family: sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color .15s;
+  }
+  .notes-input:focus { outline: none; border-color: var(--accent); }
+
+  .vehicle-cell { font-size: 12px; color: var(--text3); font-family: sans-serif; font-style: italic; }
+
+
+  /* ── Sidebar ── */
+  .filter-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .filter-card__head {
+    padding: 9px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-family: sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .filter-card__head:hover { background: color-mix(in srgb, var(--surface2) 85%, var(--border)); }
+  .filter-card__arrow {
+    font-size: 10px; color: var(--text3);
+    transition: transform .15s;
+  }
+  .filter-card.collapsed .filter-card__arrow { transform: rotate(-90deg); }
+  .filter-card.collapsed .filter-card__body  { display: none; }
+  .filter-card__body { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: sans-serif;
+    user-select: none;
+    transition: background .1s;
+  }
+  .filter-option:hover { background: var(--surface2); }
+  .filter-option.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .fo-label { flex: 1; line-height: 1.3; }
+  .fo-count {
+    font-size: 10px; color: var(--text3); font-family: sans-serif;
+    background: var(--surface2); border-radius: 10px;
+    padding: 1px 6px; flex-shrink: 0;
+  }
+  .filter-option.active .fo-count { background: var(--accent); color: #fff; }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 2px;
+  }
+  .sidebar-header__title {
+    font-size: 12px;
+    font-family: sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text3);
+  }
+  .filter-clear {
+    visibility: hidden;
+    font-size: 11px;
+    font-family: sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    outline: 1px solid var(--accent);
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    background: none;
+    line-height: 1.4;
+  }
+  .filter-clear:hover { background: var(--accent-light); }
+  .filter-clear.visible { visibility: visible; }
+
+  /* ── Calendário ── */
+  .cal-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px 6px;
+  }
+  .cal-nav button {
+    border: none; background: none; cursor: pointer;
+    color: var(--text2); font-size: 16px; padding: 2px 6px;
+    border-radius: 4px; line-height: 1;
+  }
+  .cal-nav button:hover { background: var(--surface2); }
+  .cal-month-name { font-size: 13px; font-weight: 600; font-family: sans-serif; color: var(--text); }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 2px; padding: 0 10px 10px;
+  }
+  .cal-dow {
+    font-size: 10px; font-family: sans-serif; font-weight: 600;
+    color: var(--text3); text-align: center; padding: 2px 0 4px;
+    text-transform: uppercase;
+  }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-family: sans-serif; border-radius: 50%;
+    cursor: pointer; transition: background .1s;
+    color: var(--text3); opacity: .45;
+  }
+  .cal-day:hover { background: var(--surface2); opacity: 1; }
+  .cal-day.empty { cursor: default; opacity: 0; }
+  .cal-day.empty:hover { background: none; }
+  .cal-day.has-data {
+    color: var(--text); opacity: 1; font-weight: 600; position: relative;
+  }
+  .cal-day.has-data::after {
+    content: ''; display: block; width: 4px; height: 4px;
+    background: var(--accent); border-radius: 50%;
+    position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+  }
+  .cal-day.today { background: var(--accent-light); color: var(--accent); font-weight: 700; opacity: 1; }
+  .cal-day.in-range { background: color-mix(in srgb, var(--accent) 15%, transparent); border-radius: 0; opacity: 1; color: var(--text); }
+  .cal-day.range-start, .cal-day.range-end { background: var(--accent) !important; color: #fff !important; font-weight: 700; opacity: 1; border-radius: 50%; }
+  .cal-day.selected { background: var(--accent) !important; color: #fff !important; font-weight: 700; opacity: 1; }
+
+  /* ── Atalhos de período ── */
+  .period-shortcuts {
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .period-btn {
+    font-size: 11px;
+    font-family: sans-serif;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    user-select: none;
+    transition: background .1s, border-color .1s, color .1s;
+  }
+  .period-btn:hover { background: var(--surface2); }
+  .period-btn.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+  /* ── Empty ── */
+  .empty-day {
+    text-align: center; padding: 60px 20px;
+    color: var(--text3); font-family: sans-serif;
+  }
+  .empty-day .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-day p { font-size: 14px; margin: 0; }
+
+  .no-results {
+    text-align: center; padding: 30px 16px;
+    color: var(--text3); font-family: sans-serif; font-size: 13px;
+    display: none;
+  }
+
+  .col-actions {
+    text-align: right;
+    width: 48px;
+    white-space: nowrap;
+  }
+  .db-trash-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: var(--text2);
+    transition: background .1s, border-color .1s, color .1s;
+  }
+  .db-trash-btn:hover { background: var(--red-light, #fee2e2); border-color: #f5c6c2; color: var(--red, #b91c1c); }
+  .db-mute { color: var(--text3); font-size: 12px; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const SAVE_URL  = "{% url 'timesheets:daily_board_save' %}";
+  const BOARD_URL = "{% url 'timesheets:daily_board' %}";
+  const CSRF      = "{{ csrf_token }}";
+  const TODAY_STR    = "{{ today_str }}";
+  const SELECTED_STR = "{{ selected_date }}";
+  const ALL_DATES    = new Set({{ all_dates_json|safe }});
+  var calYear        = {{ cal_year }};
+  var calMonth       = {{ cal_month }};
+
+  /* ─── Autosave por linha ─── */
+  function setRowStatus(tr, state) {
+    var inp = tr.querySelector('[data-field="hours"]');
+    if (!inp) return;
+    inp.classList.remove('has-value', 'saved', 'saving', 'err');
+    if (state) inp.classList.add(state);
+  }
+
+  function saveRow(tr) {
+    var hoursInp = tr.querySelector('[data-field="hours"]');
+    var notesInp = tr.querySelector('[data-field="notes"]');
+    var hours = hoursInp ? hoursInp.value.trim() : '';
+    if (!hours) { setRowStatus(tr, ''); return; }
+    setRowStatus(tr, 'saving');
+    fetch(SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ date: tr.dataset.date, lines: [{
+        worker_id:  tr.dataset.workerId,
+        project_id: tr.dataset.projectId,
+        pw_id:      tr.dataset.pwId || null,
+        hours:      hours,
+        notes:      notesInp ? notesInp.value.trim() : '',
+      }]}),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { setRowStatus(tr, data.ok ? 'saved' : 'err'); })
+    .catch(function() { setRowStatus(tr, 'err'); });
+  }
+
+  document.querySelectorAll('#daily-table tbody tr').forEach(function(tr) {
+    var hoursInp = tr.querySelector('[data-field="hours"]');
+    var notesInp = tr.querySelector('[data-field="notes"]');
+    if (hoursInp) {
+      hoursInp.addEventListener('input', function() {
+        hoursInp.classList.remove('saved', 'saving', 'err');
+        hoursInp.classList.toggle('has-value', hoursInp.value.trim() !== '');
+      });
+      hoursInp.addEventListener('blur', function() { saveRow(tr); });
+      hoursInp.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        var allRows = Array.from(document.querySelectorAll('#daily-table tbody tr:not(.row-hidden)'));
+        var idx = allRows.indexOf(tr);
+        var next = allRows[idx + 1];
+        if (next) {
+          var nextHours = next.querySelector('[data-field="hours"]');
+          if (nextHours) { nextHours.focus(); nextHours.select(); }
+        }
+      });
+    }
+    if (notesInp) {
+      notesInp.addEventListener('blur', function() {
+        if (hoursInp && hoursInp.value.trim()) saveRow(tr);
+      });
+    }
+  });
+
+  /* ─── Filtros client-side ─── */
+  var active = {
+    obra: new Set(), cliente: new Set(),
+    funcionario: new Set(), sub: new Set(),
+    dia: new Set([SELECTED_STR])   // inicia com o dia seleccionado activo
+  };
+  var rangeStart  = null;  // ISO string — primeiro clique do intervalo
+  var activePeriod = null;
+
+  function applyFilters() {
+    var anyActive = Object.values(active).some(function(s) { return s.size > 0; });
+    var clearBtn = document.getElementById('filter-clear-all');
+    if (clearBtn) clearBtn.classList.toggle('visible', anyActive);
+
+    var rows = document.querySelectorAll('#daily-table tbody tr');
+    var visible = 0;
+    rows.forEach(function(tr) {
+      var show = true;
+      if (active.obra.size        && !active.obra.has(tr.dataset.projectId))       show = false;
+      if (active.cliente.size     && !active.cliente.has(tr.dataset.clientId))     show = false;
+      if (active.funcionario.size && !active.funcionario.has(tr.dataset.workerId)) show = false;
+      if (active.sub.size         && !active.sub.has(tr.dataset.subId))            show = false;
+      if (active.dia.size         && !active.dia.has(tr.dataset.date))             show = false;
+      tr.classList.toggle('row-hidden', !show);
+      if (show) visible++;
+    });
+    var noRes = document.getElementById('no-results');
+    if (noRes) noRes.style.display = (visible === 0 ? 'block' : 'none');
+  }
+
+  document.querySelectorAll('.filter-option[data-group]').forEach(function(el) {
+    el.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var group = el.dataset.group;
+      var value = el.dataset.value;
+      if (active[group].has(value)) { active[group].delete(value); el.classList.remove('active'); }
+      else                          { active[group].add(value);    el.classList.add('active'); }
+      applyFilters();
+    });
+  });
+
+  var clearBtn = document.getElementById('filter-clear-all');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      Object.keys(active).forEach(function(k) { active[k].clear(); });
+      document.querySelectorAll('.filter-option').forEach(function(o) { o.classList.remove('active'); });
+      rangeStart   = null;
+      activePeriod = null;
+      document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
+      renderCal(calYear, calMonth);
+      applyFilters();
+    });
+  }
+
+  /* ─── Collapse por secção ─── */
+  document.querySelectorAll('.filter-card__head[data-collapse]').forEach(function(head) {
+    head.addEventListener('click', function() {
+      head.closest('.filter-card').classList.toggle('collapsed');
+    });
+  });
+
+  /* ─── Calendário multi-seleção com intervalo ─── */
+  function isoDate(year, month, day) {
+    return year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+
+  function renderCal(year, month) {
+    var grid   = document.getElementById('cal-grid');
+    var nameEl = document.getElementById('cal-month-name');
+    if (!grid || !nameEl) return;
+
+    var months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    nameEl.textContent = months[month - 1] + ' ' + year;
+
+    var firstDay    = new Date(year, month - 1, 1).getDay();
+    var daysInMonth = new Date(year, month, 0).getDate();
+    var todayParts  = TODAY_STR.split('-');
+    var todayDay    = (parseInt(todayParts[0]) === year && parseInt(todayParts[1]) === month)
+                      ? parseInt(todayParts[2]) : -1;
+
+    // Calcular min/max das datas selecionadas para pintar o intervalo
+    var selArr  = Array.from(active.dia).sort();
+    var selMin  = selArr[0] || null;
+    var selMax  = selArr[selArr.length - 1] || null;
+
+    var html = '';
+    var dows = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    dows.forEach(function(d) { html += '<div class="cal-dow">' + d + '</div>'; });
+
+    for (var i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = isoDate(year, month, d);
+      var cls = 'cal-day';
+      if (ALL_DATES.has(dateStr)) cls += ' has-data';
+      if (d === todayDay)         cls += ' today';
+      if (active.dia.has(dateStr)) {
+        if (dateStr === selMin && dateStr === selMax) cls += ' selected';
+        else if (dateStr === selMin) cls += ' range-start';
+        else if (dateStr === selMax) cls += ' range-end';
+        else cls += ' in-range';
+      } else if (selMin && selMax && dateStr > selMin && dateStr < selMax) {
+        cls += ' in-range';
+      }
+      html += '<div class="' + cls + '" data-date="' + dateStr + '">' + d + '</div>';
+    }
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.cal-day:not(.empty)').forEach(function(el) {
+      el.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var date = el.dataset.date;
+
+        // Se o dia clicado é de um mês diferente do carregado, recarrega a página
+        var loadedMonth = isoDate({{ cal_year }}, {{ cal_month }}, 1).slice(0, 7);
+        if (date.slice(0, 7) !== loadedMonth) {
+          window.location.href = BOARD_URL + '?date=' + date;
+          return;
+        }
+
+        if (!rangeStart) {
+          // Primeiro clique: inicia intervalo
+          active.dia.clear();
+          active.dia.add(date);
+          rangeStart   = date;
+          activePeriod = null;
+          document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
+        } else {
+          // Segundo clique: fecha o intervalo
+          var start = rangeStart < date ? rangeStart : date;
+          var end   = rangeStart < date ? date : rangeStart;
+          active.dia.clear();
+          // Preenche todos os dias entre start e end
+          var cur = new Date(start + 'T00:00:00');
+          var fin = new Date(end   + 'T00:00:00');
+          while (cur <= fin) {
+            active.dia.add(cur.toISOString().slice(0,10));
+            cur.setDate(cur.getDate() + 1);
+          }
+          rangeStart = null;
+        }
+        renderCal(calYear, calMonth);
+        applyFilters();
+      });
+    });
+  }
+
+  renderCal(calYear, calMonth);
+  applyFilters();   // activa o filtro do dia seleccionado ao carregar
+
+  document.getElementById('cal-prev').addEventListener('click', function() {
+    calMonth--;
+    if (calMonth < 1) { calMonth = 12; calYear--; }
+    renderCal(calYear, calMonth);
+  });
+  document.getElementById('cal-next').addEventListener('click', function() {
+    calMonth++;
+    if (calMonth > 12) { calMonth = 1; calYear++; }
+    renderCal(calYear, calMonth);
+  });
+
+  /* ─── Atalhos de período ─── */
+  function setDatesFromSet(dateSet, period, year, month) {
+    active.dia   = dateSet;
+    activePeriod = period;
+    rangeStart   = null;
+    document.querySelectorAll('.period-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.period === period);
+    });
+    if (year !== undefined && (year !== calYear || month !== calMonth)) {
+      calYear = year; calMonth = month;
+    }
+    renderCal(calYear, calMonth);
+    applyFilters();
+  }
+
+  document.querySelectorAll('.period-btn').forEach(function(btn) {
+    btn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var period = btn.dataset.period;
+      if (activePeriod === period) {
+        active.dia.clear(); activePeriod = null;
+        btn.classList.remove('active');
+        renderCal(calYear, calMonth); applyFilters();
+        return;
+      }
+      var today = new Date(TODAY_STR);
+      var dates = new Set();
+      var navY  = today.getFullYear();
+      var navM  = today.getMonth() + 1;
+
+      if (period === 'hoje') {
+        dates.add(TODAY_STR);
+      } else if (period === 'semana') {
+        var dow = today.getDay();
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(today); d.setDate(today.getDate() - dow + i);
+          dates.add(d.toISOString().slice(0,10));
+        }
+      } else if (period === 'mes') {
+        var yr = today.getFullYear(), mo = today.getMonth();
+        var last = new Date(yr, mo + 1, 0).getDate();
+        for (var day = 1; day <= last; day++) {
+          var dt = new Date(yr, mo, day);
+          dates.add(dt.toISOString().slice(0,10));
+        }
+      }
+      setDatesFromSet(dates, period, navY, navM);
+    });
+  });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="board-toolbar">
+  <h1 class="page-title">Quadro de Horas</h1>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a href="{% url 'timesheets:list' %}" class="btn btn-ghost btn-sm">Ver lista completa</a>
+    <a href="{% url 'planning:list' %}?date={{ date_from_str }}" class="btn btn-ghost btn-sm">Ver planning</a>
+  </div>
+</div>
+
+<div class="db-layout">
+
+  <!-- ── Tabela principal ── -->
+  <div class="db-main">
+    {% if rows %}
+    <div class="daily-table-wrap">
+    <table class="daily-table" id="daily-table">
+      <thead>
+        <tr>
+          <th>{% trans "Dia" %}</th>
+          <th>{% trans "Funcionário" %}</th>
+          <th>{% trans "Obra" %}</th>
+          <th>{% trans "Horas" %}</th>
+          <th>{% trans "Viatura" %}</th>
+          <th>{% trans "Informação" %}</th>
+          {% if can_edit_ts %}<th class="col-actions" title="{% trans 'Apagar registo (só se já removido do planning)' %}"></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr data-worker-id="{{ row.worker.pk }}"
+            data-project-id="{{ row.project.pk }}"
+            data-client-id="{{ row.project.client_id|default:'' }}"
+            data-sub-id="{{ row.worker.company_id|default:'' }}"
+            data-date="{{ row.date_str }}"
+            data-ts-id="{% if row.ts_id %}{{ row.ts_id }}{% endif %}"
+            data-pw-id="{% if row.pw %}{{ row.pw.pk }}{% endif %}">
+          <td style="font-family:sans-serif;font-size:13px;white-space:nowrap;">
+            {{ row.date|date:"d/m/Y" }}
+            <div style="font-size:11px;color:var(--text3);">{{ row.date|date:"l" }}</div>
+          </td>
+          <td>
+            <div class="td-worker">
+              {{ row.worker.name }}
+            </div>
+            <div class="td-company">({{ row.worker.company.name }})</div>
+          </td>
+          <td class="td-project">
+            {{ row.project.name }}
+            {% if row.project.client %}
+            <div style="font-size:11px;color:var(--text3);font-family:sans-serif;">{{ row.project.client.name }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <input type="number"
+                   class="hours-input {% if row.hours %}saved{% endif %}"
+                   placeholder="0.00" step="any" min="0" max="24"
+                   value="{{ row.hours|stringformat:'.2f'|default:'' }}"
+                   data-field="hours">
+          </td>
+          <td class="vehicle-cell">—</td>
+          <td>
+            <input type="text" class="notes-input"
+                   placeholder="{% trans 'Observação…' %}"
+                   value="{{ row.notes|default:'' }}"
+                   data-field="notes">
+          </td>
+          {% if can_edit_ts %}
+          <td class="col-actions">
+            {% if row.ts_id and row.can_delete_ts %}
+            <form method="post" action="{% url 'timesheets:delete' row.ts_id %}" style="display:inline;margin:0"
+                  onsubmit="return confirm('{% trans 'Apagar este registo de horas?' %}');">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'timesheets:daily_board' %}">
+              <button type="submit" class="db-trash-btn" title="{% trans 'Apagar (já removido do planning)' %}">🗑</button>
+            </form>
+            {% elif row.ts_id %}
+            <span class="db-mute" title="{% trans 'Ainda no planning — remova a atribuição no planning' %}">—</span>
+            {% else %}
+            <span class="db-mute" title="{% trans 'Sem registo de horas guardado' %}">—</span>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div><!-- /daily-table-wrap -->
+    <div class="no-results" id="no-results">Nenhum resultado para os filtros seleccionados.</div>
+    {% else %}
+    <div class="empty-day">
+      <div class="icon">📋</div>
+      <p>Nenhum funcionário no planning para o período selecionado.</p>
+      <a href="{% url 'planning:list' %}?date={{ date_from_str }}" class="btn btn-secondary" style="margin-top:16px;">
+        Abrir planning
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Sidebar de filtros ── -->
+  <div class="db-sidebar">
+
+    <!-- Cabeçalho fixo da sidebar -->
+    <div class="sidebar-header">
+      <span class="sidebar-header__title">Filtros</span>
+      <button class="filter-clear" id="filter-clear-all">✕ Limpar</button>
+    </div>
+
+    <!-- Calendário -->
+    <div class="filter-card">
+      <div class="cal-nav">
+        <button id="cal-prev" title="Mês anterior">&#8249;</button>
+        <span class="cal-month-name" id="cal-month-name"></span>
+        <button id="cal-next" title="Próximo mês">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="period-shortcuts">
+        <div class="period-btn" data-period="hoje">Hoje</div>
+        <div class="period-btn" data-period="semana">Esta semana</div>
+        <div class="period-btn" data-period="mes">Este mês</div>
+      </div>
+    </div>
+
+    {% if rows %}
+
+    <!-- Obras -->
+    <div class="filter-card">
+      <div class="filter-card__head" data-collapse>Obra <span class="filter-card__arrow">▾</span></div>
+      <div class="filter-card__body">
+        {% for o in filter_obras %}
+        <div class="filter-option" data-group="obra" data-value="{{ o.id }}">
+          <span class="fo-label">{{ o.name }}</span>
+          <span class="fo-count">{{ o.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Funcionários -->
+    <div class="filter-card">
+      <div class="filter-card__head" data-collapse>Funcionário <span class="filter-card__arrow">▾</span></div>
+      <div class="filter-card__body">
+        {% for w in filter_workers %}
+        <div class="filter-option" data-group="funcionario" data-value="{{ w.id }}">
+          <span class="fo-label">{{ w.name }}</span>
+          <span class="fo-count">{{ w.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Clientes -->
+    {% if filter_clients %}
+    <div class="filter-card">
+      <div class="filter-card__head" data-collapse>Cliente <span class="filter-card__arrow">▾</span></div>
+      <div class="filter-card__body">
+        {% for c in filter_clients %}
+        <div class="filter-option" data-group="cliente" data-value="{{ c.id }}">
+          <span class="fo-label">{{ c.name }}</span>
+          <span class="fo-count">{{ c.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Subcontratados -->
+    <div class="filter-card">
+      <div class="filter-card__head" data-collapse>Subcontratado <span class="filter-card__arrow">▾</span></div>
+      <div class="filter-card__body">
+        {% for s in filter_subs %}
+        <div class="filter-option" data-group="sub" data-value="{{ s.id }}">
+          <span class="fo-label">{{ s.name }}</span>
+          <span class="fo-count">{{ s.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Viatura (placeholder) -->
+    <div class="filter-card collapsed">
+      <div class="filter-card__head" data-collapse>Viatura <span class="filter-card__arrow">▾</span></div>
+      <div class="filter-card__body">
+        <div style="font-size:12px;color:var(--text3);font-family:sans-serif;padding:4px 0;">
+          Disponível após implementação das viaturas.
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+  </div><!-- /sidebar -->
+
+</div><!-- /layout -->
+{% endblock %}

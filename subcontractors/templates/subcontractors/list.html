@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Subcontratados" %} — Construart{% endblock %}
+{% block tab_parent %}/subcontractors/{% endblock %}
+{% block tab_icon %}🏢{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Subcontratados" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sub-grid { display: grid; gap: 12px; }
+  .sub-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px;
+    display: grid; grid-template-columns: 56px 1fr auto auto;
+    align-items: center; gap: 18px; box-shadow: var(--shadow); transition: all .15s;
+  }
+  .sub-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(200,98,42,.1); }
+
+  .sub-avatar {
+    width: 48px; height: 48px; border-radius: var(--radius);
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; font-family: sans-serif;
+    text-decoration: none; flex-shrink: 0; transition: opacity .15s;
+    border: 1px solid var(--border);
+  }
+  .sub-avatar:hover { opacity: .75; }
+
+  .sub-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .sub-name a { color: var(--text); text-decoration: none; }
+  .sub-name a:hover { color: var(--accent); }
+  .sub-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text3); font-family: sans-serif; }
+  .sub-meta a { color: var(--text3); text-decoration: none; }
+  .sub-meta a:hover { color: var(--accent); }
+  .sub-addr { font-size: 12px; color: var(--text3); font-family: sans-serif; margin-top: 5px; }
+
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input {
+    flex: 1; min-width: 200px; padding: 8px 14px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Georgia', serif;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  @media (max-width: 640px) {
+    .sub-card { grid-template-columns: 56px 1fr; gap: 10px; }
+    .sub-card > span.badge { grid-column: 2; justify-self: start; }
+    .sub-card > div:last-child { grid-column: 1 / -1; display: flex; gap: 8px; }
+    .filter-bar input { min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Subcontratados" %}</h1>
+    <p class="page-sub">{% trans "Empresas e prestadores externos" %}</p>
+  </div>
+  <a href="{% url 'subcontractors:create' %}" class="btn btn-primary">+ {% trans "Novo subcontratado" %}</a>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="{% trans 'Pesquisar por nome, VAT, responsável...' %}" oninput="filterCards()">
+  <div style="display:flex;gap:6px;">
+    <button class="sf-btn active" onclick="setStatus('all', this)">{% trans "Todos" %}</button>
+    <button class="sf-btn" onclick="setStatus('active', this)">{% trans "Ativos" %}</button>
+    <button class="sf-btn" onclick="setStatus('paused', this)">{% trans "Pausados" %}</button>
+    <button class="sf-btn" onclick="setStatus('blocked', this)">{% trans "Bloqueados" %}</button>
+  </div>
+</div>
+
+{% if subcontractors %}
+<div class="sub-grid" id="sub-grid">
+  {% for s in subcontractors %}
+  {% with default_addr=s.addresses.all|dictsortreversed:"is_default"|first %}
+  <div class="sub-card" data-status="{{ s.status }}"
+       data-search="{{ s.name|lower }} {{ s.vat_number|lower }} {{ s.responsible|default:''|lower }}">
+
+    <!-- Avatar / Logo clicável -->
+    <a href="{% url 'subcontractors:detail' s.pk %}" class="sub-avatar" title="{{ s.name }}">
+      {{ s.name|slice:":2"|upper }}
+    </a>
+
+    <div>
+      <div class="sub-name">
+        <a href="{% url 'subcontractors:detail' s.pk %}">{{ s.name }}</a>
+        {% if s.trade_name %}<span style="font-size:12px;color:var(--text3);font-weight:400;"> · {{ s.trade_name }}</span>{% endif %}
+      </div>
+      <div class="sub-meta">
+        {% if s.legal_form %}<span>{{ s.get_legal_form_display }}</span>{% endif %}
+        {% if s.vat_number %}<span>🔢 {{ s.vat_number }}</span>{% endif %}
+        {% if s.responsible %}
+          <span>👤
+            <a href="{% url 'workforce:list' %}?responsible={{ s.responsible|urlencode }}">{{ s.responsible }}</a>
+          </span>
+        {% endif %}
+        {% if s.team_count %}<span>👷 {{ s.team_count }} {% trans "na equipe" %}</span>{% endif %}
+      </div>
+      {% if default_addr %}
+      <div class="sub-addr">
+        📍 {{ default_addr.street }}{% if default_addr.number %}, {{ default_addr.number }}{% endif %} — {{ default_addr.postal_code }} {{ default_addr.city }}
+      </div>
+      {% endif %}
+    </div>
+
+    <span class="badge {% if s.status == 'active' %}badge-green{% elif s.status == 'paused' %}badge-amber{% else %}badge-red{% endif %}">
+      {{ s.get_status_display }}
+    </span>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'subcontractors:update' s.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+    </div>
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="icon">🏢</div>
+  <h3>{% trans "Sem subcontratados" %}</h3>
+  <p>{% trans "Adicione o primeiro subcontratado para começar." %}</p>
+  <a href="{% url 'subcontractors:create' %}" class="btn btn-primary" style="margin-top:16px">+ {% trans "Novo subcontratado" %}</a>
+</div>
+{% endif %}
+
+<script>
+let currentStatus = 'all';
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.sub-card').forEach(card => {
+    const ms  = !q || card.dataset.search.includes(q);
+    const mst = currentStatus === 'all' || card.dataset.status === currentStatus;
+    card.style.display = (ms && mst) ? '' : 'none';
+  });
+}
+function setStatus(s, btn) {
+  currentStatus = s;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+</script>
+{% endblock %}

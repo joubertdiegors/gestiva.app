@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'workforce:list' %}">Colaboradores</a>
+  <span class="sep">›</span>
+  <a href="{% url 'workforce:nationality_list' %}">Nacionalidades</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ title }}</h1>
+  <a href="{% url 'workforce:nationality_list' %}" class="btn btn-ghost btn-sm">← Voltar</a>
+</div>
+
+<div style="max-width:480px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 28px 24px;">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label" style="display:block;margin-bottom:6px;font-size:13px;color:var(--text3);font-family:sans-serif;">
+          Nome <span style="color:var(--red);">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          <div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.name.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <a href="{% url 'workforce:nationality_list' %}" class="btn btn-ghost">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

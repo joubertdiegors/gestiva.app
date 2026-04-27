@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Projetos — Construart{% endblock %}
+
+{% block breadcrumb %}
+  <span class="current">Projetos</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 20px;
+    box-shadow: var(--shadow);
+    transition: all .15s;
+  }
+  .project-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(200,98,42,.1); }
+
+  .proj-name { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
+  .proj-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text3); font-family: sans-serif; }
+  .proj-meta span { display: flex; align-items: center; gap: 5px; }
+
+  .proj-grid { display: grid; gap: 12px; }
+
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar input {
+    flex: 1; min-width: 200px;
+    padding: 8px 14px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: 'Georgia', serif;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .status-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sf-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all .15s; font-family: sans-serif;
+  }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .proj-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Responsivo ── */
+  @media (max-width: 640px) {
+    .project-card {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .project-card > div:nth-child(2) { justify-self: start; }
+    .proj-actions { width: 100%; }
+    .proj-actions .btn { flex: 1; justify-content: center; }
+    .filter-bar input { min-width: 0; width: 100%; }
+    .status-filter { width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Projetos</h1>
+    <p class="page-sub">Gestão de obras e trabalhos</p>
+  </div>
+  <a href="{% url 'project_create' %}" class="btn btn-primary">+ Novo projeto</a>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="Pesquisar por nome, cliente..." oninput="filterCards()">
+  <div class="status-filter">
+    <button class="sf-btn active" onclick="setStatus('all', this)">Todos</button>
+    <button class="sf-btn" onclick="setStatus('planning', this)">Planning</button>
+    <button class="sf-btn" onclick="setStatus('active', this)">Ativos</button>
+    <button class="sf-btn" onclick="setStatus('paused', this)">Pausados</button>
+    <button class="sf-btn" onclick="setStatus('finished', this)">Concluídos</button>
+  </div>
+</div>
+
+{% if projects %}
+  <div class="proj-grid" id="proj-grid">
+    {% for project in projects %}
+    <div class="project-card"
+         data-status="{{ project.status }}"
+         data-search="{{ project.name|lower }} {{ project.client.name|lower }}">
+      <div>
+        <div class="proj-name">{{ project.name }}</div>
+        <div class="proj-meta">
+          <span>👤 {{ project.client.name }}</span>
+          {% if project.start_date %}<span>📅 {{ project.start_date|date:"d/m/Y" }}</span>{% endif %}
+          {% if project.end_date %}<span>🏁 {{ project.end_date|date:"d/m/Y" }}</span>{% endif %}
+          {% if project.managers.exists %}
+            <span>👷 {{ project.managers.first.get_short_name|default:project.managers.first.username }}{% if project.managers.count > 1 %} +{{ project.managers.count|add:"-1" }}{% endif %}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <span class="badge
+          {% if project.status == 'active' %}badge-green
+          {% elif project.status == 'planning' %}badge-accent
+          {% elif project.status == 'paused' %}badge-amber
+          {% else %}badge-gray{% endif %}">
+          {{ project.get_status_display }}
+        </span>
+      </div>
+      <div class="proj-actions">
+        <a href="{% url 'planning:list' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">📅 Planning</a>
+        <a href="{% url 'project_update' project.pk %}" class="btn btn-ghost btn-sm">✏️ Editar</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state card">
+    <div class="icon">🏗️</div>
+    <h3>Sem projetos</h3>
+    <p>Crie o primeiro projeto para começar.</p>
+    <a href="{% url 'project_create' %}" class="btn btn-primary" style="margin-top:16px">+ Novo projeto</a>
+  </div>
+{% endif %}
+
+<script>
+let currentStatus = 'all';
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.project-card').forEach(card => {
+    const matchSearch = !q || card.dataset.search.includes(q);
+    const matchStatus = currentStatus === 'all' || card.dataset.status === currentStatus;
+    card.style.display = (matchSearch && matchStatus) ? '' : 'none';
+  });
+}
+function setStatus(status, btn) {
+  currentStatus = status;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+</script>
+{% endblock %}

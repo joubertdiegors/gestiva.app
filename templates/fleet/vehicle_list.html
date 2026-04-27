@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Vehicles" %} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Vehicles" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .vehicle-grid { display: grid; gap: 12px; }
+  .vehicle-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: grid; grid-template-columns: auto 1fr auto auto;
+    align-items: center; gap: 16px;
+    text-decoration: none; color: var(--text);
+    box-shadow: var(--shadow); transition: border-color .15s;
+  }
+  .vehicle-card:hover { border-color: var(--accent); }
+  .plate-badge {
+    font-weight: 700; font-size: 15px; letter-spacing: 1px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 6px 12px; white-space: nowrap;
+  }
+  .vehicle-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .vehicle-meta { font-size: 13px; color: var(--text3); font-family: sans-serif; display: flex; gap: 12px; flex-wrap: wrap; }
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .filter-bar form { display:flex; gap:8px; flex:1; min-width:200px; }
+  .filter-bar input {
+    flex: 1; padding: 8px 14px; border: 1px solid var(--border2);
+    border-radius: var(--radius); font-size: 14px;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; white-space: nowrap; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  @media(max-width:640px){
+    .vehicle-card { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🚗 {% trans "Vehicles" %}</h1>
+    <p class="page-sub">{% trans "Company fleet management" %}</p>
+  </div>
+  <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary">+ {% trans "New Vehicle" %}</a>
+</div>
+
+<div class="filter-bar">
+  <form method="get" style="display:flex;gap:8px;flex:1;">
+    <input type="text" name="q" value="{{ q }}" placeholder="{% trans 'Search plate, brand, model...' %}">
+    <button type="submit" class="btn btn-ghost">{% trans "Search" %}</button>
+    {% if q %}<a href="?" class="btn btn-ghost">✕</a>{% endif %}
+  </form>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <a href="?" class="sf-btn {% if not status_filter %}active{% endif %}">{% trans "All" %}</a>
+    {% for val, label in status_choices %}
+    <a href="?status={{ val }}{% if q %}&q={{ q }}{% endif %}"
+       class="sf-btn {% if status_filter == val %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if vehicles %}
+<div class="vehicle-grid">
+  {% for v in vehicles %}
+  <div class="vehicle-card">
+    <span class="plate-badge">{{ v.license_plate }}</span>
+    <div>
+      <div class="vehicle-name">{{ v.brand }} {{ v.model }} ({{ v.year }})</div>
+      <div class="vehicle-meta">
+        <span>{{ v.category }}</span>
+        <span>{{ v.get_fuel_type_display }}</span>
+        <span>{{ v.current_km|floatformat:0 }} km</span>
+        {% if v.default_driver %}<span>👤 {{ v.default_driver }}</span>{% endif %}
+      </div>
+    </div>
+    <span class="badge
+      {% if v.status == 'active' %}badge-green
+      {% elif v.status == 'maintenance' %}badge-amber
+      {% else %}badge-gray{% endif %}">
+      {{ v.get_status_display }}
+    </span>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'fleet:vehicle_detail' v.pk %}" class="btn btn-ghost btn-sm">{% trans "View" %}</a>
+      <a href="{% url 'fleet:vehicle_edit' v.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
+  <p style="font-size:32px;margin-bottom:12px;">🚗</p>
+  <p>{% trans "No vehicles found." %}</p>
+  <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary" style="margin-top:16px;">{% trans "Add First Vehicle" %}</a>
+</div>
+{% endif %}
+{% endblock %}

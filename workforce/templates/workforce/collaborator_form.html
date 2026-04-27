@@ -1,0 +1,884 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'workforce:list' %}">Colaboradores</a>
+  {% if collaborator %}<span class="sep">›</span><a href="{% url 'workforce:detail' collaborator.pk %}">{{ collaborator.name }}</a>{% endif %}
+  <span class="sep">›</span>
+  <span class="current">{% if collaborator %}Editar{% else %}{{ title }}{% endif %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .profile-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 860px) { .profile-layout { grid-template-columns: 1fr; } }
+
+  .profile-sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .profile-photo-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    box-shadow: var(--shadow);
+  }
+  .avatar-xl {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 46px; font-weight: 700; font-family: sans-serif;
+    overflow: hidden; flex-shrink: 0; border: 3px solid var(--border);
+    cursor: pointer; position: relative;
+  }
+  .avatar-xl img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .avatar-xl:hover::after { content: '📷'; position: absolute; inset: 0; background: rgba(0,0,0,.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .profile-name { font-size: 18px; font-weight: 600; text-align: center; color: var(--text); }
+  .profile-role { font-size: 13px; color: var(--text3); font-family: sans-serif; text-align: center; min-height: 18px; }
+
+  .status-switch-row { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-family: sans-serif; }
+  .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; border-radius: 24px; background: var(--border2); cursor: pointer; transition: .2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; left: 3px; bottom: 3px; transition: .2s; }
+  .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+  #id_photo { display: none; }
+
+  .profile-main { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── Cartão de secção ── */
+  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .card-title { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; font-weight: 600; }
+
+  /* ── Grade de células ── */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .info-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .info-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  @media (max-width: 700px) { .info-grid, .info-grid.cols-3, .info-grid.cols-4 { grid-template-columns: 1fr; } }
+
+  .info-cell {
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  /* remove borda direita da última coluna de cada linha */
+  .info-grid .info-cell:nth-child(2n)     { border-right: none; }
+  .info-grid.cols-3 .info-cell:nth-child(3n) { border-right: none; }
+  .info-grid.cols-4 .info-cell:nth-child(4n) { border-right: none; }
+  /* remove borda inferior das últimas N células */
+  .info-grid .info-cell:nth-last-child(-n+2)     { border-bottom: none; }
+  .info-grid.cols-3 .info-cell:nth-last-child(-n+3) { border-bottom: none; }
+  .info-grid.cols-4 .info-cell:nth-last-child(-n+4) { border-bottom: none; }
+  .info-cell.full { grid-column: 1 / -1; border-right: none; }
+  /* célula que ocupa 2 colunas na grade de 4 */
+  .info-cell.span-2 { grid-column: span 2; }
+
+  .info-label { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .field-hint  { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-top: 3px; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 3px; font-family: sans-serif; }
+
+  /* ── Inputs inline ── */
+  .field-input {
+    width: 100%; border: none; background: transparent;
+    font-size: 14px; color: var(--text); font-family: 'Georgia', serif;
+    padding: 0; outline: none;
+    border-bottom: 1px dashed transparent; transition: border-color .15s;
+    box-sizing: border-box;
+  }
+  .field-input:hover, .field-input:focus { border-bottom-color: var(--accent); }
+  .field-input::placeholder { color: var(--text3); font-style: italic; }
+  select.field-input { font-family: sans-serif; cursor: pointer; -webkit-appearance: auto; }
+  textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  /* ── Autocomplete tags ── */
+  .tags-container {
+    display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+    min-height: 28px;
+  }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-light); color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 20px;
+    padding: 2px 10px 2px 10px; font-size: 12px; font-family: sans-serif;
+  }
+  .tag button {
+    background: none; border: none; color: var(--accent); cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 0; margin-left: 2px;
+  }
+  .autocomplete-wrap { position: relative; flex: 1; min-width: 120px; }
+  .autocomplete-input {
+    width: 100%; border: none; background: transparent; outline: none;
+    font-size: 13px; color: var(--text); font-family: sans-serif;
+    border-bottom: 1px dashed var(--border2); padding: 2px 0;
+  }
+  .autocomplete-input:focus { border-bottom-color: var(--accent); }
+  .autocomplete-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-md);
+    max-height: 180px; overflow-y: auto; display: none;
+  }
+  .autocomplete-dropdown.open { display: block; }
+  .autocomplete-option {
+    padding: 8px 14px; font-size: 13px; font-family: sans-serif;
+    cursor: pointer; color: var(--text);
+  }
+  .autocomplete-option:hover { background: var(--surface2); color: var(--accent); }
+
+  /* ── Switch de bloqueio de seguro ── */
+  .block-switch-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-family: sans-serif; }
+  .block-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .block-toggle input { opacity: 0; width: 0; height: 0; }
+  .block-slider { position: absolute; inset: 0; border-radius: 24px; background: var(--border2); cursor: pointer; transition: .2s; }
+  .block-slider:before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; left: 3px; bottom: 3px; transition: .2s; }
+  .block-toggle input:checked + .block-slider { background: var(--red, #e53e3e); }
+  .block-toggle input:checked + .block-slider:before { transform: translateX(20px); }
+
+  /* ── Tabela de notas de seguro ── */
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; }
+  .hist-table thead th { padding: 8px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .hist-table tbody tr { border-bottom: 1px solid var(--border); }
+  .hist-table tbody tr:last-child { border-bottom: none; }
+  .hist-table td { padding: 9px 14px; vertical-align: top; }
+  .hist-table td.muted { color: var(--text3); white-space: nowrap; }
+
+  /* ── Histórico valor/hora ── */
+  .rate-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-family: sans-serif; }
+  .rate-row:last-child { border-bottom: none; }
+
+  /* ── Modais ── */
+  dialog.cat-dialog { margin:0; padding:0; border:none; width:100vw; max-width:none; height:100vh; max-height:none; background:transparent; box-sizing:border-box; }
+  dialog.cat-dialog::backdrop { background:rgba(0,0,0,.5); }
+  .cat-dialog-flex { width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
+  .cat-dialog .popup-panel { background:var(--surface); border-radius:var(--radius-lg,10px); width:500px; max-width:min(500px,calc(100vw - 40px)); flex-shrink:0; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+  .popup-header { display:flex; align-items:center; justify-content:space-between; padding:18px 22px 14px; border-bottom:1px solid var(--border); }
+  .popup-title { font-weight:600; font-size:15px; color:var(--text); }
+  .popup-close { background:none; border:none; font-size:22px; color:var(--text3); cursor:pointer; line-height:1; padding:0 2px; }
+  .popup-body { padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .popup-footer { display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--border); }
+  .popup-error { display:none; padding:10px 14px; border-radius:var(--radius); font-size:13px; background:#fdecea; color:var(--red); border:1px solid #f5c6cb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    {% if collaborator %}<p class="page-sub" style="color:var(--text3);">Alterações guardadas ao clicar em <strong>Guardar</strong></p>{% endif %}
+  </div>
+  <div style="display:flex;gap:8px;">
+    {% if collaborator %}
+      <a href="{% url 'workforce:detail' collaborator.pk %}" class="btn btn-ghost btn-sm">← Cancelar</a>
+    {% else %}
+      <a href="{% url 'workforce:list' %}" class="btn btn-ghost btn-sm">← Cancelar</a>
+    {% endif %}
+    <button type="submit" form="main-form" class="btn btn-primary">Guardar</button>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" novalidate id="main-form">
+{% csrf_token %}
+{% if redirect_next %}<input type="hidden" name="next" value="{{ redirect_next }}">{% endif %}
+{% if form.non_field_errors %}<div class="alert alert-error" style="margin-bottom:16px;">{{ form.non_field_errors }}</div>{% endif %}
+
+<div class="profile-layout">
+
+  <!-- ══ COLUNA ESQUERDA ══ -->
+  <div class="profile-sidebar">
+
+    <!-- Foto + switch status -->
+    <div class="profile-photo-card">
+      <div class="avatar-xl" onclick="document.getElementById('id_photo').click()" title="Clique para alterar foto">
+        {% if collaborator and collaborator.photo %}
+          <img src="{{ collaborator.photo.url }}" alt="Foto" id="photo-preview" style="display:block;">
+          <span id="photo-initials" style="display:none;">{{ collaborator.name|slice:":1"|upper }}</span>
+        {% else %}
+          <img src="" alt="" id="photo-preview">
+          <span id="photo-initials">{{ form.name.value|slice:":1"|upper|default:"?" }}</span>
+        {% endif %}
+      </div>
+      <input type="file" name="photo" id="id_photo" accept="image/*" style="display:none;">
+      {% if collaborator and collaborator.photo %}
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-family:sans-serif;color:var(--red);cursor:pointer;">
+        <input type="checkbox" name="photo-clear" id="photo-clear-id" onchange="clearPhoto(this)"> Remover foto
+      </label>
+      {% endif %}
+
+      <div class="profile-name" id="preview-name">{{ form.name.value|default:"Nome do colaborador" }}</div>
+      <div class="profile-role" id="preview-role">{{ form.role.value|default:"" }}</div>
+
+      <!-- Switch status -->
+      <div class="status-switch-row">
+        <span style="color:var(--text3);">Inativo</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="status-visual-toggle"
+                 {% if form.status.value == 'active' %}checked{% endif %}
+                 onchange="syncStatus(this)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="status-label" style="font-weight:500;{% if form.status.value == 'active' %}color:var(--accent){% else %}color:var(--text3){% endif %}">
+          {% if form.status.value == 'active' %}Ativo{% else %}Inativo{% endif %}
+        </span>
+      </div>
+      <div style="display:none;">{{ form.status }}</div>
+
+      {% if collaborator %}
+      <div style="font-size:12px;color:var(--text3);font-family:sans-serif;text-align:center;">
+        Registado em {{ collaborator.created_at|date:"d/m/Y" }}<br>
+        Atualizado em {{ collaborator.updated_at|date:"d/m/Y" }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Histórico valor/hora (só na edição) -->
+    {% if collaborator %}
+    <div class="info-card">
+      <div style="padding:11px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <span class="card-title" style="padding:0;border:none;">Valor / Hora</span>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="openRateModal()">+ Adicionar</button>
+      </div>
+      {% if rates %}
+        {% for r in rates %}
+        <div class="rate-row">
+          <strong>{{ r.hourly_rate }}€<span style="color:var(--text3);font-weight:400;">/h</span></strong>
+          <span style="color:var(--text2);">{{ r.start_date|date:"d/m/Y" }}{% if r.end_date %} → {{ r.end_date|date:"d/m/Y" }}{% endif %}</span>
+          {% if not r.end_date %}<span class="badge badge-green">Atual</span>{% else %}<span></span>{% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:14px 16px;font-size:13px;color:var(--text3);font-family:sans-serif;">Sem valores registados.</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div><!-- /sidebar -->
+
+  <!-- ══ COLUNA DIREITA ══ -->
+  <div class="profile-main">
+
+    <!-- 1. DADOS PESSOAIS -->
+    <div class="info-card">
+      <div class="card-title">Dados pessoais</div>
+      <div class="info-grid">
+
+        <div class="info-cell">
+          <div class="info-label">Nome completo *</div>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="field-error">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Data de nascimento</div>
+          {{ form.birth_date }}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Nº de identidade</div>
+          {{ form.id_number }}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Validade do documento</div>
+          {{ form.id_expiry }}
+        </div>
+
+        <!-- Nacionalidade (autocomplete multi) -->
+        <div class="info-cell">
+          <div class="info-label">Nacionalidade(s)</div>
+          <div class="tags-container" id="nat-tags">
+            {% for nat in form.instance.nationalities.all %}
+            <span class="tag" data-id="{{ nat.pk }}">
+              {{ nat.name }}
+              <button type="button" onclick="removeTag('nat',{{ nat.pk }},this)">×</button>
+            </span>
+            {% endfor %}
+            <div class="autocomplete-wrap">
+              <input type="text" class="autocomplete-input" id="nat-input" placeholder="Pesquisar…" autocomplete="off">
+              <div class="autocomplete-dropdown" id="nat-dropdown"></div>
+            </div>
+          </div>
+          <div id="nat-hidden-inputs">
+            {% for nat in form.instance.nationalities.all %}
+            <input type="hidden" name="nationalities" value="{{ nat.pk }}" data-tag-id="{{ nat.pk }}">
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Idiomas (autocomplete multi) -->
+        <div class="info-cell">
+          <div class="info-label">Idioma(s)</div>
+          <div class="tags-container" id="lang-tags">
+            {% for lang in form.instance.languages.all %}
+            <span class="tag" data-id="{{ lang.pk }}">
+              {{ lang.name }}
+              <button type="button" onclick="removeTag('lang',{{ lang.pk }},this)">×</button>
+            </span>
+            {% endfor %}
+            <div class="autocomplete-wrap">
+              <input type="text" class="autocomplete-input" id="lang-input" placeholder="Pesquisar…" autocomplete="off">
+              <div class="autocomplete-dropdown" id="lang-dropdown"></div>
+            </div>
+          </div>
+          <div id="lang-hidden-inputs">
+            {% for lang in form.instance.languages.all %}
+            <input type="hidden" name="languages" value="{{ lang.pk }}" data-tag-id="{{ lang.pk }}">
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. CONTACTOS -->
+    <div class="info-card">
+      <div class="card-title">Contactos</div>
+      <div class="info-grid">
+
+        <div class="info-cell">
+          <div class="info-label">Telefone principal</div>
+          {{ form.phone }}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Telefone alternativo</div>
+          {{ form.phone2 }}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Email principal</div>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="info-cell">
+          <div class="info-label">Email alternativo</div>
+          {{ form.email2 }}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 3. EMPRESA -->
+    <div class="info-card">
+      <div class="card-title">Empresa</div>
+      <div class="info-grid cols-4">
+
+        <div class="info-cell span-2">
+          <div class="info-label">Empresa / Subcontratado *</div>
+          {{ form.company }}
+          {% if form.company.errors %}<div class="field-error">{{ form.company.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="info-cell span-2">
+          <div class="info-label">Função / Role</div>
+          {{ form.role }}
+        </div>
+
+        <div class="info-cell span-2">
+          <div class="info-label">Data de entrada</div>
+          {{ form.entry_date }}
+        </div>
+
+        <div class="info-cell span-2">
+          <div class="info-label">Data de saída</div>
+          {{ form.exit_date }}
+          <div class="field-hint">Preencher inativa o colaborador automaticamente.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 4. SEGURO -->
+    <div class="info-card">
+      <div class="card-title">Seguro</div>
+      <div class="info-grid">
+
+        <div class="info-cell full">
+          <div class="info-label">Caixa de seguro</div>
+          {{ form.insurance_fund }}
+        </div>
+
+      </div>
+
+      <!-- Histórico de notas de seguro -->
+      {% if collaborator %}
+      <div style="border-top:1px solid var(--border);">
+        <div style="padding:10px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+          <span style="font-size:12px;font-family:sans-serif;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Registos / pendências</span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openInsuranceModal()">+ Adicionar</button>
+        </div>
+        {% if insurance_notes %}
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Nota</th>
+              <th style="text-align:center;">Bloqueado</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="ins-tbody">
+            {% for n in insurance_notes %}
+            <tr data-id="{{ n.pk }}" {% if n.is_pending and n.is_blocked %}style="background:rgba(229,62,62,.06);"{% endif %}>
+              <td class="muted">{{ n.update_date|date:"d/m/Y" }}</td>
+              <td style="max-width:340px;white-space:pre-wrap;word-break:break-word;">{{ n.note|default:"—" }}</td>
+              <td style="text-align:center;">
+                {% if n.is_blocked %}<span class="badge badge-red">Bloqueado</span>{% else %}<span style="color:var(--text3);">—</span>{% endif %}
+              </td>
+              <td>
+                {% if n.resolved_at %}
+                  <span style="color:var(--text3);font-size:12px;">Resolvido {{ n.resolved_at|date:"d/m/Y" }}</span>
+                {% else %}
+                  <span class="badge badge-amber">Pendente</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div id="ins-empty" style="padding:14px 18px;font-size:13px;color:var(--text3);font-family:sans-serif;">Nenhum registo.</div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 5. CARTA DE CONDUÇÃO (só na edição) -->
+    {% if collaborator %}
+    <div class="info-card">
+      <div class="card-title">Carta de Condução (BE)</div>
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-label">Nº da carta</div>
+          <input type="text" id="lic-number" name="lic_number" class="field-input"
+                 value="{{ driver_license.license_number|default:'' }}" placeholder="—">
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Município emissor</div>
+          <input type="text" id="lic-municipality" name="lic_municipality" class="field-input"
+                 value="{{ driver_license.issuing_municipality|default:'' }}" placeholder="—">
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Data de emissão</div>
+          <input type="date" id="lic-issue" name="lic_issue" class="field-input"
+                 value="{{ driver_license.issue_date|date:'Y-m-d'|default:'' }}">
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Validade</div>
+          <input type="date" id="lic-expiry" name="lic_expiry" class="field-input"
+                 value="{{ driver_license.expiry_date|date:'Y-m-d'|default:'' }}">
+        </div>
+        <div class="info-cell full">
+          <div class="info-label">Categorias (separadas por vírgula)</div>
+          <input type="text" id="lic-categories" name="lic_categories" class="field-input"
+                 value="{{ driver_license.categories|default:'' }}" placeholder="ex: B,BE,C">
+          <div class="field-hint">Categorias BE: AM · A1 · A2 · A · B · BE · C1 · C1E · C · CE · D1 · D1E · D · DE</div>
+        </div>
+      </div>
+
+      <div class="card-title" style="border-top:1px solid var(--border);">Veículo em Casa</div>
+      <div class="info-grid">
+        <div class="info-cell">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-takes-home" {% if driver_license.takes_vehicle_home %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Leva carrinha para casa?</span>
+          </label>
+        </div>
+        <div class="info-cell" id="lic-private-use-row" style="{% if not driver_license.takes_vehicle_home %}display:none{% endif %}">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-private-use" {% if driver_license.private_use_authorized %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Uso privado autorizado?</span>
+          </label>
+          <div class="field-hint">Estudo, outro trabalho, passeio…</div>
+        </div>
+      </div>
+
+      <div class="card-title" id="parking-section-title" style="border-top:1px solid var(--border);{% if not driver_license.takes_vehicle_home %}display:none{% endif %}">Estacionamento</div>
+      <div class="info-grid" id="parking-section" style="{% if not driver_license.takes_vehicle_home %}display:none{% endif %}">
+        <div class="info-cell">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-garage" {% if driver_license.has_garage %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Tem garagem em casa?</span>
+          </label>
+        </div>
+        <div class="info-cell" id="lic-fixed-parking-row" style="{% if driver_license.has_garage %}display:none{% endif %}">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-fixed-parking" {% if driver_license.has_fixed_parking %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Vaga de estacionamento fixa?</span>
+          </label>
+        </div>
+        <div class="info-cell" id="lic-needs-card-row" style="{% if driver_license.has_garage or driver_license.has_fixed_parking %}display:none{% endif %}">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-needs-card" {% if driver_license.needs_parking_card %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Precisa de cartão anual?</span>
+          </label>
+        </div>
+        <div class="info-cell" id="lic-paid-company-row" style="{% if not driver_license.needs_parking_card %}display:none{% endif %}">
+          <label class="block-switch-row" style="cursor:pointer;">
+            <label class="block-toggle">
+              <input type="checkbox" id="lic-paid-company" {% if driver_license.parking_paid_by_company %}checked{% endif %}>
+              <span class="block-slider"></span>
+            </label>
+            <span>Estacionamento pago pela empresa?</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 6. NOTAS -->
+    <div class="info-card">
+      <div class="card-title">Notas / Informações adicionais</div>
+      <div style="padding:12px 20px;">
+        {{ form.notes }}
+      </div>
+    </div>
+
+    <!-- Botões rodapé -->
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding-bottom:8px;">
+      {% if collaborator %}
+        <a href="{% url 'workforce:detail' collaborator.pk %}" class="btn btn-ghost">Cancelar</a>
+      {% else %}
+        <a href="{% url 'workforce:list' %}" class="btn btn-ghost">Cancelar</a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /profile-layout -->
+</form>
+
+<!-- ══ MODAL: valor/hora ══ -->
+{% if collaborator %}
+<dialog id="rate-dialog" class="cat-dialog">
+  <div class="cat-dialog-flex">
+    <div class="popup-panel">
+      <div class="popup-header">
+        <span class="popup-title">Registar valor/hora</span>
+        <button type="button" class="popup-close" onclick="closeRateModal()">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="rate-error"></div>
+        <div class="form-group">
+          <label class="form-label">Valor/hora *</label>
+          <input type="number" step="0.01" min="0" id="rate-hourly" class="form-control" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de início *</label>
+          <input type="date" id="rate-start" class="form-control">
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeRateModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-rate-save" onclick="saveRate()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<!-- ══ MODAL: nota de seguro ══ -->
+<dialog id="ins-dialog" class="cat-dialog">
+  <div class="cat-dialog-flex">
+    <div class="popup-panel">
+      <div class="popup-header">
+        <span class="popup-title">Novo registo de seguro</span>
+        <button type="button" class="popup-close" onclick="closeInsuranceModal()">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="ins-error"></div>
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input type="date" id="ins-date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nota / Descrição</label>
+          <textarea id="ins-note" class="form-control" rows="4" placeholder="Descreva a pendência, bloqueio ou situação…"></textarea>
+        </div>
+        <div class="form-group">
+          <div class="block-switch-row">
+            <label class="block-toggle">
+              <input type="checkbox" id="ins-blocked">
+              <span class="block-slider"></span>
+            </label>
+            <span id="ins-blocked-label" style="font-family:sans-serif;font-size:13px;">Marcar como bloqueado</span>
+          </div>
+          <div class="field-hint" style="margin-top:6px;">Ao marcar, o colaborador fica impedido de trabalhar até resolução.</div>
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeInsuranceModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-ins-save" onclick="saveInsuranceNote()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<span id="url-rate-create" data-url="{% url 'workforce:hourly_rate_create' collaborator.pk %}" style="display:none"></span>
+<span id="url-ins-create"  data-url="{% url 'workforce:insurance_note_create' collaborator.pk %}" style="display:none"></span>
+{% endif %}
+
+<span id="url-nat-ac" data-url="{% url 'workforce:nationality_autocomplete' %}" style="display:none"></span>
+<span id="url-lang-ac" data-url="{% url 'workforce:language_autocomplete' %}" style="display:none"></span>
+{% if collaborator %}
+<span id="url-lic-save"     data-url="{% url 'workforce:driver_license_save' collaborator.pk %}" style="display:none"></span>
+<span id="url-park-create" data-url="{% url 'workforce:parking_permit_create' collaborator.pk %}" style="display:none"></span>
+{% endif %}
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+// ── Status switch ──────────────────────────────────────────────────────────────
+function syncStatus(cb) {
+  const sel = document.getElementById('id_status');
+  if (sel) sel.value = cb.checked ? 'active' : 'inactive';
+  const label = document.getElementById('status-label');
+  label.textContent = cb.checked ? 'Ativo' : 'Inativo';
+  label.style.color = cb.checked ? 'var(--accent)' : 'var(--text3)';
+}
+
+// ── Foto ──────────────────────────────────────────────────────────────────────
+document.getElementById('id_photo').addEventListener('change', function () {
+  if (!this.files || !this.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('photo-preview');
+    const initials = document.getElementById('photo-initials');
+    preview.src = e.target.result; preview.style.display = 'block';
+    if (initials) initials.style.display = 'none';
+  };
+  reader.readAsDataURL(this.files[0]);
+});
+function clearPhoto(cb) {
+  const preview = document.getElementById('photo-preview');
+  const initials = document.getElementById('photo-initials');
+  if (cb.checked) {
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    if (initials) initials.style.display = '';
+    document.getElementById('id_photo').value = '';
+  } else {
+    if (preview) preview.style.display = 'block';
+    if (initials) initials.style.display = 'none';
+  }
+}
+
+// ── Preview nome / função ─────────────────────────────────────────────────────
+const nameInput = document.getElementById('id_name');
+const roleInput = document.getElementById('id_role');
+if (nameInput) nameInput.addEventListener('input', function () {
+  const el = document.getElementById('preview-name');
+  if (el) el.textContent = this.value || 'Nome do colaborador';
+  const ini = document.getElementById('photo-initials');
+  if (ini && ini.style.display !== 'none') ini.textContent = (this.value[0] || '?').toUpperCase();
+});
+if (roleInput) roleInput.addEventListener('input', function () {
+  const el = document.getElementById('preview-role');
+  if (el) el.textContent = this.value;
+});
+
+// ── Autocomplete genérico ──────────────────────────────────────────────────────
+const URL_NAT  = document.getElementById('url-nat-ac').dataset.url;
+const URL_LANG = document.getElementById('url-lang-ac').dataset.url;
+
+function setupAutocomplete(inputId, dropdownId, tagsId, hiddenId, apiUrl, fieldName) {
+  const input    = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  const tagsDiv  = document.getElementById(tagsId);
+  const hiddenDiv = document.getElementById(hiddenId);
+
+  function selectedIds() {
+    return Array.from(hiddenDiv.querySelectorAll('input[type=hidden]')).map(i => parseInt(i.value));
+  }
+
+  function addTag(id, name) {
+    if (selectedIds().includes(id)) return;
+    // tag visual
+    const tag = document.createElement('span');
+    tag.className = 'tag'; tag.dataset.id = id;
+    tag.innerHTML = `${name}<button type="button" onclick="removeTag('${fieldName}',${id},this)">×</button>`;
+    tagsDiv.insertBefore(tag, tagsDiv.querySelector('.autocomplete-wrap'));
+    // hidden input
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = fieldName; inp.value = id; inp.dataset.tagId = id;
+    hiddenDiv.appendChild(inp);
+    input.value = '';
+    dropdown.classList.remove('open');
+  }
+
+  let timer;
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (!q) { dropdown.classList.remove('open'); return; }
+    timer = setTimeout(() => {
+      fetch(`${apiUrl}?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+          const ids = selectedIds();
+          const opts = data.results.filter(r => !ids.includes(r.id));
+          if (!opts.length) { dropdown.classList.remove('open'); return; }
+          dropdown.innerHTML = opts.map(r =>
+            `<div class="autocomplete-option" data-id="${r.id}" data-name="${r.name}">${r.name}</div>`
+          ).join('');
+          dropdown.classList.add('open');
+        });
+    }, 200);
+  });
+
+  dropdown.addEventListener('click', function (e) {
+    const opt = e.target.closest('.autocomplete-option');
+    if (!opt) return;
+    addTag(parseInt(opt.dataset.id), opt.dataset.name);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!tagsDiv.contains(e.target)) dropdown.classList.remove('open');
+  });
+}
+
+// Expor removeTag globalmente
+window.removeTag = function (fieldName, id, btn) {
+  const hiddenId = fieldName === 'nationalities' ? 'nat-hidden-inputs' : 'lang-hidden-inputs';
+  const tagsId   = fieldName === 'nationalities' ? 'nat-tags' : 'lang-tags';
+  document.querySelector(`#${hiddenId} input[data-tag-id="${id}"]`)?.remove();
+  btn.closest('.tag')?.remove();
+};
+
+setupAutocomplete('nat-input',  'nat-dropdown',  'nat-tags',  'nat-hidden-inputs',  URL_NAT,  'nationalities');
+setupAutocomplete('lang-input', 'lang-dropdown', 'lang-tags', 'lang-hidden-inputs', URL_LANG, 'languages');
+
+{% if collaborator %}
+// ── Carta de condução: guardar ao submeter o formulário principal ─────────────
+const URL_LIC = document.getElementById('url-lic-save').dataset.url;
+
+// Lógica condicional das perguntas em cascata
+function licUpdateCascade() {
+  const takesHome   = document.getElementById('lic-takes-home')?.checked;
+  const hasGarage   = document.getElementById('lic-garage')?.checked;
+  const hasFixed    = document.getElementById('lic-fixed-parking')?.checked;
+  const needsCard   = document.getElementById('lic-needs-card')?.checked;
+  const show = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v ? '' : 'none'; };
+  show('lic-private-use-row', takesHome);
+  show('parking-section-title', takesHome);
+  show('parking-section', takesHome);
+  show('lic-fixed-parking-row', takesHome && !hasGarage);
+  show('lic-needs-card-row', takesHome && !hasGarage && !hasFixed);
+  show('lic-paid-company-row', takesHome && !hasGarage && !hasFixed && needsCard);
+}
+['lic-takes-home','lic-garage','lic-fixed-parking','lic-needs-card'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', licUpdateCascade);
+});
+licUpdateCascade();
+
+document.getElementById('main-form').addEventListener('submit', async function(e) {
+  const licNumber   = document.getElementById('lic-number')?.value ?? '';
+  const licMunic    = document.getElementById('lic-municipality')?.value ?? '';
+  const licCats     = document.getElementById('lic-categories')?.value ?? '';
+  const licIssue    = document.getElementById('lic-issue')?.value ?? '';
+  const licExpiry   = document.getElementById('lic-expiry')?.value ?? '';
+  const takesHome   = document.getElementById('lic-takes-home')?.checked;
+  const privateUse  = document.getElementById('lic-private-use')?.checked;
+  const hasGarage   = document.getElementById('lic-garage')?.checked;
+  const hasFixed    = document.getElementById('lic-fixed-parking')?.checked;
+  const needsCard   = document.getElementById('lic-needs-card')?.checked;
+  const paidCompany = document.getElementById('lic-paid-company')?.checked;
+  if (licNumber || licMunic || licCats || licIssue || licExpiry || takesHome || privateUse || hasGarage || hasFixed || needsCard || paidCompany) {
+    const fd = new FormData();
+    fd.append('license_number',          licNumber);
+    fd.append('issuing_municipality',    licMunic);
+    fd.append('categories',              licCats);
+    fd.append('issue_date',              licIssue);
+    fd.append('expiry_date',             licExpiry);
+    fd.append('takes_vehicle_home',      document.getElementById('lic-takes-home')?.checked ? 'on' : '');
+    fd.append('private_use_authorized',  document.getElementById('lic-private-use')?.checked ? 'on' : '');
+    fd.append('has_garage',              document.getElementById('lic-garage')?.checked ? 'on' : '');
+    fd.append('has_fixed_parking',       document.getElementById('lic-fixed-parking')?.checked ? 'on' : '');
+    fd.append('needs_parking_card',      document.getElementById('lic-needs-card')?.checked ? 'on' : '');
+    fd.append('parking_paid_by_company', document.getElementById('lic-paid-company')?.checked ? 'on' : '');
+    await fetch(URL_LIC, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd });
+  }
+});
+
+// ── Valor/hora modal ─────────────────────────────────────────────────────────
+const URL_RATE   = document.getElementById('url-rate-create').dataset.url;
+const RATE_DLG   = document.getElementById('rate-dialog');
+const URL_INS    = document.getElementById('url-ins-create').dataset.url;
+const INS_DLG    = document.getElementById('ins-dialog');
+
+function openRateModal() {
+  document.getElementById('rate-error').style.display = 'none';
+  const s = document.getElementById('rate-start');
+  if (!s.value) s.value = new Date().toISOString().slice(0,10);
+  try { if (!RATE_DLG.open) RATE_DLG.showModal(); } catch(e){}
+  setTimeout(() => document.getElementById('rate-hourly').focus(), 60);
+}
+function closeRateModal() { try { if (RATE_DLG.open) RATE_DLG.close(); } catch(e){} }
+function setRateErr(msg) { const e = document.getElementById('rate-error'); e.textContent = msg; e.style.display = msg ? 'block' : 'none'; }
+async function saveRate() {
+  const h = document.getElementById('rate-hourly').value, s = document.getElementById('rate-start').value;
+  if (!h || !s) { setRateErr('Preencha valor/hora e data de início.'); return; }
+  const btn = document.getElementById('btn-rate-save');
+  btn.disabled = true; btn.textContent = 'A guardar…';
+  const res = await fetch(URL_RATE, { method:'POST', headers:{'X-CSRFToken':CSRF}, body: new URLSearchParams({hourly_rate:h,start_date:s}) });
+  const json = await res.json();
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if (!json.ok) { setRateErr(json.errors ? Object.values(json.errors).flat().join(' ') : (json.error||'Erro.')); return; }
+  closeRateModal(); window.location.reload();
+}
+RATE_DLG.addEventListener('click', e => { if (!e.target.closest('.popup-panel')) closeRateModal(); });
+RATE_DLG.addEventListener('cancel', e => { e.preventDefault(); closeRateModal(); });
+
+// ── Nota de seguro modal ─────────────────────────────────────────────────────
+function openInsuranceModal() {
+  document.getElementById('ins-error').style.display = 'none';
+  const d = document.getElementById('ins-date');
+  if (!d.value) d.value = new Date().toISOString().slice(0,10);
+  document.getElementById('ins-note').value = '';
+  document.getElementById('ins-blocked').checked = false;
+  try { if (!INS_DLG.open) INS_DLG.showModal(); } catch(e){}
+  setTimeout(() => document.getElementById('ins-note').focus(), 60);
+}
+function closeInsuranceModal() { try { if (INS_DLG.open) INS_DLG.close(); } catch(e){} }
+function setInsErr(msg) { const e = document.getElementById('ins-error'); e.textContent = msg; e.style.display = msg ? 'block' : 'none'; }
+
+document.getElementById('ins-blocked').addEventListener('change', function () {
+  document.getElementById('ins-blocked-label').textContent = this.checked ? 'BLOQUEADO' : 'Marcar como bloqueado';
+  document.getElementById('ins-blocked-label').style.color = this.checked ? 'var(--red)' : '';
+});
+
+async function saveInsuranceNote() {
+  const date    = document.getElementById('ins-date').value;
+  const note    = document.getElementById('ins-note').value;
+  const blocked = document.getElementById('ins-blocked').checked;
+  if (!date) { setInsErr('A data é obrigatória.'); return; }
+  const btn = document.getElementById('btn-ins-save');
+  btn.disabled = true; btn.textContent = 'A guardar…';
+  const body = new URLSearchParams({ update_date: date, note, is_blocked: blocked ? 'true' : '' });
+  const res = await fetch(URL_INS, { method:'POST', headers:{'X-CSRFToken':CSRF}, body });
+  const json = await res.json();
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if (!json.ok) { setInsErr(json.errors ? Object.values(json.errors).flat().join(' ') : 'Erro ao guardar.'); return; }
+  closeInsuranceModal(); window.location.reload();
+}
+INS_DLG.addEventListener('click', e => { if (!e.target.closest('.popup-panel')) closeInsuranceModal(); });
+INS_DLG.addEventListener('cancel', e => { e.preventDefault(); closeInsuranceModal(); });
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load l10n %}
+{% load money %}
+{% load rfq_tags %}
+
+{% block title %}{{ rfq.number }}{% endblock %}
+{% block tab_parent %}/procurement/rfq/{% endblock %}
+{% block tab_icon %}🧾{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'procurement:rfq_list' %}">{% trans "Cotações (RFQ)" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ rfq.number }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg,10px); overflow:hidden; margin-bottom:16px; }
+  .section-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--surface2); border-bottom:1px solid var(--border); gap:12px; flex-wrap:wrap; }
+  .section-title { font-weight:600; font-size:13px; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
+  .dt { width:100%; border-collapse:collapse; font-size:13px; }
+  .dt thead th { padding:9px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); background:var(--surface2); white-space:nowrap; }
+  .dt tbody tr { border-bottom:1px solid var(--border); }
+  .dt td { padding:10px 14px; vertical-align:middle; }
+  .dt td.muted { color:var(--text3); }
+  .dt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dt-empty { padding: 18px 14px; text-align:center; color:var(--text3); }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius: 99px; font-size:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); }
+  .pill.ok { background: var(--green-light); color: var(--green); border-color: rgba(45,122,79,.2); }
+  .pill.warn { background: var(--amber-light); color: var(--amber); border-color: rgba(184,118,10,.25); }
+  .vendor-h1 { font-size:12px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:.4px; }
+  .sub-h { font-size:10px; font-weight:700; }
+  .rfq-picker-toolbar { display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; margin-bottom:10px; }
+  .rfq-picker-list { max-height: 50vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+  .rfq-picker-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); margin: 0; cursor: pointer; font-size: 13px; }
+  .rfq-picker-row:last-child { border-bottom: 0; }
+  .rfq-picker-row input[type="checkbox"] { flex: 0 0 auto; }
+  .rfq-picker-row .pick-label { font-weight: 500; }
+  @media (max-width: 640px) { .rfq-picker-toolbar { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ rfq.number }}</h1>
+    <p class="page-sub">
+      <span class="pill {% if rfq.status == 'draft' %}warn{% else %}ok{% endif %}">{{ rfq.get_status_display }}</span>
+      {% if rfq.due_date %} · {% trans "Prazo" %}: {{ rfq.due_date|date:"d/m/Y" }}{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{% url 'procurement:rfq_list' %}" class="btn btn-ghost">← {% trans "Voltar" %}</a>
+    {% if rfq.status == 'draft' %}
+      <button class="btn btn-secondary" type="button" onclick="openProductPickModal()">+ {% trans "Incluir produto" %}</button>
+      <button class="btn btn-secondary" type="button" onclick="openVendorPickModal()">+ {% trans "Incluir fornecedor" %}</button>
+      <button class="btn btn-primary" onclick="sendRFQ()">{% trans "Enviar pedido" %}</button>
+    {% else %}
+      <button class="btn btn-secondary" onclick="applySelected()">{% trans "Aplicar vencedores ao cadastro" %}</button>
+    {% endif %}
+  </div>
+</div>
+
+{% if rfq.status == 'draft' %}
+<div class="section-card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">{% trans "Produtos do orçamento" %}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">
+        {% trans "Selecione produtos e depois ajuste as quantidades. Envie o pedido quando estiver pronto." %}
+      </div>
+    </div>
+  </div>
+  <div style="overflow:auto">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th style="min-width:220px;">{% trans "Produto" %}</th>
+          <th style="min-width:70px;">{% trans "U.M." %}</th>
+          <th class="num" style="min-width:110px;">{% trans "Quantidade" %}</th>
+          <th style="min-width:200px;">{% trans "Observações" %}</th>
+          <th style="text-align:right;min-width:120px;">{% trans "Ações" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr id="item-row-{{ it.pk }}" data-id="{{ it.pk }}" data-product-id="{{ it.product_id }}">
+          <td style="font-weight:600;">{{ it.product.name }}</td>
+          <td class="muted">{{ it.product.unit.symbol }}</td>
+          <td class="num" style="vertical-align:middle">
+            <input class="form-control" style="text-align:right;max-width:140px;margin-left:auto"
+                   type="number" step="0.0001" min="0" inputmode="decimal"
+                   id="item-qty-{{ it.pk }}"
+                   value="{% localize off %}{{ it.qty }}{% endlocalize %}">
+          </td>
+          <td>
+            <input class="form-control" type="text" maxlength="255" id="item-notes-{{ it.pk }}"
+                   value="{{ it.notes|default:'' }}">
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="saveRfqItemRow({{ it.pk }})">{% trans "Guardar" %}</button>
+            <button class="btn btn-danger btn-sm" type="button" onclick="deleteItem({{ it.pk }})" title="{% trans 'Eliminar' %}">🗑️</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="dt-empty">{% trans "Ainda sem produtos. Use «Incluir produto» para adicionar." %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Fornecedores: contactos e condições (largura total) -->
+<div class="section-card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">{% trans "Interlocutores e condições comerciais" %}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">
+        {% trans "Dados de contacto para acompanhamento do orçamento e condições propostas por fornecedor." %}
+      </div>
+    </div>
+    {% if rfq.status == 'draft' %}
+    <button class="btn btn-secondary btn-sm" type="button" onclick="openVendorPickModal()">+ {% trans "Incluir fornecedores" %}</button>
+    {% endif %}
+  </div>
+  <div style="overflow:auto">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>{% trans "Fornecedor" %}</th>
+          <th>{% trans "Responsável (cadastro)" %}</th>
+          <th>{% trans "Telefone" %}</th>
+          <th>{% trans "E-mail" %}</th>
+          <th>{% trans "Prazo de pagamento" %}</th>
+          <th>{% trans "Validade do orçamento" %}</th>
+          <th style="text-align:right">{% trans "Ações" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vendors %}
+        <tr>
+          <td style="font-weight:600;">
+            {{ v.supplier.trade_name|default:v.supplier.name }}
+            <div class="muted" style="font-size:12px;margin-top:4px;">{{ v.get_status_display }}</div>
+          </td>
+          <td>
+            <select class="form-control" id="v-contact-{{ v.id }}" data-supplier="{{ v.supplier_id }}"
+                    onchange="onQuoteContactChange({{ v.id }})">
+              <option value="">{% trans "— selecione —" %}</option>
+              {% for c in all_contacts %}
+                {% if c.supplier_id == v.supplier_id %}
+                  <option value="{{ c.pk }}" {% if v.quote_contact_id == c.pk %}selected{% endif %}>
+                    {{ c.name }}
+                  </option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            {% if vendor_contact_counts|dict_get:v.id == 0 %}
+              <div class="muted" style="font-size:12px;margin-top:6px;">{% trans "Sem contactos no fornecedor." %}</div>
+            {% endif %}
+          </td>
+          <td>
+            <input class="form-control" id="v-phone-{{ v.id }}" type="text" readonly
+                   value="{{ v.quote_contact_phone|default:'' }}">
+          </td>
+          <td>
+            <input class="form-control" id="v-mail-{{ v.id }}" type="email" readonly
+                   value="{{ v.quote_contact_email|default:'' }}">
+          </td>
+          <td>
+            <input class="form-control" id="v-pay-{{ v.id }}" type="text" value="{{ v.payment_term|default:'' }}"
+                   placeholder="{% trans 'Ex: 30DFF' %}">
+          </td>
+          <td>
+            <input class="form-control" id="v-qval-{{ v.id }}" type="date"
+                   value="{% if v.quote_validity %}{{ v.quote_validity|date:'Y-m-d' }}{% endif %}">
+          </td>
+          <td style="text-align:right;white-space:nowrap;">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="saveVendorHeader({{ v.id }})">{% trans "Guardar" %}</button>
+            {% if rfq.status == 'draft' %}
+              <button class="btn btn-danger btn-sm" type="button" onclick="removeVendor({{ v.pk }})">🗑️</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="dt-empty">{% trans "Inclua fornecedores para solicitar orçamento." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if rfq.status != 'draft' and vendors %}
+<div class="section-card">
+  <div class="section-header">
+    <div>
+      <div class="section-title">{% trans "Matriz de cotação (comparativo por fornecedor)" %}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">
+        {% trans "O mesmo item aparece em cada fornecedor para registro de preço e comparação." %}
+      </div>
+    </div>
+  </div>
+  <div style="overflow:auto">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:220px;">{% trans "Produto (referência)" %}</th>
+          <th rowspan="2" class="num" style="min-width:90px;">{% trans "Qtd" %}</th>
+          <th rowspan="2" style="min-width:80px;">{% trans "U.M." %}</th>
+          {% for v in vendors %}
+            <th colspan="4" style="min-width:360px; text-align:center; border-left:1px solid var(--border);">
+              <div class="vendor-h1">{{ v.supplier.trade_name|default:v.supplier.name }}</div>
+              <div class="muted" style="font-size:12px;margin-top:4px;">{{ v.get_status_display }}</div>
+            </th>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for v in vendors %}
+            <th class="sub-h" style="border-left:1px solid var(--border);">{% trans "Produto" %}</th>
+            <th class="sub-h num" style="min-width:90px;">{% trans "Qtd" %}</th>
+            <th class="sub-h" style="min-width:70px;">{% trans "U.M." %}</th>
+            <th class="sub-h" style="min-width:150px;">{% trans "Valor" %}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td style="font-weight:600;">{{ it.product.name }}</td>
+          <td class="num">{{ it.qty|floatformat:2 }}</td>
+          <td class="muted">{{ it.product.unit.symbol }}</td>
+          {% for v in vendors %}
+            {% rfq_line_for lines it.id v.id as ln %}
+            <td style="border-left:1px solid var(--border);">{{ it.product.name }}</td>
+            <td class="num">{{ it.qty|floatformat:2 }}</td>
+            <td class="muted">{{ it.product.unit.symbol }}</td>
+            <td>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                  <input type="radio" name="winner-{{ it.id }}"
+                         {% if it.selected_vendor_id == v.id %}checked{% endif %}
+                         onchange="selectVendor({{ it.id }}, {{ v.id }})">
+                  <span>{% trans "Vencedor" %}</span>
+                </label>
+                <input class="form-control" style="padding:7px 10px;font-size:13px"
+                       id="ans-price-{{ v.id }}-{{ it.id }}"
+                       type="number" step="0.0001" min="0"
+                       value="{% if ln and ln.unit_price != None %}{{ ln.unit_price }}{% endif %}">
+                <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+                  <span class="muted" style="font-size:12px;">
+                    {% if ln and ln.unit_price != None %}{{ ln.unit_price|eur }}{% else %}—{% endif %}
+                  </span>
+                  <button class="btn btn-secondary btn-sm" type="button" onclick="saveAnswer({{ v.id }}, {{ it.id }})">{% trans "Guardar" %}</button>
+                </div>
+              </div>
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- MODAL: incluir produtos (seleção múltipla) -->
+<div class="modal-overlay" id="product-pick-modal">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title">{% trans "Incluir produtos no pedido" %}</div>
+      <button type="button" class="modal-close" onclick="closeProductPickModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rfq-picker-toolbar">
+        <input class="form-control" type="search" id="product-pick-search" autocomplete="off"
+               placeholder="{% trans 'Pesquisar por nome…' %}" oninput="filterProductPickList(this.value)">
+        <label class="form-control" style="display:flex;align-items:center;gap:8px;white-space:nowrap;margin:0;cursor:pointer">
+          <input type="checkbox" id="product-pick-all" onchange="toggleAllProductPick()">
+          {% trans "Selecionar visíveis" %}
+        </label>
+      </div>
+      <div class="rfq-picker-list" id="product-pick-list">
+        {% for p in products %}
+        <label class="rfq-picker-row js-pick-product-row" data-name="{{ p.name|lower }}">
+          <input type="checkbox" class="product-pick-cb" name="product" value="{{ p.pk }}"
+                 {% if p.pk in existing_product_ids %}disabled checked{% endif %}>
+          <span class="pick-label">{{ p.name }}</span>
+          <span class="muted" style="margin-left:auto;font-size:12px;">{{ p.unit.symbol }}</span>
+          {% if p.pk in existing_product_ids %}
+            <span class="pill" style="font-size:11px">{% trans "Já no pedido" %}</span>
+          {% endif %}
+        </label>
+        {% empty %}
+        <div class="dt-empty" style="border:0">{% trans "Não há produtos ativos no catálogo." %}</div>
+        {% endfor %}
+      </div>
+      <div class="alert alert-error" id="product-pick-error" style="display:none;margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" id="product-pick-submit" onclick="submitProductPick()">{% trans "Incluir" %}</button>
+      <button class="btn btn-ghost" type="button" onclick="closeProductPickModal()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: incluir fornecedores (seleção múltipla) -->
+<div class="modal-overlay" id="vendor-pick-modal">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title">{% trans "Incluir fornecedores no pedido" %}</div>
+      <button type="button" class="modal-close" onclick="closeVendorPickModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rfq-picker-toolbar">
+        <input class="form-control" type="search" id="vendor-pick-search" autocomplete="off"
+               placeholder="{% trans 'Pesquisar por nome…' %}" oninput="filterVendorPickList(this.value)">
+        <label class="form-control" style="display:flex;align-items:center;gap:8px;white-space:nowrap;margin:0;cursor:pointer">
+          <input type="checkbox" id="vendor-pick-all" onchange="toggleAllVendorPick()">
+          {% trans "Selecionar visíveis" %}
+        </label>
+      </div>
+      <div class="rfq-picker-list" id="vendor-pick-list">
+        {% for s in suppliers %}
+        <label class="rfq-picker-row js-pick-vendor-row" data-name="{{ s.name|lower }}{% if s.trade_name %} {{ s.trade_name|lower }}{% endif %}">
+          <input type="checkbox" class="vendor-pick-cb" name="supplier" value="{{ s.pk }}"
+                 {% if s.pk in existing_supplier_ids %}disabled checked{% endif %}>
+          <span class="pick-label">{{ s.trade_name|default:s.name }}</span>
+          {% if s.trade_name %}
+            <span class="muted" style="margin-left:auto;font-size:12px;">{{ s.name }}</span>
+          {% endif %}
+          {% if s.pk in existing_supplier_ids %}
+            <span class="pill" style="font-size:11px">{% trans "Já no pedido" %}</span>
+          {% endif %}
+        </label>
+        {% empty %}
+        <div class="dt-empty" style="border:0">{% trans "Não há fornecedores ativos." %}</div>
+        {% endfor %}
+      </div>
+      <div class="alert alert-error" id="vendor-pick-error" style="display:none;margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" id="vendor-pick-submit" onclick="submitVendorPick()">{% trans "Incluir" %}</button>
+      <button class="btn btn-ghost" type="button" onclick="closeVendorPickModal()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- URLs -->
+<span id="url-item-batch" data-url="{% url 'procurement:rfq_item_batch_add' rfq.pk %}" style="display:none"></span>
+<span id="url-item-update" data-url-template="{% url 'procurement:rfq_item_update' rfq.pk 999999 %}" style="display:none"></span>
+<span id="url-item-delete" data-url-template="{% url 'procurement:rfq_item_delete' rfq.pk 999999 %}" style="display:none"></span>
+<span id="url-vendor-batch" data-url="{% url 'procurement:rfq_vendor_batch_add' rfq.pk %}" style="display:none"></span>
+<span id="url-vendor-remove" data-url-template="{% url 'procurement:rfq_vendor_remove' rfq.pk 999999 %}" style="display:none"></span>
+<span id="url-send" data-url="{% url 'procurement:rfq_send' rfq.pk %}" style="display:none"></span>
+<span id="url-vendor-header" data-url-template="{% url 'procurement:rfq_vendor_header' rfq.pk 999999 %}" style="display:none"></span>
+<span id="url-answer" data-url-template="{% url 'procurement:rfq_answer_save' rfq.pk 999999 999998 %}" style="display:none"></span>
+<span id="url-select-vendor" data-url-template="{% url 'procurement:rfq_select_vendor' rfq.pk 999999 %}" style="display:none"></span>
+<span id="url-apply-selected" data-url="{% url 'procurement:rfq_apply_selected' rfq.pk %}" style="display:none"></span>
+<span id="url-supplier-contact-json" data-url-template="{% url 'procurement:supplier_contact_json' 888888 999999 %}" style="display:none"></span>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const URL_ITEM_UPD_TPL = document.getElementById('url-item-update').dataset.urlTemplate;
+const URL_ITEM_DEL_TPL = document.getElementById('url-item-delete').dataset.urlTemplate;
+const URL_ITEM_BATCH = document.getElementById('url-item-batch').dataset.url;
+const URL_VENDOR_BATCH = document.getElementById('url-vendor-batch').dataset.url;
+const URL_VENDOR_REM_TPL = document.getElementById('url-vendor-remove').dataset.urlTemplate;
+const URL_SEND = document.getElementById('url-send').dataset.url;
+const URL_HEADER_TPL = document.getElementById('url-vendor-header').dataset.urlTemplate;
+const URL_ANSWER_TPL = document.getElementById('url-answer').dataset.urlTemplate;
+const URL_SELECT_VENDOR_TPL = document.getElementById('url-select-vendor').dataset.urlTemplate;
+const URL_APPLY_SELECTED = document.getElementById('url-apply-selected').dataset.url;
+const URL_SUPPLIER_CONTACT_JSON_TPL = document.getElementById('url-supplier-contact-json').dataset.urlTemplate;
+
+function urlFromTemplate(tpl, pk) { return tpl.replace('999999', String(pk)); }
+
+function supplierContactJsonUrl(supplierId, contactId) {
+  return String(URL_SUPPLIER_CONTACT_JSON_TPL)
+    .replace('888888', String(supplierId))
+    .replace('999999', String(contactId));
+}
+
+function post(url, data) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }),
+  }).then(async r => ({ ok: r.ok, json: await r.json() }));
+}
+
+function postUrlEncoded(url, searchParams) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: searchParams,
+  }).then(async (r) => {
+    let json = {};
+    try { json = await r.json(); } catch (e) {}
+    return { ok: r.ok, json };
+  });
+}
+
+function openProductPickModal() {
+  const err = document.getElementById('product-pick-error');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  const search = document.getElementById('product-pick-search');
+  if (search) search.value = '';
+  const all = document.getElementById('product-pick-all');
+  if (all) all.checked = false;
+  filterProductPickList('');
+  document.querySelectorAll('.product-pick-cb:not(:disabled)').forEach((cb) => { cb.checked = false; });
+  document.getElementById('product-pick-modal').classList.add('open');
+}
+
+function closeProductPickModal() {
+  document.getElementById('product-pick-modal').classList.remove('open');
+}
+
+function filterProductPickList(q) {
+  const s = (q || '').trim().toLowerCase();
+  document.querySelectorAll('.js-pick-product-row').forEach((row) => {
+    const name = row.getAttribute('data-name') || '';
+    row.style.display = !s || name.includes(s) ? '' : 'none';
+  });
+  const all = document.getElementById('product-pick-all');
+  if (all) all.checked = false;
+}
+
+function toggleAllProductPick() {
+  const master = document.getElementById('product-pick-all').checked;
+  document.querySelectorAll('.js-pick-product-row').forEach((row) => {
+    if (row.style.display === 'none') return;
+    const cb = row.querySelector('.product-pick-cb');
+    if (cb && !cb.disabled) cb.checked = master;
+  });
+}
+
+function submitProductPick() {
+  const errEl = document.getElementById('product-pick-error');
+  errEl.style.display = 'none';
+  const p = new URLSearchParams();
+  p.append('csrfmiddlewaretoken', CSRF);
+  let n = 0;
+  document.querySelectorAll('.product-pick-cb:checked').forEach((cb) => {
+    if (cb.disabled) return;
+    p.append('product', cb.value);
+    n += 1;
+  });
+  if (!n) {
+    errEl.textContent = '{% trans "Marque ao menos um produto que ainda não esteja no pedido." %}';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('product-pick-submit');
+  btn.disabled = true;
+  postUrlEncoded(URL_ITEM_BATCH, p).then(({ ok, json }) => {
+    btn.disabled = false;
+    if (!ok || !json.ok) {
+      errEl.textContent = json.error || '{% trans "Não foi possível incluir produtos." %}';
+      errEl.style.display = 'block';
+      return;
+    }
+    window.location.reload();
+  }).catch(() => {
+    btn.disabled = false;
+    errEl.textContent = '{% trans "Erro ao incluir produtos." %}';
+    errEl.style.display = 'block';
+  });
+}
+
+function openVendorPickModal() {
+  const err = document.getElementById('vendor-pick-error');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  const search = document.getElementById('vendor-pick-search');
+  if (search) search.value = '';
+  const all = document.getElementById('vendor-pick-all');
+  if (all) all.checked = false;
+  filterVendorPickList('');
+  document.querySelectorAll('.vendor-pick-cb:not(:disabled)').forEach((cb) => { cb.checked = false; });
+  document.getElementById('vendor-pick-modal').classList.add('open');
+}
+
+function closeVendorPickModal() {
+  document.getElementById('vendor-pick-modal').classList.remove('open');
+}
+
+function filterVendorPickList(q) {
+  const s = (q || '').trim().toLowerCase();
+  document.querySelectorAll('.js-pick-vendor-row').forEach((row) => {
+    const name = row.getAttribute('data-name') || '';
+    row.style.display = !s || name.includes(s) ? '' : 'none';
+  });
+  const all = document.getElementById('vendor-pick-all');
+  if (all) all.checked = false;
+}
+
+function toggleAllVendorPick() {
+  const master = document.getElementById('vendor-pick-all').checked;
+  document.querySelectorAll('.js-pick-vendor-row').forEach((row) => {
+    if (row.style.display === 'none') return;
+    const cb = row.querySelector('.vendor-pick-cb');
+    if (cb && !cb.disabled) cb.checked = master;
+  });
+}
+
+function submitVendorPick() {
+  const errEl = document.getElementById('vendor-pick-error');
+  errEl.style.display = 'none';
+  const p = new URLSearchParams();
+  p.append('csrfmiddlewaretoken', CSRF);
+  let n = 0;
+  document.querySelectorAll('.vendor-pick-cb:checked').forEach((cb) => {
+    if (cb.disabled) return;
+    p.append('supplier', cb.value);
+    n += 1;
+  });
+  if (!n) {
+    errEl.textContent = '{% trans "Marque ao menos um fornecedor que ainda não participe no pedido." %}';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('vendor-pick-submit');
+  btn.disabled = true;
+  postUrlEncoded(URL_VENDOR_BATCH, p).then(({ ok, json }) => {
+    btn.disabled = false;
+    if (!ok || !json.ok) {
+      errEl.textContent = json.error || '{% trans "Não foi possível incluir fornecedores." %}';
+      errEl.style.display = 'block';
+      return;
+    }
+    window.location.reload();
+  }).catch(() => {
+    btn.disabled = false;
+    errEl.textContent = '{% trans "Erro ao incluir fornecedores." %}';
+    errEl.style.display = 'block';
+  });
+}
+
+function saveRfqItemRow(pk) {
+  const row = document.getElementById(`item-row-${pk}`);
+  if (!row) return;
+  const product = row.dataset.productId;
+  const qty = document.getElementById(`item-qty-${pk}`).value;
+  const notes = document.getElementById(`item-notes-${pk}`).value;
+  post(urlFromTemplate(URL_ITEM_UPD_TPL, pk), { product, qty, notes }).then(({ ok, json }) => {
+    if (!ok || !json.ok) {
+      const errors = json.errors || {};
+      const msg = errors.qty ? errors.qty[0] : (errors.product ? errors.product[0] : (json.error || '{% trans "Erro ao guardar." %}'));
+      alert(msg);
+      return;
+    }
+    window.location.reload();
+  });
+}
+
+function deleteItem(pk) {
+  if (!confirm('{% trans "Eliminar este item?" %}')) return;
+  post(urlFromTemplate(URL_ITEM_DEL_TPL, pk), {}).then(() => window.location.reload());
+}
+
+function removeVendor(pk) {
+  if (!confirm('{% trans "Remover este fornecedor?" %}')) return;
+  post(urlFromTemplate(URL_VENDOR_REM_TPL, pk), {}).then(() => window.location.reload());
+}
+
+function sendRFQ() {
+  if (!confirm('{% trans "Enviar este pedido de orçamento aos fornecedores?" %}')) return;
+  post(URL_SEND, {}).then(({ ok, json }) => {
+    if (!ok || !json.ok) {
+      alert(json.error || '{% trans "Erro ao enviar." %}');
+      return;
+    }
+    window.location.reload();
+  });
+}
+
+function answerUrl(vendorPk, itemPk) {
+  return URL_ANSWER_TPL
+    .replace('999999', String(vendorPk))
+    .replace('999998', String(itemPk));
+}
+
+function selectVendorUrl(itemPk) { return URL_SELECT_VENDOR_TPL.replace('999999', String(itemPk)); }
+
+function headerUrl(vendorPk) { return urlFromTemplate(URL_HEADER_TPL, vendorPk); }
+
+function onQuoteContactChange(vendorPk) {
+  const sel = document.getElementById(`v-contact-${vendorPk}`);
+  const supplierId = sel.dataset.supplier;
+  const contactId = sel.value;
+  const phone = document.getElementById(`v-phone-${vendorPk}`);
+  const email = document.getElementById(`v-mail-${vendorPk}`);
+
+  if (!contactId) {
+    phone.value = '';
+    email.value = '';
+    return;
+  }
+
+  const url = supplierContactJsonUrl(supplierId, contactId);
+  fetch(url, { method: 'GET' })
+    .then(r => r.json())
+    .then(json => {
+      if (!json || !json.ok || !json.contact) return;
+      phone.value = json.contact.phone || '';
+      email.value = json.contact.email || '';
+    })
+    .catch(() => {});
+}
+
+function saveVendorHeader(vendorPk) {
+  const quote_contact_id = document.getElementById(`v-contact-${vendorPk}`).value;
+  const payment_term = document.getElementById(`v-pay-${vendorPk}`).value;
+  const quote_validity = document.getElementById(`v-qval-${vendorPk}`).value;
+  post(headerUrl(vendorPk), {
+    quote_contact_id,
+    payment_term,
+    quote_validity,
+  }).then(({ ok, json }) => {
+    if (!ok || !json.ok) {
+      alert(json.error || '{% trans "Erro ao guardar condições." %}');
+      return;
+    }
+    window.location.reload();
+  });
+}
+
+function saveAnswer(vendorPk, itemPk) {
+  const unit_price = document.getElementById(`ans-price-${vendorPk}-${itemPk}`).value;
+  post(answerUrl(vendorPk, itemPk), { unit_price })
+    .then(({ ok, json }) => {
+      if (!ok || !json.ok) {
+        alert(json.error || '{% trans "Erro ao guardar resposta." %}');
+        return;
+      }
+      // deixa o usuário ver que salvou; refresh simples garante status recalculado
+      window.location.reload();
+    });
+}
+
+function selectVendor(itemPk, vendorPk) {
+  post(selectVendorUrl(itemPk), { vendor: vendorPk }).then(() => window.location.reload());
+}
+
+function applySelected() {
+  if (!confirm('{% trans "Aplicar os vencedores selecionados ao cadastro de preços?" %}')) return;
+  post(URL_APPLY_SELECTED, {}).then(({ ok, json }) => {
+    if (!ok || !json.ok) {
+      alert(json.error || '{% trans "Erro ao aplicar." %}');
+      return;
+    }
+    window.location.reload();
+  });
+}
+
+document.getElementById('product-pick-modal').addEventListener('click', function (e) { if (e.target === this) closeProductPickModal(); });
+document.getElementById('vendor-pick-modal').addEventListener('click', function (e) { if (e.target === this) closeVendorPickModal(); });
+</script>
+{% endblock %}
+

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Utilizadores" %} — Construart{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filters-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:24px; }
+  .search-wrap { position:relative; flex:1; min-width:220px; max-width:360px; }
+  .search-wrap .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text3); font-size:14px; pointer-events:none; }
+  .search-wrap input { padding-left:34px; }
+  .filter-select { padding:8px 12px; border:1px solid var(--border2); border-radius:var(--radius); font-size:13px; font-family:'Georgia',serif; background:var(--surface); color:var(--text); cursor:pointer; }
+  .filter-select:focus { outline:none; border-color:var(--accent); }
+
+  .user-table { width:100%; border-collapse:collapse; }
+  .user-table th { text-align:left; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); font-family:sans-serif; font-weight:500; padding:0 16px 12px; border-bottom:1px solid var(--border); }
+  .user-table td { padding:13px 16px; font-size:14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .user-table tr:last-child td { border-bottom:none; }
+  .user-table tbody tr { transition:background .12s; }
+  .user-table tbody tr:hover { background:var(--surface2); }
+
+  .user-avatar { width:34px; height:34px; border-radius:50%; background:var(--accent-light); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; font-family:sans-serif; flex-shrink:0; }
+  .user-info { display:flex; align-items:center; gap:10px; }
+  .user-name { font-weight:500; }
+  .user-username { font-size:12px; color:var(--text3); font-family:sans-serif; }
+  .row-actions { display:flex; gap:6px; align-items:center; }
+
+  .status-form { display:inline; }
+  .status-btn { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-family:sans-serif; font-weight:500; border:none; cursor:pointer; transition:filter .15s; letter-spacing:.3px; }
+  .status-btn.is-active   { background:var(--green-light); color:var(--green); }
+  .status-btn.is-inactive { background:var(--red-light);   color:var(--red);   }
+  .status-btn:hover:not(:disabled) { filter:brightness(.92); }
+  .status-btn:disabled { opacity:.5; cursor:default; }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:currentColor; display:inline-block; }
+
+  .stats-row { display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap; }
+  .stat-pill { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:12px; font-family:sans-serif; color:var(--text2); display:flex; align-items:center; gap:6px; }
+  .stat-pill strong { color:var(--text); }
+
+  .profile-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .profile-tab-link { font-size:12px; font-family:sans-serif; padding:4px 12px; border-radius:20px; border:1px solid var(--border); color:var(--text2); text-decoration:none; transition:all .15s; }
+  .profile-tab-link:hover, .profile-tab-link.active { background:var(--accent-light); color:var(--accent); border-color:var(--accent); }
+
+  /* ── Responsivo ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 768px) {
+    .search-wrap { max-width: 100%; }
+    .filters-bar { gap: 8px; }
+    .user-table th:nth-child(3),
+    .user-table td:nth-child(3),
+    .user-table th:nth-child(6),
+    .user-table td:nth-child(6) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .user-table th:nth-child(4),
+    .user-table td:nth-child(4) { display: none; }
+    .row-actions { flex-direction: column; gap: 4px; }
+    .row-actions .btn { width: 100%; justify-content: center; }
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+  <a href="#">{% trans "Administração" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Utilizadores" %}</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Utilizadores" %}</h1>
+    <p class="page-sub">{% trans "Gestão de contas e perfis de acesso" %}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% if perms.accounts.view_user %}
+    <a href="{% url 'accounts:profile_list' %}" class="btn btn-secondary">
+      🔐 {% trans "Perfis de acesso" %}
+    </a>
+    {% endif %}
+    {% if perms.accounts.add_user %}
+    <a href="{% url 'accounts:create' %}" class="btn btn-primary">
+      ＋ {% trans "Novo utilizador" %}
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="stats-row">
+  <div class="stat-pill">
+    <strong>{{ total }}</strong>
+    {% blocktrans count count=total %}resultado{% plural %}resultados{% endblocktrans %}
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="filters-bar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" name="q" value="{{ query }}"
+           placeholder="{% trans "Pesquisar nome, email ou username…" %}"
+           class="form-control">
+  </div>
+
+  <select name="profile" class="filter-select" onchange="this.form.submit()">
+    <option value="">{% trans "Todos os perfis" %}</option>
+    {% for p in profiles %}
+      <option value="{{ p.pk }}" {% if profile_filter == p.pk|stringformat:"s" %}selected{% endif %}>
+        {{ p.name }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <select name="status" class="filter-select" onchange="this.form.submit()">
+    <option value="">{% trans "Qualquer estado" %}</option>
+    <option value="active"   {% if status_filter == 'active'   %}selected{% endif %}>{% trans "Ativos" %}</option>
+    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>{% trans "Inativos" %}</option>
+  </select>
+
+  {% if query or profile_filter or status_filter %}
+    <a href="{% url 'accounts:list' %}" class="btn btn-ghost btn-sm">✕ {% trans "Limpar" %}</a>
+  {% endif %}
+</form>
+
+<!-- Table -->
+<div class="card table-wrap">
+  {% if users %}
+  <table class="user-table">
+    <thead>
+      <tr>
+        <th>{% trans "Utilizador" %}</th>
+        <th>{% trans "Email" %}</th>
+        <th>{% trans "Telefone" %}</th>
+        <th>{% trans "Perfil de acesso" %}</th>
+        <th>{% trans "Estado" %}</th>
+        <th>{% trans "Membro desde" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>
+          <div class="user-info">
+            <div class="user-avatar">
+              {{ u.first_name|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}
+            </div>
+            <div>
+              <div class="user-name">{{ u.get_full_name|default:u.username }}</div>
+              <div class="user-username">@{{ u.username }}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-family:sans-serif;font-size:13px;color:var(--text2)">{{ u.email|default:"—" }}</td>
+        <td style="font-family:sans-serif;font-size:13px;color:var(--text2)">{{ u.phone|default:"—" }}</td>
+
+        <!-- Access profile badge -->
+        <td>
+          {% if u.access_profile %}
+            <span class="badge {{ u.get_profile_badge_class }}">
+              {{ u.get_profile_name }}
+            </span>
+          {% else %}
+            <span style="color:var(--text3);font-size:12px;font-family:sans-serif">—</span>
+          {% endif %}
+        </td>
+
+        <!-- Active/inactive toggle -->
+        <td>
+          {% if perms.accounts.change_user %}
+          <form method="post" action="{% url 'accounts:toggle' u.pk %}" class="status-form">
+            {% csrf_token %}
+            <button type="submit"
+              class="status-btn {% if u.is_active %}is-active{% else %}is-inactive{% endif %}"
+              {% if u == request.user %}disabled title="{% trans "Não pode alterar o próprio estado" %}"{% endif %}>
+              <span class="status-dot"></span>
+              {% if u.is_active %}{% trans "Ativo" %}{% else %}{% trans "Inativo" %}{% endif %}
+            </button>
+          </form>
+          {% else %}
+            <span class="badge {% if u.is_active %}badge-green{% else %}badge-red{% endif %}">
+              {% if u.is_active %}{% trans "Ativo" %}{% else %}{% trans "Inativo" %}{% endif %}
+            </span>
+          {% endif %}
+        </td>
+
+        <td style="font-family:sans-serif;font-size:12px;color:var(--text3)">
+          {{ u.date_joined|date:"d/m/Y" }}
+        </td>
+
+        <td>
+          <div class="row-actions">
+            {% if perms.accounts.change_user %}
+            <a href="{% url 'accounts:edit' u.pk %}" class="btn btn-ghost btn-sm">✏️ {% trans "Editar" %}</a>
+            <a href="{% url 'accounts:reset_password' u.pk %}" class="btn btn-ghost btn-sm">🔑 {% trans "Senha" %}</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">👥</div>
+    <h3>{% trans "Nenhum utilizador encontrado" %}</h3>
+    <p>{% trans "Ajuste os filtros ou crie um novo utilizador." %}</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

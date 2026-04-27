@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ fund.name }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'workforce:list' %}">Colaboradores</a>
+  <span class="sep">›</span>
+  <a href="{% url 'workforce:insurance_fund_list' %}">Caixas de Seguro</a>
+  <span class="sep">›</span>
+  <span class="current">{{ fund.name }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @media (max-width: 560px) { .detail-grid { grid-template-columns: 1fr; } }
+  .detail-cell { padding: 13px 20px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .detail-cell:nth-child(2n) { border-right: none; }
+  .detail-cell:nth-last-child(1), .detail-cell:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  .detail-cell.full { grid-column: 1 / -1; border-right: none; }
+  .detail-label { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-bottom: 4px; }
+  .detail-val { font-size: 14px; color: var(--text); }
+  .detail-val.empty { color: var(--text3); font-style: italic; }
+  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 16px; }
+  .card-title { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; font-weight: 600; }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; }
+  .hist-table thead th { padding: 8px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .hist-table tbody tr { border-bottom: 1px solid var(--border); }
+  .hist-table tbody tr:last-child { border-bottom: none; }
+  .hist-table tbody tr:hover { background: var(--surface2); }
+  .hist-table td { padding: 10px 16px; color: var(--text); vertical-align: middle; }
+  .hist-table td.muted { color: var(--text3); }
+  .hist-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .btn-icon { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; transition: background .12s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+
+  /* Modal */
+  dialog.cat-dialog { margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box; }
+  dialog.cat-dialog::backdrop { background:rgba(0,0,0,.5); }
+  .cat-dialog-flex { width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box; }
+  .cat-dialog .popup-panel { background:var(--surface);border-radius:var(--radius-lg,10px);width:480px;max-width:min(480px,calc(100vw - 40px));flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,.18); }
+  .popup-header { display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border); }
+  .popup-title { font-weight:600;font-size:15px;color:var(--text); }
+  .popup-close { background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px; }
+  .popup-body { padding:22px;display:flex;flex-direction:column;gap:14px; }
+  .popup-footer { display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border); }
+  .popup-error { display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ fund.name }}</h1>
+    <p class="page-sub">Caixa de Seguro</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'workforce:insurance_fund_edit' fund.pk %}" class="btn btn-primary">✏️ Editar</a>
+    <a href="{% url 'workforce:insurance_fund_list' %}" class="btn btn-ghost btn-sm">← Voltar</a>
+  </div>
+</div>
+
+<!-- Dados gerais -->
+<div class="info-card">
+  <div class="card-title">Dados da Caixa</div>
+  <div class="detail-grid">
+    <div class="detail-cell">
+      <div class="detail-label">Nome</div>
+      <div class="detail-val">{{ fund.name }}</div>
+    </div>
+    <div class="detail-cell">
+      <div class="detail-label">Telefone</div>
+      <div class="detail-val {% if not fund.phone %}empty{% endif %}">
+        {% if fund.phone %}<a href="tel:{{ fund.phone }}" style="color:var(--accent);">{{ fund.phone }}</a>{% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="detail-cell">
+      <div class="detail-label">Email</div>
+      <div class="detail-val {% if not fund.email %}empty{% endif %}">
+        {% if fund.email %}<a href="mailto:{{ fund.email }}" style="color:var(--accent);">{{ fund.email }}</a>{% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="detail-cell">
+      <div class="detail-label">Morada</div>
+      <div class="detail-val {% if not fund.address %}empty{% endif %}">{{ fund.address|default:"—"|linebreaksbr }}</div>
+    </div>
+    {% if fund.notes %}
+    <div class="detail-cell full">
+      <div class="detail-label">Notas</div>
+      <div class="detail-val" style="white-space:pre-line;">{{ fund.notes }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Contactos -->
+<div class="info-card">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);">
+    <span class="card-title" style="padding:0;border:none;">Contactos</span>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="openContactModal()">+ Adicionar</button>
+  </div>
+  {% if contacts %}
+    <table class="hist-table">
+      <thead>
+        <tr><th>Nome</th><th>Função</th><th>Telefone</th><th>Email</th><th></th></tr>
+      </thead>
+      <tbody id="contacts-tbody">
+        {% for c in contacts %}
+        <tr data-id="{{ c.pk }}">
+          <td><strong>{{ c.name }}</strong></td>
+          <td class="muted">{{ c.role|default:"—" }}</td>
+          <td class="muted">
+            {% if c.phone %}<a href="tel:{{ c.phone }}" style="color:var(--accent);">{{ c.phone }}</a>{% else %}—{% endif %}
+          </td>
+          <td class="muted">
+            {% if c.email %}<a href="mailto:{{ c.email }}" style="color:var(--accent);">{{ c.email }}</a>{% else %}—{% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn-icon" onclick="openContactModal({{ c.pk }},'{{ c.name|escapejs }}','{{ c.role|default:''|escapejs }}','{{ c.phone|default:''|escapejs }}','{{ c.email|default:''|escapejs }}','{{ c.notes|default:''|escapejs }}')" title="Editar">✏️</button>
+              <button class="btn-icon" onclick="deleteContact({{ c.pk }})" title="Eliminar" style="color:var(--red);">🗑</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div id="contacts-empty" style="padding:16px 20px;font-size:13px;color:var(--text3);font-family:sans-serif;">
+      Nenhum contacto registado.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Funcionários ligados -->
+{% if collaborators %}
+<div class="info-card">
+  <div class="card-title">Funcionários nesta Caixa</div>
+  <table class="hist-table">
+    <thead><tr><th>Nome</th><th>Empresa</th></tr></thead>
+    <tbody>
+      {% for collab in collaborators %}
+      <tr>
+        <td><a href="{% url 'workforce:detail' collab.pk %}" style="color:var(--accent);text-decoration:none;">{{ collab.name }}</a></td>
+        <td class="muted">{{ collab.company.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Modal Contacto -->
+<dialog id="contact-dialog" class="cat-dialog" aria-labelledby="contact-title">
+  <div class="cat-dialog-flex">
+    <div class="popup-panel" role="document">
+      <div class="popup-header">
+        <span class="popup-title" id="contact-title">Novo Contacto</span>
+        <button type="button" class="popup-close" onclick="closeContactModal()">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="contact-error"></div>
+        <div class="form-group">
+          <label class="form-label">Nome *</label>
+          <input type="text" id="c-name" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Função</label>
+          <input type="text" id="c-role" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefone</label>
+          <input type="text" id="c-phone" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="c-email" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas</label>
+          <textarea id="c-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeContactModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-contact-save" onclick="saveContact()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<span id="url-contact-save"        data-url="{% url 'workforce:insurance_fund_contact_save' fund.pk %}" style="display:none"></span>
+<span id="url-contact-update-base" data-url="{% url 'workforce:insurance_fund_contact_update' fund.pk 0 %}" style="display:none"></span>
+<span id="url-contact-delete-base" data-url="{% url 'workforce:insurance_fund_contact_delete' fund.pk 0 %}" style="display:none"></span>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+const URL_CONTACT_SAVE        = document.getElementById('url-contact-save').dataset.url;
+const URL_CONTACT_UPDATE_BASE = document.getElementById('url-contact-update-base').dataset.url;
+const URL_CONTACT_DELETE_BASE = document.getElementById('url-contact-delete-base').dataset.url;
+
+function postJSON(url, data) {
+  return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: new URLSearchParams(data) });
+}
+
+const CONTACT_DLG = document.getElementById('contact-dialog');
+let editContactPk = null;
+
+function openContactModal(pk, name, role, phone, email, notes) {
+  editContactPk = pk || null;
+  document.getElementById('contact-title').textContent = pk ? 'Editar Contacto' : 'Novo Contacto';
+  document.getElementById('contact-error').style.display = 'none';
+  document.getElementById('c-name').value  = name  || '';
+  document.getElementById('c-role').value  = role  || '';
+  document.getElementById('c-phone').value = phone || '';
+  document.getElementById('c-email').value = email || '';
+  document.getElementById('c-notes').value = notes || '';
+  try { if (!CONTACT_DLG.open) CONTACT_DLG.showModal(); } catch(e){}
+  setTimeout(() => document.getElementById('c-name').focus(), 60);
+}
+function closeContactModal() { try { if (CONTACT_DLG.open) CONTACT_DLG.close(); } catch(e){} }
+function setContactError(msg) {
+  const el = document.getElementById('contact-error');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+async function saveContact() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { setContactError('O nome é obrigatório.'); return; }
+  const btn = document.getElementById('btn-contact-save');
+  btn.disabled = true; btn.textContent = 'A guardar…';
+  const url = editContactPk ? URL_CONTACT_UPDATE_BASE.replace('/0/', `/${editContactPk}/`) : URL_CONTACT_SAVE;
+  const res = await postJSON(url, {
+    name: name,
+    role:  document.getElementById('c-role').value,
+    phone: document.getElementById('c-phone').value,
+    email: document.getElementById('c-email').value,
+    notes: document.getElementById('c-notes').value,
+  });
+  const json = await res.json();
+  btn.disabled = false; btn.textContent = 'Guardar';
+  if (!json.ok) { setContactError(json.errors ? Object.values(json.errors).flat().join(' ') : 'Erro ao guardar.'); return; }
+  closeContactModal();
+  window.location.reload();
+}
+async function deleteContact(pk) {
+  if (!confirm('Eliminar este contacto?')) return;
+  const url = URL_CONTACT_DELETE_BASE.replace('/0/', `/${pk}/`);
+  const res = await postJSON(url, {});
+  const json = await res.json();
+  if (!json.ok) return;
+  window.location.reload();
+}
+CONTACT_DLG.addEventListener('click', e => { if (!e.target.closest('.popup-panel')) closeContactModal(); });
+CONTACT_DLG.addEventListener('cancel', e => { e.preventDefault(); closeContactModal(); });
+</script>
+{% endblock %}

@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ subcontractor.name }} — Construart{% endblock %}
+{% block tab_parent %}/subcontractors/{% endblock %}
+{% block tab_icon %}🏢{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'subcontractors:list' %}">{% trans "Subcontratados" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ subcontractor.name }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .detail-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--text3); font-family: sans-serif; font-size: 13px; }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .section-header h2 { font-size: 13px; font-family: sans-serif; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+
+  .dt-wrap { overflow-x: auto; }
+  .dt { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; }
+  .dt thead th { padding: 9px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface2); }
+  .dt tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .dt tbody tr:last-child { border-bottom: none; }
+  .dt tbody tr:hover { background: var(--surface2); }
+  .dt td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+  .dt td.muted { color: var(--text3); }
+  .dt .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .btn-icon { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: background .12s, color .12s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+  .btn-icon.danger:hover { background: var(--red-light); color: var(--red); border-color: #f5c6c2; }
+  .dt-empty { padding: 20px 18px; font-size: 13px; color: var(--text3); text-align: center; font-family: sans-serif; }
+
+  /* Popup */
+  .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 600; align-items: center; justify-content: center; }
+  .popup-overlay.open { display: flex; }
+  .popup { background: var(--surface); border-radius: var(--radius-lg); width: 540px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); }
+  .popup-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .popup-title { font-size: 15px; font-weight: 500; }
+  .popup-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); line-height: 1; }
+  .popup-body { padding: 22px; }
+  .popup-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .form-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid2 .span-2 { grid-column: span 2; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns: 1fr; } .form-grid2 .span-2 { grid-column: span 1; } }
+  .field-error { color: var(--red); font-size: 12px; margin-top: 3px; font-family: sans-serif; }
+  .popup-alert { padding: 9px 12px; border-radius: var(--radius); font-size: 13px; font-family: sans-serif; margin-bottom: 14px; display: none; }
+  .popup-alert.show { display: block; }
+  .popup-alert.error { background: var(--red-light); color: var(--red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ subcontractor.name }}</h1>
+    {% if subcontractor.trade_name %}<p class="page-sub">{{ subcontractor.trade_name }}</p>{% endif %}
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'subcontractors:update' subcontractor.pk %}" class="btn btn-secondary">✏️ {% trans "Editar" %}</a>
+    <a href="{% url 'subcontractors:list' %}" class="btn btn-ghost btn-sm">← {% trans "Voltar" %}</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+
+  <!-- Coluna esquerda: informações -->
+  <div>
+    <div class="card" style="overflow:hidden;">
+      <div class="section-header"><h2>📋 {% trans "Informações" %}</h2></div>
+      {% if subcontractor.legal_form %}
+      <div class="info-row"><span class="info-label">{% trans "Forma jurídica" %}</span><span>{{ subcontractor.get_legal_form_display }}</span></div>
+      {% endif %}
+      {% if subcontractor.vat_number %}
+      <div class="info-row"><span class="info-label">VAT</span><span>{{ subcontractor.vat_number }}</span></div>
+      {% endif %}
+      {% if subcontractor.vat_rate %}
+      <div class="info-row"><span class="info-label">{% trans "Taxa TVA" %}</span><span>{{ subcontractor.vat_rate }}%</span></div>
+      {% endif %}
+      {% if subcontractor.responsible %}
+      <div class="info-row"><span class="info-label">{% trans "Responsável" %}</span><span>{{ subcontractor.responsible }}</span></div>
+      {% endif %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Estado" %}</span>
+        <span class="badge {% if subcontractor.status == 'active' %}badge-green{% elif subcontractor.status == 'paused' %}badge-amber{% else %}badge-red{% endif %}">
+          {{ subcontractor.get_status_display }}
+        </span>
+      </div>
+      {% if subcontractor.notes %}
+      <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <span class="info-label">{% trans "Notas" %}</span>
+        <span style="font-size:13px;color:var(--text2);">{{ subcontractor.notes }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Coluna direita: endereços + equipe -->
+  <div>
+
+    <!-- Endereços -->
+    <div class="card" style="margin-bottom:16px; overflow:hidden;">
+      <div class="section-header">
+        <h2>📍 {% trans "Endereços" %}</h2>
+        <button class="btn btn-ghost btn-sm" onclick="openAddressPopup()">+ {% trans "Adicionar" %}</button>
+      </div>
+      <div class="dt-wrap">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th>{% trans "Rótulo" %}</th>
+              <th>{% trans "Morada" %}</th>
+              <th>{% trans "Cidade" %}</th>
+              <th>{% trans "Principal" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="addr-tbody">
+            {% for addr in subcontractor.addresses.all %}
+            <tr data-id="{{ addr.pk }}">
+              <td>{{ addr.label|default:"—" }}</td>
+              <td>{{ addr.street }}{% if addr.number %}, {{ addr.number }}{% endif %}{% if addr.complement %} — {{ addr.complement }}{% endif %}</td>
+              <td class="muted">{{ addr.postal_code }} {{ addr.city }}</td>
+              <td>{% if addr.is_default %}<span class="badge badge-accent">{% trans "Sim" %}</span>{% else %}<span style="color:var(--text3);">—</span>{% endif %}</td>
+              <td>
+                <div class="actions">
+                  <button class="btn-icon" onclick="openAddressPopup({{ addr.pk }})">✏️</button>
+                  <button class="btn-icon danger" onclick="deleteAddress({{ addr.pk }})">🗑</button>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr id="addr-empty"><td colspan="5" class="dt-empty">{% trans "Nenhum endereço registado." %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Equipe (colaboradores / workforce) -->
+    <div class="card" style="overflow:hidden;">
+      <div class="section-header">
+        <h2>👷 {% trans "Equipe" %}</h2>
+        <a href="{% url 'workforce:create' %}?company={{ subcontractor.pk }}&amp;next={{ request.path|urlencode }}"
+           class="btn btn-ghost btn-sm">+ {% trans "Novo" %}</a>
+      </div>
+      <div class="dt-wrap">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th>{% trans "Nome" %}</th>
+              <th>{% trans "Função" %}</th>
+              <th>{% trans "Telefone" %}</th>
+              <th>{% trans "Email" %}</th>
+              <th>{% trans "Estado" %}</th>
+              <th style="text-align:right">{% trans "Valor/hora" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for member in team %}
+            <tr>
+              <td style="font-weight:500;"><a href="{% url 'workforce:detail' member.pk %}" style="color:var(--text);text-decoration:none;">{{ member.name }}</a></td>
+              <td class="muted">{{ member.role|default:"—" }}</td>
+              <td class="muted">{{ member.phone|default:"—" }}</td>
+              <td class="muted">{{ member.email|default:"—" }}</td>
+              <td>
+                {% if member.status == 'active' %}
+                  <span class="badge badge-green">{{ member.get_status_display }}</span>
+                {% else %}
+                  <span class="badge badge-gray">{{ member.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="muted" style="text-align:right;font-variant-numeric:tabular-nums;">
+                {% with r=member.get_current_hourly_rate %}
+                  {% if r %}{{ r.hourly_rate }} €{% else %}—{% endif %}
+                {% endwith %}
+              </td>
+              <td>
+                <div class="actions">
+                  <a href="{% url 'workforce:update' member.pk %}?next={{ request.path|urlencode }}"
+                     class="btn-icon" title="{% trans "Editar" %}">✏️</a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="dt-empty">{% trans "Ninguém na equipe. Adicione um colaborador com «Novo»." %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ POPUP ENDEREÇO ══ -->
+<div class="popup-overlay" id="addr-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="addr-popup-title">{% trans "Endereço" %}</span>
+      <button class="popup-close" onclick="closeAddressPopup()">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="addr-error"></div>
+      <div class="form-grid2">
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Rótulo" %}</label>
+          <input type="text" id="addr-label" class="form-control" placeholder="{% trans 'Ex: Sede, Armazém…' %}">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Rua" %} *</label>
+          <input type="text" id="addr-street" class="form-control">
+          <div class="field-error" id="err-addr-street"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Número" %}</label>
+          <input type="text" id="addr-number" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Complemento" %}</label>
+          <input type="text" id="addr-complement" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Cidade" %} *</label>
+          <input type="text" id="addr-city" class="form-control">
+          <div class="field-error" id="err-addr-city"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Código Postal" %} *</label>
+          <input type="text" id="addr-postal" class="form-control">
+          <div class="field-error" id="err-addr-postal"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Região" %}</label>
+          <input type="text" id="addr-state" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "País" %}</label>
+          <input type="text" id="addr-country" class="form-control" value="Belgium">
+        </div>
+        <div class="form-group span-2">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" id="addr-is-default"> <span>{% trans "Endereço principal" %}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="addr-save-btn" onclick="saveAddress()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closeAddressPopup()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const SUB_PK = {{ subcontractor.pk }};
+  const CSRF   = '{{ csrf_token }}';
+
+  const urlAddrSave   = "{% url 'subcontractors:address_save' subcontractor.pk %}";
+  const urlAddrUpdate = (pk) => `/subcontractors/${SUB_PK}/addresses/${pk}/save/`;
+  const urlAddrDelete = (pk) => `/subcontractors/${SUB_PK}/addresses/${pk}/delete/`;
+
+  function csrfPost(url, data) {
+    return fetch(url, { method: 'POST', body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }) });
+  }
+
+  function clearErrors(prefix) {
+    document.querySelectorAll(`[id^="err-${prefix}"]`).forEach(el => el.textContent = '');
+    const alert = document.getElementById(prefix.split('-')[0] + '-error');
+    if (alert) { alert.textContent = ''; alert.classList.remove('show'); }
+  }
+
+  function showFieldErrors(errors, prefix) {
+    Object.entries(errors).forEach(([field, msgs]) => {
+      const el = document.getElementById(`err-${prefix}-${field}`);
+      if (el) el.textContent = msgs[0];
+    });
+  }
+
+  function showAlert(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function badgePrincipal(yes) {
+    return yes
+      ? `<span class="badge badge-accent">{% trans "Sim" %}</span>`
+      : `<span style="color:var(--text3);">—</span>`;
+  }
+
+  function removeEmptyRow(id) { const el = document.getElementById(id); if (el) el.remove(); }
+
+  function checkEmpty(tbodyId, emptyId, colspan, msg) {
+    const tbody = document.getElementById(tbodyId);
+    if (tbody && tbody.querySelectorAll('tr[data-id]').length === 0) {
+      const tr = document.createElement('tr');
+      tr.id = emptyId;
+      tr.innerHTML = `<td colspan="${colspan}" class="dt-empty">${msg}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ══ ENDEREÇOS ════════════════════════════════════════════════════════════
+  let editingAddrPk = null;
+
+  window.openAddressPopup = function (pk) {
+    editingAddrPk = pk || null;
+    clearErrors('addr');
+    document.getElementById('addr-popup-title').textContent = pk ? '{% trans "Editar endereço" %}' : '{% trans "Novo endereço" %}';
+    if (pk) {
+      const row   = document.querySelector(`#addr-tbody tr[data-id="${pk}"]`);
+      const cells = row.querySelectorAll('td');
+      document.getElementById('addr-label').value   = cells[0].textContent.trim() === '—' ? '' : cells[0].textContent.trim();
+      document.getElementById('addr-street').value  = cells[1].textContent.trim();
+      document.getElementById('addr-number').value  = '';
+      document.getElementById('addr-complement').value = '';
+      const cp = cells[2].textContent.trim().split(' ');
+      document.getElementById('addr-postal').value  = cp[0] || '';
+      document.getElementById('addr-city').value    = cp.slice(1).join(' ') || '';
+      document.getElementById('addr-state').value   = '';
+      document.getElementById('addr-country').value = 'Belgium';
+      document.getElementById('addr-is-default').checked = !!cells[3].querySelector('.badge');
+    } else {
+      ['addr-label','addr-street','addr-number','addr-complement','addr-city','addr-postal','addr-state'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('addr-country').value = 'Belgium';
+      document.getElementById('addr-is-default').checked = false;
+    }
+    document.getElementById('addr-overlay').classList.add('open');
+  };
+
+  window.closeAddressPopup = function () { document.getElementById('addr-overlay').classList.remove('open'); };
+
+  window.saveAddress = function () {
+    clearErrors('addr');
+    const data = {
+      label: document.getElementById('addr-label').value,
+      street: document.getElementById('addr-street').value,
+      number: document.getElementById('addr-number').value,
+      complement: document.getElementById('addr-complement').value,
+      city: document.getElementById('addr-city').value,
+      postal_code: document.getElementById('addr-postal').value,
+      state: document.getElementById('addr-state').value,
+      country: document.getElementById('addr-country').value,
+      is_default: document.getElementById('addr-is-default').checked ? 'on' : '',
+    };
+    const url = editingAddrPk ? urlAddrUpdate(editingAddrPk) : urlAddrSave;
+    const btn = document.getElementById('addr-save-btn');
+    btn.disabled = true;
+
+    csrfPost(url, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) { showFieldErrors(json.errors, 'addr'); return; }
+      const a = json.address;
+      const streetFull = a.street + (a.number ? `, ${a.number}` : '') + (a.complement ? ` — ${a.complement}` : '');
+      const row = editingAddrPk ? document.querySelector(`#addr-tbody tr[data-id="${editingAddrPk}"]`) : null;
+      if (row) {
+        row.cells[0].textContent = a.label || '—';
+        row.cells[1].textContent = streetFull;
+        row.cells[2].textContent = `${a.postal_code} ${a.city}`;
+        row.cells[3].innerHTML   = badgePrincipal(a.is_default);
+      } else {
+        removeEmptyRow('addr-empty');
+        const tr = document.createElement('tr');
+        tr.dataset.id = a.id;
+        tr.innerHTML = `
+          <td>${a.label || '—'}</td>
+          <td>${streetFull}</td>
+          <td class="muted">${a.postal_code} ${a.city}</td>
+          <td>${badgePrincipal(a.is_default)}</td>
+          <td><div class="actions">
+            <button class="btn-icon" onclick="openAddressPopup(${a.id})">✏️</button>
+            <button class="btn-icon danger" onclick="deleteAddress(${a.id})">🗑</button>
+          </div></td>`;
+        document.getElementById('addr-tbody').appendChild(tr);
+      }
+      closeAddressPopup();
+    }).catch(() => { btn.disabled = false; showAlert('addr-error', '{% trans "Erro ao guardar. Tente novamente." %}'); });
+  };
+
+  window.deleteAddress = function (pk) {
+    if (!confirm('{% trans "Eliminar este endereço?" %}')) return;
+    csrfPost(urlAddrDelete(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      const row = document.querySelector(`#addr-tbody tr[data-id="${pk}"]`);
+      if (row) row.remove();
+      checkEmpty('addr-tbody', 'addr-empty', 5, '{% trans "Nenhum endereço registado." %}');
+    });
+  };
+
+  document.getElementById('addr-overlay').addEventListener('click', function (e) { if (e.target === this) closeAddressPopup(); });
+})();
+</script>
+{% endblock %}

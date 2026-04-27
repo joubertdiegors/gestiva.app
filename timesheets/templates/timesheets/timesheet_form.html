@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if editing %}Editar registo{% else %}Registar horas{% endif %} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'timesheets:list' %}">Timesheets</a>
+  <span class="sep">›</span>
+  <span class="current">{% if editing %}Editar{% else %}Novo registo{% endif %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  .form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .form-section:last-of-type { border-bottom: none; }
+  .form-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text3); font-family: sans-serif; margin-bottom: 16px; }
+
+  .mode-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 9px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Georgia', serif;
+    color: var(--text2);
+    transition: all .15s;
+  }
+  .mode-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    border-radius: calc(var(--radius) - 2px);
+  }
+
+  .planning-banner {
+    background: var(--accent-light);
+    border: 1px solid #f0cbb5;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    font-family: sans-serif;
+    color: var(--accent-dark);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cost-preview {
+    background: var(--green-light);
+    border: 1px solid #c3e6d3;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-family: sans-serif;
+    font-size: 14px;
+    color: var(--green);
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cost-big { font-size: 22px; font-weight: 600; }
+
+  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
+
+  /* ── Layout principal ── */
+  .ts-form-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .ts-form-layout { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% if editing %}Editar registo{% else %}Registar horas{% endif %}</h1>
+  </div>
+</div>
+
+<div class="ts-form-layout">
+<div class="card" style="padding:32px;">
+
+  {% if planning_worker %}
+  <div class="planning-banner">
+    📅 Pré-preenchido a partir do planning de <strong>{{ planning_worker.planning.date|date:"d/m/Y" }}</strong>
+    — {{ planning_worker.worker.name }}
+  </div>
+  {% endif %}
+
+  {% if errors.__all__ %}
+    <div class="alert alert-error">{{ errors.__all__ }}</div>
+  {% endif %}
+
+  <form method="post" id="ts-form">
+    {% csrf_token %}
+    {% if planning_worker %}<input type="hidden" name="planning_worker_id" value="{{ planning_worker.pk }}">{% endif %}
+
+    <!-- Quem / Onde / Quando -->
+    <div class="form-section">
+      <div class="form-section-title">Quem, onde e quando</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Trabalhador *</label>
+          <select name="worker" class="form-control" id="sel-worker" required>
+            <option value="">— Selecionar —</option>
+            {% for w in workers %}
+              <option value="{{ w.pk }}"
+                data-rate="{{ w.get_current_hourly_rate.hourly_rate|default:'' }}"
+                {% if editing and ts.worker_id == w.pk %}selected
+                {% elif prefill.worker_id == w.pk|stringformat:"s" %}selected
+                {% elif post.worker == w.pk|stringformat:"s" %}selected{% endif %}>
+                {{ w.name }} — {{ w.company.name }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if errors.worker %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.worker }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Projeto *</label>
+          <select name="project" class="form-control" required>
+            <option value="">— Selecionar —</option>
+            {% for p in projects %}
+              <option value="{{ p.pk }}"
+                {% if editing and ts.project_id == p.pk %}selected
+                {% elif prefill.project_id == p.pk|stringformat:"s" %}selected
+                {% elif post.project == p.pk|stringformat:"s" %}selected{% endif %}>
+                {{ p.name }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if errors.project %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.project }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input type="date" name="date" class="form-control" required
+            value="{% if editing %}{{ ts.date|date:'Y-m-d' }}{% elif prefill.date %}{{ prefill.date }}{% elif post.date %}{{ post.date }}{% endif %}">
+          {% if errors.date %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.date }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Horas -->
+    <div class="form-section">
+      <div class="form-section-title">Horas trabalhadas</div>
+
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn active" id="btn-times" onclick="setMode('times')">Hora início / fim</button>
+        <button type="button" class="mode-btn" id="btn-manual" onclick="setMode('manual')">Total de horas</button>
+      </div>
+
+      <div id="mode-times">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Hora de início</label>
+            <input type="time" name="start_time" class="form-control" id="inp-start"
+              value="{% if editing and ts.start_time %}{{ ts.start_time|time:'H:i' }}{% elif prefill.start_time %}{{ prefill.start_time }}{% elif post.start_time %}{{ post.start_time }}{% endif %}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hora de fim</label>
+            <input type="time" name="end_time" class="form-control" id="inp-end"
+              value="{% if editing and ts.end_time %}{{ ts.end_time|time:'H:i' }}{% elif prefill.end_time %}{{ prefill.end_time }}{% elif post.end_time %}{{ post.end_time }}{% endif %}">
+          </div>
+        </div>
+      </div>
+
+      <div id="mode-manual" style="display:none;">
+        <div class="form-group" style="max-width:200px;">
+          <label class="form-label">Horas trabalhadas</label>
+          <input type="number" name="hours" class="form-control" step="0.25" min="0" max="24" id="inp-hours"
+            value="{% if editing and ts.hours %}{{ ts.hours }}{% elif post.hours %}{{ post.hours }}{% endif %}"
+            placeholder="ex: 8.5">
+        </div>
+      </div>
+
+      {% if errors.hours %}<div class="alert alert-error" style="margin-top:8px;">{{ errors.hours }}</div>{% endif %}
+    </div>
+
+    <!-- Overtime -->
+    <div class="form-section">
+      <div class="form-section-title">Extras</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" name="is_overtime" id="chk-ot"
+              {% if editing and ts.is_overtime %}checked{% elif post.is_overtime %}checked{% endif %}>
+            <span>Horas extra (overtime)</span>
+          </label>
+        </div>
+        <div class="form-group" id="ot-rate-group" style="{% if not editing or not ts.is_overtime %}display:none{% endif %}">
+          <label class="form-label">Multiplicador OT</label>
+          <input type="number" name="overtime_rate" class="form-control" step="0.05" min="1" max="3"
+            value="{% if editing %}{{ ts.overtime_rate }}{% else %}1.50{% endif %}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">Notas</label>
+        <textarea name="notes" class="form-control" rows="2">{% if editing %}{{ ts.notes }}{% elif post.notes %}{{ post.notes }}{% endif %}</textarea>
+      </div>
+    </div>
+
+    <!-- Preview de custo -->
+    <div class="cost-preview" id="cost-preview" style="display:none;">
+      <div>
+        <div style="font-size:12px;margin-bottom:4px;">Custo estimado</div>
+        <div class="cost-big" id="cost-val">€ 0.00</div>
+      </div>
+      <div style="text-align:right; font-size:12px; color:var(--green);">
+        <div id="cost-hours">0h</div>
+        <div id="cost-rate">× € 0/h</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:24px;">
+      <button type="submit" class="btn btn-primary">
+        {% if editing %}Guardar alterações{% else %}Registar horas{% endif %}
+      </button>
+      <a href="{% url 'timesheets:list' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<!-- Sidebar info -->
+<div>
+  <div class="card" style="padding:20px; font-family:sans-serif; font-size:13px;">
+    <div style="font-weight:500; margin-bottom:12px; font-size:14px;">💡 Como funciona</div>
+    <p style="color:var(--text2); line-height:1.6; margin-bottom:10px;">
+      O custo é calculado automaticamente a partir do valor/hora do trabalhador na data do registo.
+    </p>
+    <p style="color:var(--text2); line-height:1.6;">
+      O valor/hora é um <em>snapshot</em> — fica guardado para auditoria mesmo que o valor mude no futuro.
+    </p>
+    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
+    <div style="color:var(--text3);">
+      Trabalhador selecionado:<br>
+      <strong id="worker-rate-display" style="color:var(--text);">—</strong>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── Modo: start/end vs manual ──
+let mode = {% if editing and not ts.start_time %}'manual'{% else %}'times'{% endif %};
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('mode-times').style.display  = m === 'times'  ? '' : 'none';
+  document.getElementById('mode-manual').style.display = m === 'manual' ? '' : 'none';
+  document.getElementById('btn-times').classList.toggle('active', m === 'times');
+  document.getElementById('btn-manual').classList.toggle('active', m === 'manual');
+  // limpar o campo não activo para não enviar ambos
+  if (m === 'times') { document.getElementById('inp-hours').value = ''; }
+  else { document.getElementById('inp-start').value = ''; document.getElementById('inp-end').value = ''; }
+  updatePreview();
+}
+setMode(mode);
+
+// ── Overtime toggle ──
+document.getElementById('chk-ot').addEventListener('change', function() {
+  document.getElementById('ot-rate-group').style.display = this.checked ? '' : 'none';
+  updatePreview();
+});
+
+// ── Preview de custo ──
+let currentRate = 0;
+
+function getWorkerRate() {
+  const sel = document.getElementById('sel-worker');
+  const opt = sel.options[sel.selectedIndex];
+  return parseFloat(opt.dataset.rate || 0);
+}
+
+function getHours() {
+  if (mode === 'times') {
+    const s = document.getElementById('inp-start').value;
+    const e = document.getElementById('inp-end').value;
+    if (!s || !e) return 0;
+    const [sh, sm] = s.split(':').map(Number);
+    const [eh, em] = e.split(':').map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    return mins > 0 ? mins / 60 : 0;
+  } else {
+    return parseFloat(document.getElementById('inp-hours').value || 0);
+  }
+}
+
+function updatePreview() {
+  const rate  = getWorkerRate();
+  const hours = getHours();
+  const otMul = document.getElementById('chk-ot').checked
+    ? parseFloat(document.querySelector('[name=overtime_rate]').value || 1.5) : 1;
+  const effRate = rate * otMul;
+  const cost = hours * effRate;
+
+  const preview = document.getElementById('cost-preview');
+  if (rate > 0 && hours > 0) {
+    preview.style.display = 'flex';
+    document.getElementById('cost-val').textContent   = '€ ' + cost.toFixed(2);
+    document.getElementById('cost-hours').textContent = hours.toFixed(2) + 'h';
+    document.getElementById('cost-rate').textContent  = '× € ' + effRate.toFixed(2) + '/h';
+  } else {
+    preview.style.display = 'none';
+  }
+
+  // Sidebar
+  document.getElementById('worker-rate-display').textContent =
+    rate > 0 ? '€ ' + rate.toFixed(2) + ' / hora' : '— (sem valor definido)';
+}
+
+document.getElementById('sel-worker').addEventListener('change', updatePreview);
+document.getElementById('inp-start').addEventListener('change', updatePreview);
+document.getElementById('inp-end').addEventListener('change', updatePreview);
+document.getElementById('inp-hours').addEventListener('input', updatePreview);
+document.querySelector('[name=overtime_rate]').addEventListener('input', updatePreview);
+updatePreview();
+</script>
+{% endblock %}

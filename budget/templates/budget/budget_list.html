@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Orçamentos" %}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Orçamentos" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.row-actions{display:flex;gap:5px;justify-content:flex-end}
+.btn-icon{width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;transition:all .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
+.btn-icon.danger:hover{background:var(--red-light);color:var(--red);border-color:var(--red)}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="st-page-header">
+  <div class="st-page-header-left">
+    <h1 class="page-title">{% trans "Orçamentos" %}</h1>
+    <span class="st-result-count" data-st-count="budget-list"></span>
+  </div>
+  <div class="st-page-header-right">
+    <div class="st-icon-group" data-st-controls="budget-list">
+      <button class="st-icon-btn st-reset-btn" title="{% trans 'Repor colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+      </button>
+      <button class="st-icon-btn st-config-btn" title="{% trans 'Configurar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="st-col-panel"></div>
+    </div>
+    <a href="{% url 'budget:budget_create' %}" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {% trans "Novo orçamento" %}
+    </a>
+  </div>
+</div>
+
+{% if budgets %}
+<div data-smart-table="budget-list"
+     data-selectable
+     data-result-count="{{ budgets|length }}"
+     class="card st-wrapper" style="padding:0;overflow:visible">
+
+  <!-- Bulk bar -->
+  <div class="st-bulk-bar">
+    <span class="st-bulk-count"></span>
+    <span style="color:var(--text2);font-size:12px">{% trans "Acções em lote:" %}</span>
+    <form method="post" id="bulk-delete-form" action="" style="display:inline">
+      {% csrf_token %}
+      <button type="button" class="btn btn-danger btn-sm" onclick="bulkDelete()">🗑 {% trans "Eliminar seleccionados" %}</button>
+    </form>
+  </div>
+
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th data-col="numero"    data-label="{% trans 'Número' %}"    data-type="text"></th>
+        <th data-col="titulo"    data-label="{% trans 'Título' %}"    data-type="text"></th>
+        <th data-col="cliente"   data-label="{% trans 'Cliente' %}"   data-type="text"></th>
+        <th data-col="obra"      data-label="{% trans 'Obra' %}"      data-type="text" data-default-hidden></th>
+        <th data-col="emissao"   data-label="{% trans 'Emissão' %}"   data-type="date"></th>
+        <th data-col="validade"  data-label="{% trans 'Validade' %}"  data-type="date" data-default-hidden></th>
+        <th data-col="total_ht"  data-label="{% trans 'Total HT' %}"  data-type="num"></th>
+        <th data-col="total_ttc" data-label="{% trans 'Total TTC' %}" data-type="num"></th>
+        <th data-col="margem"    data-label="{% trans 'Margem' %}"    data-type="num"  data-default-hidden></th>
+        <th data-col="estado"    data-label="{% trans 'Estado' %}"    data-type="text" data-nosort
+            data-filter-type="select"
+            data-filter-options="{% trans 'Todos' %}:,{% trans 'Rascunho' %}:{% trans 'Rascunho' %},{% trans 'Enviado' %}:{% trans 'Enviado' %},{% trans 'Aprovado' %}:{% trans 'Aprovado' %},{% trans 'Recusado' %}:{% trans 'Recusado' %},{% trans 'Expirado' %}:{% trans 'Expirado' %}"></th>
+        <th data-col="acoes"     data-label=""                        data-nosort data-nofilter data-nohide style="width:70px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in budgets %}
+      <tr style="cursor:pointer" onclick="window.location='{% url 'budget:budget_detail' b.pk %}'">
+        <td>
+          <a href="{% url 'budget:budget_detail' b.pk %}"
+             style="color:var(--accent);font-weight:600;text-decoration:none"
+             onclick="event.stopPropagation()">{{ b.number }}</a>
+        </td>
+        <td>{{ b.title }}</td>
+        <td class="muted">{{ b.client.name|default:"—" }}</td>
+        <td class="muted">{{ b.project.name|default:"—" }}</td>
+        <td class="muted">
+          <span class="st-sort-val">{{ b.issue_date|date:"Ymd"|default:"" }}</span>
+          {{ b.issue_date|date:"d/m/Y"|default:"—" }}
+        </td>
+        <td class="muted">
+          <span class="st-sort-val">{{ b.valid_until|date:"Ymd"|default:"" }}</span>
+          {{ b.valid_until|date:"d/m/Y"|default:"—" }}
+        </td>
+        <td class="num">
+          <span class="st-sort-val">{{ b.total_ht|floatformat:2 }}</span>
+          {{ b.total_ht|floatformat:2 }} €
+        </td>
+        <td class="num">
+          <span class="st-sort-val">{{ b.total_ttc|floatformat:2 }}</span>
+          <strong>{{ b.total_ttc|floatformat:2 }} €</strong>
+        </td>
+        <td class="num">
+          <span class="st-sort-val">{{ b.gross_margin_percent|floatformat:1 }}</span>
+          {{ b.gross_margin_percent|floatformat:1 }}%
+        </td>
+        <td onclick="event.stopPropagation()">
+          {% if b.status == 'draft' %}
+            <span class="st-tag st-tag-gray"><span class="st-dot"></span>{{ b.get_status_display }}</span>
+          {% elif b.status == 'sent' %}
+            <span class="st-tag st-tag-amber"><span class="st-dot"></span>{{ b.get_status_display }}</span>
+          {% elif b.status == 'approved' %}
+            <span class="st-tag st-tag-green"><span class="st-dot"></span>{{ b.get_status_display }}</span>
+          {% else %}
+            <span class="st-tag st-tag-red"><span class="st-dot"></span>{{ b.get_status_display }}</span>
+          {% endif %}
+        </td>
+        <td onclick="event.stopPropagation()">
+          <div class="row-actions">
+            <a href="{% url 'budget:budget_update' b.pk %}" class="btn-icon" title="{% trans 'Editar' %}">✏️</a>
+            <form method="post" action="{% url 'budget:budget_delete' b.pk %}" style="display:inline"
+                  onsubmit="return confirm('{% trans "Eliminar este orçamento?" %}')">
+              {% csrf_token %}
+              <button type="submit" class="btn-icon danger" title="{% trans 'Eliminar' %}">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% else %}
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="st-empty">
+    <div class="st-empty-icon">📋</div>
+    <p>{% trans "Nenhum orçamento encontrado." %}</p>
+    <p><a href="{% url 'budget:budget_create' %}" class="btn btn-primary btn-sm" style="margin-top:10px">
+      {% trans "Criar primeiro orçamento →" %}
+    </a></p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function bulkDelete() {
+  const checked = document.querySelectorAll('.st-row-chk:checked');
+  if (!checked.length) return;
+  if (!confirm('{% trans "Eliminar" %} ' + checked.length + ' {% trans "orçamento(s)? Esta ação não pode ser desfeita." %}')) return;
+  alert('{% trans "Acção em lote disponível na próxima versão." %}');
+}
+</script>
+{% endblock %}

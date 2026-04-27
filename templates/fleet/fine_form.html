@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}">{{ vehicle.license_plate }}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  .form-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .form-section:last-of-type { border-bottom: none; }
+  .form-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; margin-bottom: 14px; }
+  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">{{ title }}</h1>
+  <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p></div>
+  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Back" %}</a>
+</div>
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Offence Details" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{{ form.date.label }}</label>
+          {{ form.date }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.driver.label }}</label>
+          {{ form.driver }}
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{{ form.location.label }}</label>
+          {{ form.location }}
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{{ form.offence_description.label }}</label>
+          {{ form.offence_description }}
+          {% if form.offence_description.errors %}<div class="form-error">{{ form.offence_description.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.amount.label }}</label>
+          {{ form.amount }}
+          {% if form.amount.errors %}<div class="form-error">{{ form.amount.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.points.label }}</label>
+          {{ form.points }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.reference.label }}</label>
+          {{ form.reference }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.file.label }}</label>
+          {{ form.file }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Payment & Payroll" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{{ form.status.label }}</label>
+          {{ form.status }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.paid_date.label }}</label>
+          {{ form.paid_date }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            {{ form.deduct_from_payroll }} {{ form.deduct_from_payroll.label }}
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            {{ form.payroll_deducted }} {{ form.payroll_deducted.label }}
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.payroll_deducted_date.label }}</label>
+          {{ form.payroll_deducted_date }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">{{ form.notes.label }}</label>
+      {{ form.notes }}
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

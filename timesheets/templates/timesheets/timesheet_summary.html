@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Resumo — {{ project.name }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'timesheets:list' %}">Timesheets</a>
+  <span class="sep">›</span>
+  <a href="{% url 'timesheets:list' %}?project={{ project.pk }}">{{ project.name }}</a>
+  <span class="sep">›</span>
+  <span class="current">Resumo</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .summary-header {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .kpi-num { font-size: 36px; color: var(--accent); line-height: 1; }
+  .kpi-lbl { font-size: 12px; color: var(--text3); font-family: sans-serif; text-transform: uppercase; letter-spacing: .8px; margin-top: 8px; }
+
+  .worker-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .worker-block-header {
+    display: grid;
+    grid-template-columns: 44px 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600; font-family: sans-serif;
+  }
+  .worker-name { font-size: 15px; font-weight: 500; }
+  .worker-sub  { font-size: 12px; color: var(--text3); font-family: sans-serif; }
+
+  .entry-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 80px 90px 90px;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    align-items: center;
+  }
+  .entry-row:last-child { border-bottom: none; }
+  .entry-row:hover { background: var(--surface2); }
+  .entry-date { font-family: sans-serif; color: var(--text2); }
+  .entry-hours { font-family: sans-serif; font-weight: 500; color: var(--accent); }
+  .entry-cost  { font-family: sans-serif; font-weight: 500; color: var(--green); }
+
+  .print-btn { display: none; }
+  @media print {
+    nav.sidebar, .topbar, .page-header .btn, .print-btn { display: none !important; }
+    main.content { margin-left: 0 !important; }
+    .worker-block { break-inside: avoid; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ project.name }}</h1>
+    <p class="page-sub">Resumo de horas e custos de mão de obra</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="window.print()" class="btn btn-secondary">🖨️ Imprimir</button>
+    <a href="{% url 'timesheets:list' %}?project={{ project.pk }}" class="btn btn-ghost btn-sm">← Timesheets</a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="summary-header">
+  <div class="kpi-card">
+    <div class="kpi-num">{{ summary|length }}</div>
+    <div class="kpi-lbl">Trabalhadores</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-num">{{ grand_hours|floatformat:1 }}h</div>
+    <div class="kpi-lbl">Total horas</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-num">€ {{ grand_cost|floatformat:2 }}</div>
+    <div class="kpi-lbl">Custo total mão de obra</div>
+  </div>
+</div>
+
+<!-- Por trabalhador -->
+{% for w in summary %}
+<div class="worker-block">
+  <div class="worker-block-header">
+    <div class="avatar">{{ w.worker.name|slice:":1"|upper }}</div>
+    <div>
+      <div class="worker-name">{{ w.worker.name }}</div>
+      <div class="worker-sub">{{ w.worker.company.name }}{% if w.worker.role %} · {{ w.worker.role }}{% endif %}</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:20px; color:var(--accent); font-family:sans-serif; font-weight:500;">{{ w.total_hours|floatformat:2 }}h</div>
+      <div style="font-size:11px; color:var(--text3); font-family:sans-serif;">total horas</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:20px; color:var(--green); font-family:sans-serif; font-weight:500;">€ {{ w.total_cost|floatformat:2 }}</div>
+      <div style="font-size:11px; color:var(--text3); font-family:sans-serif;">custo total</div>
+    </div>
+  </div>
+
+  <!-- Header linha -->
+  <div class="entry-row" style="background:var(--surface2); font-size:11px; color:var(--text3); font-family:sans-serif; text-transform:uppercase; letter-spacing:.6px; padding:8px 20px;">
+    <span>Data</span>
+    <span>Notas</span>
+    <span>Horas</span>
+    <span>Valor/h</span>
+    <span>Custo</span>
+  </div>
+
+  {% for entry in w.entries %}
+  <div class="entry-row">
+    <div class="entry-date">
+      {{ entry.date|date:"d/m/Y" }}<br>
+      <span style="font-size:11px;color:var(--text3);">{{ entry.date|date:"D" }}</span>
+    </div>
+    <div style="color:var(--text2);">
+      {% if entry.start_time %}{{ entry.start_time|time:"H:i" }} – {{ entry.end_time|time:"H:i" }}{% endif %}
+      {% if entry.notes %}<span style="color:var(--text3);"> · {{ entry.notes }}</span>{% endif %}
+      {% if entry.is_overtime %}<span class="badge badge-amber" style="font-size:10px;">OT ×{{ entry.overtime_rate }}</span>{% endif %}
+    </div>
+    <div class="entry-hours">{{ entry.computed_hours|floatformat:2 }}h</div>
+    <div style="font-family:sans-serif;color:var(--text2);">
+      {% if entry.hourly_rate_snapshot %}€ {{ entry.effective_rate|floatformat:2 }}{% else %}—{% endif %}
+    </div>
+    <div class="entry-cost">{% if entry.total_cost %}€ {{ entry.total_cost|floatformat:2 }}{% else %}—{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% empty %}
+<div class="empty-state card">
+  <div class="icon">📊</div>
+  <h3>Sem dados</h3>
+  <p>Não há registos de horas para este projeto ainda.</p>
+</div>
+{% endfor %}
+{% endblock %}

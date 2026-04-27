@@ -1,0 +1,1780 @@
+{% load i18n static %}
+{% translate "Expandir menu" as expand_sidebar_label %}
+{% translate "Recolher menu" as collapse_sidebar_label %}
+{% translate "Fechar aba" as close_tab_label %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Construart{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #f0eff4;
+      --surface:      #ffffff;
+      --surface2:     #f7f6fb;
+      --border:       #e3e2ea;
+      --border2:      #ccc9d8;
+      --text:         #18171f;
+      --text2:        #5c5a6e;
+      --text3:        #9896ab;
+      --accent:       #c8622a;
+      --accent-light: #f5ece5;
+      --accent-dark:  #a34e1f;
+      --green:        #2d7a4f;
+      --green-light:  #e6f4ec;
+      --amber:        #b8760a;
+      --amber-light:  #fdf3e0;
+      --red:          #c0392b;
+      --red-light:    #fdecea;
+
+      /* Layout */
+      --sidebar-w:          56px;
+      --sidebar-w-expanded: 240px;
+      --topbar-h:           52px;
+      --tabbar-h:           38px;
+      --radius:             8px;
+      --radius-lg:          12px;
+      --shadow:             0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:          0 4px 16px rgba(0,0,0,.10);
+
+      /* Sidebar dark surface */
+      --nav-bg:       #1e1d27;
+      --nav-border:   rgba(255,255,255,.07);
+      --nav-text:     #a09eb8;
+      --nav-hover:    rgba(255,255,255,.06);
+      --nav-active:   rgba(200,98,42,.15);
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ══════════════════════════════════════════
+       TOPBAR
+    ══════════════════════════════════════════ */
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      box-shadow: var(--shadow);
+    }
+
+    /* Brand area — matches sidebar collapsed width */
+    .topbar-brand {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      border-right: 1px solid var(--border);
+      transition: width .22s ease;
+      text-decoration: none;
+    }
+    .topbar-brand .brand-logo {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .topbar-brand .brand-logo img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+    .topbar-brand .brand-logo-fallback {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: sans-serif;
+      flex-shrink: 0;
+    }
+    .topbar-brand .brand-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      max-width: 0;
+      opacity: 0;
+      transition: max-width .22s ease, opacity .15s ease, margin .22s ease;
+      font-family: sans-serif;
+      margin-left: 0;
+    }
+
+    /* Search — centered in the topbar */
+    .topbar-search {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+    .topbar-search-inner {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+    }
+    .topbar-search input {
+      width: 100%;
+      height: 34px;
+      padding: 0 12px 0 36px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: 'Georgia', serif;
+      background: var(--surface2);
+      color: var(--text);
+      transition: border-color .15s, background .15s;
+    }
+    .topbar-search input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+    .topbar-search input::placeholder { color: var(--text3); }
+    .topbar-search .search-icon {
+      position: absolute;
+      left: 11px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    /* Right side of topbar */
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-right: 16px;
+      flex-shrink: 0;
+    }
+    .topbar-btn {
+      width: 34px; height: 34px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      transition: background .15s, color .15s;
+    }
+    .topbar-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* User pill + gear */
+    .topbar-user-area {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 6px;
+      position: relative;
+    }
+
+    /* Gear button */
+    .topbar-gear {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      transition: background .15s, color .15s, transform .25s ease;
+      position: relative;
+    }
+    .topbar-gear:hover { background: var(--surface2); color: var(--accent); transform: rotate(45deg); }
+
+    /* User pill */
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px 4px 6px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background .15s;
+      position: relative;
+    }
+    .topbar-user:hover { background: var(--surface2); }
+    .topbar-user-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: sans-serif;
+    }
+    .topbar-user-info { line-height: 1.2; }
+    .topbar-user-name { font-size: 12px; color: var(--text); font-family: sans-serif; font-weight: 500; }
+    .topbar-user-role { font-size: 10px; color: var(--text3); font-family: sans-serif; }
+
+    /* Dropdown menus */
+    .topbar-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 200px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      z-index: 500;
+      display: none;
+      overflow: hidden;
+    }
+    .topbar-dropdown.open { display: block; }
+    .topbar-dropdown-header {
+      padding: 10px 14px 8px;
+      font-size: 11px;
+      color: var(--text3);
+      font-family: sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-dropdown a,
+    .topbar-dropdown button.dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: sans-serif;
+      color: var(--text);
+      text-decoration: none;
+      background: none;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .topbar-dropdown a:hover,
+    .topbar-dropdown button.dropdown-item:hover { background: var(--surface2); }
+    .topbar-dropdown .dropdown-icon { font-size: 15px; width: 18px; text-align: center; }
+    .topbar-dropdown hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+    .topbar-dropdown .danger { color: var(--red); }
+
+    /* ══════════════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--nav-bg);
+      position: fixed;
+      top: var(--topbar-h);
+      left: 0;
+      bottom: 0;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width .22s ease;
+    }
+    .sidebar.is-expanded { width: var(--sidebar-w-expanded); }
+
+    /* Toggle button */
+    .sidebar-toggle {
+      width: 100%;
+      height: 44px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--nav-border);
+      color: var(--nav-text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 18px;
+      gap: 10px;
+      flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-toggle:hover { background: var(--nav-hover); color: #e0dff0; }
+    .sidebar-toggle .toggle-icon {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+      width: 20px;
+    }
+    .sidebar-toggle .toggle-icon span {
+      display: block;
+      height: 1.5px;
+      background: currentColor;
+      border-radius: 2px;
+      transform-origin: left center;
+      transition: width .22s ease, opacity .18s ease, transform .22s ease;
+    }
+    .sidebar-toggle .toggle-icon span:nth-child(1) { width: 14px; }
+    .sidebar-toggle .toggle-icon span:nth-child(2) { width: 20px; }
+    .sidebar-toggle .toggle-icon span:nth-child(3) { width: 10px; }
+    .sidebar.is-expanded .sidebar-toggle .toggle-icon span:nth-child(1) { width: 20px; }
+    .sidebar.is-expanded .sidebar-toggle .toggle-icon span:nth-child(3) { width: 20px; }
+    .sidebar-toggle .toggle-label {
+      font-size: 11px;
+      font-family: sans-serif;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      opacity: 0;
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: opacity .18s ease, max-width .22s ease;
+      color: var(--nav-text);
+    }
+    .sidebar.is-expanded .sidebar-toggle .toggle-label {
+      opacity: 1;
+      max-width: 120px;
+    }
+
+    /* Nav scroll */
+    .nav-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 12px 0;
+      scrollbar-width: none;
+    }
+    .nav-scroll::-webkit-scrollbar { display: none; }
+
+    /* ── Accordion nav items ── */
+    .nav-item {
+      display: block;
+    }
+
+    /* Top-level link (non-accordion) */
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0 9px 16px;
+      color: var(--nav-text);
+      text-decoration: none;
+      font-size: 13px;
+      font-family: 'Georgia', serif;
+      transition: background .12s, color .12s;
+      border-left: 3px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .nav-link:hover {
+      background: var(--nav-hover);
+      color: #e0dff0;
+    }
+    .nav-link.active {
+      color: #fff;
+      border-left-color: var(--accent);
+      background: var(--nav-active);
+    }
+    .nav-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .nav-label {
+      opacity: 0;
+      max-width: 0;
+      overflow: hidden;
+      transition: opacity .18s ease, max-width .22s ease;
+      pointer-events: none;
+      flex: 1;
+    }
+    .sidebar.is-expanded .nav-label {
+      opacity: 1;
+      max-width: 160px;
+    }
+
+    /* Accordion chevron */
+    .nav-chevron {
+      opacity: 0;
+      max-width: 0;
+      overflow: hidden;
+      transition: opacity .18s ease, max-width .22s ease, transform .2s ease;
+      font-size: 10px;
+      color: var(--nav-text);
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+    .sidebar.is-expanded .nav-chevron {
+      opacity: 1;
+      max-width: 20px;
+    }
+    .nav-accordion-btn.open .nav-chevron {
+      transform: rotate(90deg);
+    }
+
+    /* Accordion button (parent item) */
+    .nav-accordion-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0 9px 16px;
+      color: var(--nav-text);
+      text-decoration: none;
+      font-size: 13px;
+      font-family: 'Georgia', serif;
+      transition: background .12s, color .12s;
+      border-left: 3px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      cursor: pointer;
+      width: 100%;
+      background: none;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      text-align: left;
+    }
+    .nav-accordion-btn:hover {
+      background: var(--nav-hover);
+      color: #e0dff0;
+    }
+    .nav-accordion-btn.has-active {
+      color: #e0dff0;
+    }
+    .nav-accordion-btn.open {
+      color: #fff;
+      background: rgba(255,255,255,.04);
+    }
+
+    /* Accordion children panel */
+    .nav-accordion-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .25s ease;
+      background: rgba(0,0,0,.15);
+    }
+    .nav-accordion-panel.open {
+      max-height: 400px;
+    }
+
+    .nav-sub-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px 7px 46px;
+      color: rgba(160,158,184,.8);
+      text-decoration: none;
+      font-size: 12px;
+      font-family: 'Georgia', serif;
+      transition: background .12s, color .12s;
+      white-space: nowrap;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, background .12s, color .12s;
+    }
+    .sidebar.is-expanded .nav-accordion-panel .nav-sub-link {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .nav-sub-link:hover {
+      background: var(--nav-hover);
+      color: #e0dff0;
+    }
+    .nav-sub-link.active {
+      color: var(--accent);
+    }
+    .nav-sub-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+      opacity: .5;
+    }
+    .nav-sub-link.active .nav-sub-dot { opacity: 1; }
+
+    /* Sidebar footer — language switcher */
+    .nav-footer {
+      border-top: 1px solid var(--nav-border);
+      padding: 10px 0 12px;
+      overflow: hidden;
+    }
+    .lang-switcher {
+      display: flex;
+      gap: 5px;
+      padding: 6px 16px 0;
+      flex-wrap: wrap;
+    }
+    .lang-form { display: inline; }
+    .lang-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 4px;
+      color: rgba(255,255,255,.35);
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 3px 6px;
+      cursor: pointer;
+      transition: all .15s;
+      line-height: 1.4;
+    }
+    .lang-btn:hover {
+      color: #fff;
+      border-color: rgba(255,255,255,.35);
+    }
+    .lang-btn.is-active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(200,98,42,.15);
+    }
+
+    /* ══════════════════════════════════════════
+       TAB BAR
+    ══════════════════════════════════════════ */
+    .tabbar {
+      height: var(--tabbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      gap: 0;
+      position: fixed;
+      top: var(--topbar-h);
+      left: var(--sidebar-w);
+      right: 0;
+      z-index: 140;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      transition: left .22s ease;
+    }
+    .tabbar::-webkit-scrollbar { display: none; }
+    .sidebar.is-expanded ~ .layout-body .tabbar { left: var(--sidebar-w-expanded); }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 14px;
+      height: 34px;
+      font-size: 12px;
+      font-family: sans-serif;
+      color: var(--text3);
+      text-decoration: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: var(--radius) var(--radius) 0 0;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      position: relative;
+      top: 1px;
+      background: transparent;
+    }
+    .tab:hover { color: var(--text2); background: var(--surface2); }
+    .tab.is-active {
+      color: var(--text);
+      background: var(--bg);
+      border-color: var(--border);
+      font-weight: 500;
+    }
+    .tab.is-active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 2px 2px 0 0;
+    }
+    .tab-close {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: none;
+      background: none;
+      color: var(--text3);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0;
+      transition: background .12s, color .12s;
+    }
+    .tab-close:hover { background: var(--border2); color: var(--text); }
+    .tab-icon { font-size: 13px; }
+
+    /* Breadcrumb inside tabbar (right side) */
+    .tabbar-breadcrumb {
+      margin-left: auto;
+      padding: 0 16px;
+      font-size: 12px;
+      color: var(--text3);
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      height: 34px;
+    }
+    .tabbar-breadcrumb a { color: var(--text2); text-decoration: none; }
+    .tabbar-breadcrumb a:hover { color: var(--accent); }
+    .tabbar-breadcrumb .sep { color: var(--border2); }
+    .tabbar-breadcrumb .current { color: var(--text); }
+
+    /* ══════════════════════════════════════════
+       MAIN LAYOUT BODY
+    ══════════════════════════════════════════ */
+    .layout-body {
+      margin-top: var(--topbar-h);
+      margin-left: var(--sidebar-w);
+      transition: margin-left .22s ease;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - var(--topbar-h));
+    }
+    .layout-body.is-expanded { margin-left: var(--sidebar-w-expanded); }
+
+    .page-body {
+      padding: 28px 32px;
+      flex: 1;
+      margin-top: var(--tabbar-h);
+    }
+
+    /* ══════════════════════════════════════════
+       SHARED COMPONENTS (unchanged API)
+    ══════════════════════════════════════════ */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      gap: 16px;
+    }
+    .page-title { font-size: 24px; font-weight: normal; letter-spacing: -.3px; }
+    .page-sub { color: var(--text3); font-size: 13px; margin-top: 4px; font-family: sans-serif; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: all .15s;
+      font-family: 'Georgia', serif;
+    }
+    .btn-primary  { background: var(--accent); color: #fff; }
+    .btn-primary:hover  { background: var(--accent-dark); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border2); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface2); }
+    .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #f5c6c2; }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: sans-serif;
+      font-weight: 500;
+      letter-spacing: .3px;
+    }
+    .badge-green  { background: var(--green-light);  color: var(--green); }
+    .badge-amber  { background: var(--amber-light);  color: var(--amber); }
+    .badge-red    { background: var(--red-light);    color: var(--red); }
+    .badge-gray   { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .badge-accent { background: var(--accent-light); color: var(--accent); }
+
+    .empty-state { text-align: center; padding: 60px 32px; color: var(--text3); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state p { font-family: sans-serif; font-size: 14px; margin-top: 8px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      color: var(--text2);
+      margin-bottom: 6px;
+      font-family: sans-serif;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+    }
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: 'Georgia', serif;
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color .15s;
+    }
+    .form-control:focus { outline: none; border-color: var(--accent); }
+
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 400;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      width: 480px;
+      max-width: 95vw;
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+    .alert { padding: 11px 14px; border-radius: var(--radius); font-size: 13px; font-family: sans-serif; margin-bottom: 16px; }
+    .alert-success { background: var(--green-light); color: var(--green); }
+    .alert-error   { background: var(--red-light);   color: var(--red); }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); width: var(--sidebar-w-expanded) !important; transition: transform .25s ease; }
+      .sidebar.mobile-open { transform: translateX(0); z-index: 300; }
+      .layout-body, .layout-body.is-expanded, .tabbar { margin-left: 0 !important; left: 0 !important; }
+      .topbar-brand { width: 52px; }
+      .page-body { padding: 16px; }
+      .topbar-right { gap: 6px; padding-right: 10px; }
+      .topbar-user-info { display: none; }
+      .topbar-search-inner { max-width: 100%; }
+
+      /* overlay para fechar sidebar em mobile — visível só via JS */
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.45);
+        z-index: 250;
+      }
+
+      /* page-header empilhado em mobile */
+      .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .page-header > div:last-child { width: 100%; }
+      .page-header .btn { width: 100%; justify-content: center; }
+
+      /* modal full-width em mobile */
+      .modal { width: 95vw; }
+    }
+
+    @media (max-width: 480px) {
+      .page-body { padding: 10px; }
+      .page-title { font-size: 20px; }
+    }
+
+    .sidebar-overlay { display: none; }
+
+    /* Impede flash de transições durante o carregamento inicial */
+    .no-transition, .no-transition * { transition: none !important; }
+  </style>
+
+  <!-- Script inline: aplica estado do sidebar ANTES do primeiro paint, eliminando o piscar -->
+  <script>
+  (function () {
+    var expanded = sessionStorage.getItem('crt_sidebar_expanded') === '1';
+    var mobile   = window.innerWidth <= 768;
+    if (expanded && !mobile) {
+      document.documentElement.setAttribute('data-sidebar', 'expanded');
+    }
+  })();
+  </script>
+
+  <style>
+    html[data-sidebar="expanded"] .sidebar           { width: var(--sidebar-w-expanded); }
+    html[data-sidebar="expanded"] .layout-body       { margin-left: var(--sidebar-w-expanded); }
+    html[data-sidebar="expanded"] .tabbar            { left: var(--sidebar-w-expanded); }
+    html[data-sidebar="expanded"] .topbar-brand      { width: var(--sidebar-w-expanded); }
+    html[data-sidebar="expanded"] #brandName         { max-width: 140px; opacity: 1; margin-left: 10px; }
+    html[data-sidebar="expanded"] .nav-label         { opacity: 1; max-width: 160px; }
+    html[data-sidebar="expanded"] .nav-chevron       { opacity: 1; max-width: 20px; }
+    html[data-sidebar="expanded"] .sidebar-toggle .toggle-label { opacity: 1; max-width: 120px; }
+    html[data-sidebar="expanded"] .nav-accordion-panel .nav-sub-link { opacity: 1; pointer-events: auto; }
+  </style>
+
+  <link rel="stylesheet" href="{% static 'css/smart-table.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="no-transition" data-tab-parent="{% block tab_parent %}{% endblock %}" data-tab-icon="{% block tab_icon %}{% endblock %}">
+
+  <!-- ══ TOPBAR ══ -->
+  <header class="topbar" id="topbar">
+
+    <button class="topbar-btn" id="mobileMenuBtn" style="display:none;margin-left:8px;" title="Menu">☰</button>
+
+    <a class="topbar-brand" id="topbarBrand" href="{% url 'home' %}" title="{% trans "Dashboard" %}">
+      {# Para usar logomarca: coloque o arquivo em static/images/logo.png e substitua a linha abaixo #}
+      {# <div class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Construart"></div> #}
+      <div class="brand-logo-fallback">C</div>
+      <span class="brand-name" id="brandName">Construart</span>
+    </a>
+
+    <div class="topbar-search">
+      <div class="topbar-search-inner">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="{% trans "Pesquisar cliente, obra, documento…" %}">
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <button class="topbar-btn" title="{% trans "Notificações" %}">🔔</button>
+      <button class="topbar-btn" title="{% trans "Ajuda" %}">❓</button>
+
+      {% if request.user.is_authenticated %}
+      <div class="topbar-user-area" id="topbarUserArea">
+
+        <!-- Gear / Configurações — apenas staff/superuser ou quem tem accounts.view_user -->
+        {% if request.user.is_staff or request.user.is_superuser or perms.accounts.view_user %}
+        <button class="topbar-gear" id="gearBtn" title="{% trans "Configurações" %}">⚙️</button>
+        <div class="topbar-dropdown" id="gearDropdown">
+          <div class="topbar-dropdown-header">{% trans "Configurações" %}</div>
+          {% if request.user.is_staff or request.user.is_superuser or perms.accounts.view_user %}
+          <a href="{% url 'accounts:list' %}">
+            <span class="dropdown-icon">👥</span> {% trans "Usuários" %}
+          </a>
+          <a href="{% url 'accounts:profile_list' %}">
+            <span class="dropdown-icon">🔐</span> {% trans "Gestão de Acessos" %}
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- User pill -->
+        <div class="topbar-user" id="userPillBtn">
+          <div class="topbar-user-avatar">
+            {{ request.user.first_name|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}
+          </div>
+          <div class="topbar-user-info">
+            <div class="topbar-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="topbar-user-role">{{ request.user.get_role_display }}</div>
+          </div>
+        </div>
+        <div class="topbar-dropdown" id="userDropdown">
+          <div class="topbar-dropdown-header">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </div>
+          <a href="{% url 'accounts:edit' request.user.pk %}">
+            <span class="dropdown-icon">👤</span> {% trans "Meus Dados" %}
+          </a>
+          <a href="{% url 'accounts:reset_password' request.user.pk %}">
+            <span class="dropdown-icon">🔑</span> {% trans "Alterar Senha" %}
+          </a>
+          <hr>
+          <form method="post" action="{% url 'logout' %}" style="margin:0">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item danger">
+              <span class="dropdown-icon">🚪</span> {% trans "Sair" %}
+            </button>
+          </form>
+        </div>
+
+      </div>
+      {% endif %}
+    </div>
+
+  </header>
+
+  <!-- overlay mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" style="display:none"></div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <nav class="sidebar" id="sidebar">
+
+    <button class="sidebar-toggle" id="sidebarToggle" title="{% trans "Expandir menu" %}">
+      <span class="toggle-icon" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="toggle-label">Recolher</span>
+    </button>
+
+    <div class="nav-scroll">
+
+      <!-- Dashboard -->
+      <a href="{% url 'dashboard' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+         data-tab-label="Dashboard" data-tab-icon="🏠">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+
+      <!-- Planejamento -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.planning.view_planning %}
+      <a href="{% url 'planning:list' %}"
+         class="nav-link {% if 'planning' in request.path %}active{% endif %}"
+         data-tab-label="{% trans "Planejamento" %}" data-tab-icon="📅">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">{% trans "Planejamento" %}</span>
+      </a>
+      {% endif %}
+
+      <!-- Controle de Horas (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.timesheets.view_timesheet or perms.timesheets.view_timesheet_values %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'timesheet' in request.path %}has-active open{% endif %}"
+                data-accordion="timesheets">
+          <span class="nav-icon">⏱️</span>
+          <span class="nav-label">{% trans "Controle de Horas" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'timesheet' in request.path %}open{% endif %}" id="acc-timesheets">
+          {% if perms.timesheets.view_timesheet %}
+          <a href="{% url 'timesheets:list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'list' and 'timesheet' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Controle de Horas" %}" data-tab-icon="⏱️">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Horas" %}
+          </a>
+          {% endif %}
+          {% if perms.timesheets.view_timesheet_values %}
+          <a href="{% url 'timesheets:list_values' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'list_values' %}active{% endif %}"
+             data-tab-label="{% trans "Lista c/ valores" %}" data-tab-icon="€">
+            <span class="nav-sub-dot"></span>{% trans "Lista (valores)" %}
+          </a>
+          {% endif %}
+          {% if request.user.is_staff or request.user.is_superuser or perms.timesheets.change_timesheet %}
+          <a href="{% url 'timesheets:daily_board' %}"
+             class="nav-sub-link {% if 'board' in request.path and 'timesheet' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Quadro de Horas" %}" data-tab-icon="📅">
+            <span class="nav-sub-dot"></span>{% trans "Quadro de Horas" %}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Contatos -->
+      <a href="{% url 'contacts:list' %}"
+         class="nav-link {% if 'contacts' in request.path %}active{% endif %}"
+         data-tab-label="{% trans "Contatos" %}" data-tab-icon="📋">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">{% trans "Contatos" %}</span>
+      </a>
+
+      <!-- Clientes (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.clients.view_client %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'clients' in request.path %}has-active open{% endif %}"
+                data-accordion="clients">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">{% trans "Clientes" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'clients' in request.path %}open{% endif %}" id="acc-clients">
+          <a href="{% url 'clients:list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'list' and 'clients' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Clientes" %}" data-tab-icon="👤">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Clientes/Prospects" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.clients.add_client %}
+          <a href="{% url 'clients:create' %}"
+             class="nav-sub-link"
+             data-tab-label="{% trans "Novo Cliente" %}" data-tab-icon="👤">
+            <span class="nav-sub-dot"></span>{% trans "Novo Cliente/Prospect" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'contacts:list' %}?source=clients"
+             class="nav-sub-link {% if 'contacts' in request.path and 'clients' in request.GET.source %}active{% endif %}"
+             data-tab-label="{% trans "Contatos" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Contatos" %}
+          </a>
+          <a href="{% url 'budget:budget_list' %}"
+             class="nav-sub-link {% if 'budget' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Orçamentos" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Orçamentos" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Orçamentos (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.budget.view_budget %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'budget' in request.path %}has-active open{% endif %}" data-accordion="budget">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">{% trans "Orçamentos" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'budget' in request.path %}open{% endif %}" id="acc-budget">
+          <a href="{% url 'budget:budget_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'budget_list' %}active{% endif %}"
+             data-tab-label="{% trans "Orçamentos" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Orçamentos" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.budget.add_budget %}
+          <a href="{% url 'budget:budget_create' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'budget_create' %}active{% endif %}"
+             data-tab-label="{% trans "Novo Orçamento" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Novo Orçamento" %}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Projetos -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.projects.view_project %}
+      <a href="{% url 'project_list' %}"
+         class="nav-link {% if 'project' in request.path and 'planning' not in request.path %}active{% endif %}"
+         data-tab-label="{% trans "Projetos" %}" data-tab-icon="🏗️">
+        <span class="nav-icon">🏗️</span>
+        <span class="nav-label">{% trans "Projetos" %}</span>
+      </a>
+      {% endif %}
+
+      <!-- Subcontratados (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.subcontractors.view_subcontractor %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'subcontractor' in request.path or 'workforce' in request.path %}has-active open{% endif %}"
+                data-accordion="subcontractors">
+          <span class="nav-icon">🏢</span>
+          <span class="nav-label">{% trans "Subcontratados" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'subcontractor' in request.path or 'workforce' in request.path %}open{% endif %}" id="acc-subcontractors">
+          <a href="{% url 'subcontractors:list' %}"
+             class="nav-sub-link {% if 'subcontractor' in request.path and 'create' not in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Subcontratados" %}" data-tab-icon="🏢">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Subcontratados" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.workforce.view_collaborator %}
+          <a href="{% url 'workforce:list' %}"
+             class="nav-sub-link {% if 'workforce' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Equipe" %}" data-tab-icon="👷">
+            <span class="nav-sub-dot"></span>{% trans "Equipe dos Subcontratados" %}
+          </a>
+          {% endif %}
+          {% if request.user.is_staff or request.user.is_superuser or perms.subcontractors.add_subcontractor %}
+          <a href="{% url 'subcontractors:create' %}"
+             class="nav-sub-link {% if 'subcontractor' in request.path and 'create' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Novo Subcontratado" %}" data-tab-icon="🏢">
+            <span class="nav-sub-dot"></span>{% trans "Novo Subcontratado" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'contacts:list' %}?source=subcontractors"
+             class="nav-sub-link"
+             data-tab-label="{% trans "Contatos" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Contatos" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Fornecedores (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.suppliers.view_supplier %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'suppliers' in request.path %}has-active open{% endif %}"
+                data-accordion="suppliers">
+          <span class="nav-icon">🏭</span>
+          <span class="nav-label">{% trans "Fornecedores" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'suppliers' in request.path %}open{% endif %}" id="acc-suppliers">
+          <a href="{% url 'suppliers:list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'list' and 'suppliers' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Fornecedores" %}" data-tab-icon="🏭">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Fornecedores" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.suppliers.add_supplier %}
+          <a href="{% url 'suppliers:create' %}"
+             class="nav-sub-link {% if 'create' in request.path and 'suppliers' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Novo Fornecedor" %}" data-tab-icon="🏭">
+            <span class="nav-sub-dot"></span>{% trans "Novo Fornecedor" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'contacts:list' %}?source=suppliers"
+             class="nav-sub-link"
+             data-tab-label="{% trans "Contatos" %}" data-tab-icon="📋">
+            <span class="nav-sub-dot"></span>{% trans "Contatos" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.procurement.view_rfq %}
+          <a href="{% url 'procurement:rfq_list' %}"
+             class="nav-sub-link {% if 'procurement/rfq' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Cotações" %}" data-tab-icon="🧾">
+            <span class="nav-sub-dot"></span>{% trans "Cotações (RFQ)" %}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Serviços (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.services.view_service %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'services' in request.path %}has-active open{% endif %}"
+                data-accordion="services">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-label">{% trans "Serviços" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'services' in request.path %}open{% endif %}" id="acc-services">
+          <a href="{% url 'services:service_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'service_list' %}active{% endif %}"
+             data-tab-label="{% trans "Serviços" %}" data-tab-icon="🔧">
+            <span class="nav-sub-dot"></span>{% trans "Lista de Serviços" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.services.add_service %}
+          <a href="{% url 'services:service_create' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'service_create' %}active{% endif %}"
+             data-tab-label="{% trans "Novo Serviço" %}" data-tab-icon="🔧">
+            <span class="nav-sub-dot"></span>{% trans "Novo Serviço" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'services:category_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'category_list' and 'services' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Categorias de Serviços" %}" data-tab-icon="📂">
+            <span class="nav-sub-dot"></span>{% trans "Categorias" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Catálogo (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.catalog.view_product %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'catalog' in request.path %}has-active open{% endif %}"
+                data-accordion="catalog">
+          <span class="nav-icon">📦</span>
+          <span class="nav-label">{% trans "Catálogo" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'catalog' in request.path %}open{% endif %}" id="acc-catalog">
+          <a href="{% url 'catalog:product_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}"
+             data-tab-label="{% trans "Produtos" %}" data-tab-icon="📦">
+            <span class="nav-sub-dot"></span>{% trans "Produtos" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.catalog.add_product %}
+          <a href="{% url 'catalog:product_create' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'product_create' %}active{% endif %}"
+             data-tab-label="{% trans "Novo Produto" %}" data-tab-icon="📦">
+            <span class="nav-sub-dot"></span>{% trans "Novo Produto" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'catalog:category_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}"
+             data-tab-label="{% trans "Categorias" %}" data-tab-icon="📂">
+            <span class="nav-sub-dot"></span>{% trans "Categorias" %}
+          </a>
+          <a href="{% url 'catalog:unit_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'unit_list' %}active{% endif %}"
+             data-tab-label="{% trans "Unidades" %}" data-tab-icon="📐">
+            <span class="nav-sub-dot"></span>{% trans "Unidades de Medida" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Frota (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser or perms.fleet.view_vehicle %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'fleet' in request.path %}has-active open{% endif %}"
+                data-accordion="fleet">
+          <span class="nav-icon">🚛</span>
+          <span class="nav-label">{% trans "Frota" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'fleet' in request.path %}open{% endif %}" id="acc-fleet">
+          <a href="{% url 'fleet:dashboard' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'dashboard' and 'fleet' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Frota — Dashboard" %}" data-tab-icon="🚛">
+            <span class="nav-sub-dot"></span>{% trans "Dashboard Frota" %}
+          </a>
+          <a href="{% url 'fleet:vehicle_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'vehicle_list' %}active{% endif %}"
+             data-tab-label="{% trans "Veículos" %}" data-tab-icon="🚗">
+            <span class="nav-sub-dot"></span>{% trans "Veículos" %}
+          </a>
+          {% if request.user.is_staff or request.user.is_superuser or perms.fleet.add_vehicle %}
+          <a href="{% url 'fleet:vehicle_create' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'vehicle_create' %}active{% endif %}"
+             data-tab-label="{% trans "Novo Veículo" %}" data-tab-icon="🚗">
+            <span class="nav-sub-dot"></span>{% trans "Novo Veículo" %}
+          </a>
+          {% endif %}
+          <a href="{% url 'fleet:fine_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'fine_list' %}active{% endif %}"
+             data-tab-label="{% trans "Multas" %}" data-tab-icon="⚠️">
+            <span class="nav-sub-dot"></span>{% trans "Multas" %}
+          </a>
+          <a href="{% url 'fleet:category_list' %}"
+             class="nav-sub-link {% if request.resolver_match.url_name == 'category_list' and 'fleet' in request.path %}active{% endif %}"
+             data-tab-label="{% trans "Categorias de Veículo" %}" data-tab-icon="📂">
+            <span class="nav-sub-dot"></span>{% trans "Categorias" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tabelas Auxiliares (accordion) -->
+      {% if request.user.is_staff or request.user.is_superuser %}
+      <div class="nav-item">
+        <button class="nav-accordion-btn {% if 'nationalities' in request.path or 'languages' in request.path or 'insurance-funds' in request.path or 'legal-forms' in request.path %}has-active open{% endif %}"
+                data-accordion="aux-tables">
+          <span class="nav-icon">🗂️</span>
+          <span class="nav-label">{% trans "Tabelas Auxiliares" %}</span>
+          <span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-accordion-panel {% if 'nationalities' in request.path or 'languages' in request.path or 'insurance-funds' in request.path or 'legal-forms' in request.path %}open{% endif %}" id="acc-aux-tables">
+          <a href="{% url 'workforce:nationality_list' %}"
+             class="nav-sub-link {% if 'nationalities' in request.path %}active{% endif %}"
+             data-tab-label="Nacionalidades" data-tab-icon="🌍">
+            <span class="nav-sub-dot"></span>{% trans "Nacionalidades" %}
+          </a>
+          <a href="{% url 'workforce:language_list' %}"
+             class="nav-sub-link {% if 'languages' in request.path %}active{% endif %}"
+             data-tab-label="Idiomas" data-tab-icon="💬">
+            <span class="nav-sub-dot"></span>{% trans "Idiomas" %}
+          </a>
+          <a href="{% url 'workforce:insurance_fund_list' %}"
+             class="nav-sub-link {% if 'insurance-funds' in request.path %}active{% endif %}"
+             data-tab-label="Caixas de Seguro" data-tab-icon="🏛️">
+            <span class="nav-sub-dot"></span>{% trans "Caixas de Seguro" %}
+          </a>
+          <a href="{% url 'workforce:legal_form_list' %}"
+             class="nav-sub-link {% if 'legal-forms' in request.path %}active{% endif %}"
+             data-tab-label="Formas Jurídicas" data-tab-icon="📄">
+            <span class="nav-sub-dot"></span>{% trans "Formas Jurídicas" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Language switcher -->
+    <div class="nav-footer">
+      <div class="lang-switcher">
+        {% get_current_language as current_lang %}
+        {% get_available_languages as available_langs %}
+        {% for lang_code, lang_name in available_langs %}
+          <form method="post" action="{% url 'set_language' %}" class="lang-form">
+            {% csrf_token %}
+            <input type="hidden" name="language" value="{{ lang_code }}">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button
+              type="submit"
+              class="lang-btn {% if lang_code == current_lang %}is-active{% endif %}"
+              title="{{ lang_name }}"
+            >{{ lang_code }}</button>
+          </form>
+        {% endfor %}
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- ══ LAYOUT BODY (tabbar + content) ══ -->
+  <div class="layout-body" id="layoutBody">
+
+    <!-- Tab bar -->
+    <div class="tabbar" id="tabbar">
+      {# Tabs are injected and managed by JS below #}
+      <div class="tabbar-breadcrumb">
+        {% block breadcrumb %}{% endblock %}
+      </div>
+    </div>
+
+    <!-- Menu de contexto das abas -->
+    <div id="tab-ctx-menu" style="
+      display:none; position:fixed; z-index:9999;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius); box-shadow:var(--shadow-md);
+      padding:4px 0; min-width:160px; font-family:sans-serif; font-size:13px;
+    ">
+      <button id="ctx-close-this" style="
+        display:block; width:100%; text-align:left;
+        padding:8px 16px; background:none; border:none;
+        color:var(--text); cursor:pointer;
+      ">Fechar esta aba</button>
+      <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+      <button id="ctx-close-all" style="
+        display:block; width:100%; text-align:left;
+        padding:8px 16px; background:none; border:none;
+        color:var(--red); cursor:pointer; font-weight:500;
+      ">Fechar todas as abas</button>
+    </div>
+
+    <!-- Page content -->
+    <div class="page-body">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert {% if 'error' in message.tags %}alert-error{% elif 'success' in message.tags %}alert-success{% else %}alert-success{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+
+    // ── Sidebar expand/collapse ──────────────────────────────────────────
+    const sidebar     = document.getElementById('sidebar');
+    const layoutBody  = document.getElementById('layoutBody');
+    const tabbar      = document.getElementById('tabbar');
+    const topbarBrand = document.getElementById('topbarBrand');
+    const brandName   = document.getElementById('brandName');
+    const toggleBtn   = document.getElementById('sidebarToggle');
+    const STORAGE_SIDEBAR = 'crt_sidebar_expanded';
+    const EXPAND_SIDEBAR_LABEL = '{{ expand_sidebar_label|escapejs }}';
+    const COLLAPSE_SIDEBAR_LABEL = '{{ collapse_sidebar_label|escapejs }}';
+    const CLOSE_TAB_LABEL = '{{ close_tab_label|escapejs }}';
+
+    function isMobile() { return window.innerWidth <= 768; }
+
+    function setSidebar(expanded) {
+      if (isMobile()) return;
+      const toggleLabel = toggleBtn.querySelector('.toggle-label');
+      if (expanded) {
+        document.documentElement.setAttribute('data-sidebar', 'expanded');
+        sidebar.classList.add('is-expanded');
+        layoutBody.classList.add('is-expanded');
+        // Limpar inline styles — o CSS via [data-sidebar] já cuida do estado
+        topbarBrand.style.width = '';
+        brandName.style.maxWidth = '';
+        brandName.style.opacity = '';
+        brandName.style.marginLeft = '';
+        tabbar.style.left = '';
+        toggleBtn.title = COLLAPSE_SIDEBAR_LABEL;
+        if (toggleLabel) toggleLabel.textContent = 'Recolher';
+      } else {
+        document.documentElement.removeAttribute('data-sidebar');
+        sidebar.classList.remove('is-expanded');
+        layoutBody.classList.remove('is-expanded');
+        topbarBrand.style.width = '';
+        brandName.style.maxWidth = '';
+        brandName.style.opacity = '';
+        brandName.style.marginLeft = '';
+        tabbar.style.left = '';
+        toggleBtn.title = EXPAND_SIDEBAR_LABEL;
+        if (toggleLabel) toggleLabel.textContent = 'Recolher';
+      }
+      sessionStorage.setItem(STORAGE_SIDEBAR, expanded ? '1' : '0');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (isMobile()) return;
+      setSidebar(!sidebar.classList.contains('is-expanded'));
+    });
+
+    // ── Mobile sidebar toggle ─────────────────────────────────────────
+    const mobileMenuBtn  = document.getElementById('mobileMenuBtn');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function showMobileSidebar() {
+      sidebar.classList.add('mobile-open', 'is-expanded');
+      // garantir que o layout não se desloca em mobile
+      layoutBody.style.marginLeft = '';
+      tabbar.style.left = '';
+      sidebarOverlay.style.display = 'block';
+    }
+    function hideMobileSidebar() {
+      sidebar.classList.remove('mobile-open', 'is-expanded');
+      sidebarOverlay.style.display = 'none';
+    }
+
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener('click', () => {
+        if (sidebar.classList.contains('mobile-open')) hideMobileSidebar();
+        else showMobileSidebar();
+      });
+    }
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', hideMobileSidebar);
+    }
+
+    function applyMobileLayout() {
+      if (isMobile()) {
+        if (mobileMenuBtn) mobileMenuBtn.style.display = 'flex';
+        document.documentElement.removeAttribute('data-sidebar');
+        layoutBody.classList.remove('is-expanded');
+        hideMobileSidebar();
+      } else {
+        if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
+        sidebarOverlay.style.display = 'none';
+        sidebar.classList.remove('mobile-open');
+        setSidebar(sessionStorage.getItem(STORAGE_SIDEBAR) === '1');
+      }
+      // Libera transições após o layout inicial estar estável
+      requestAnimationFrame(() => {
+        document.body.classList.remove('no-transition');
+      });
+    }
+
+    applyMobileLayout();
+    window.addEventListener('resize', () => {
+      document.body.classList.add('no-transition');
+      applyMobileLayout();
+    });
+
+
+    // ── Accordion nav ────────────────────────────────────────────────────
+    document.querySelectorAll('.nav-accordion-btn').forEach(btn => {
+      const key   = btn.dataset.accordion;
+      const panel = document.getElementById('acc-' + key);
+      if (!panel) return;
+
+      btn.addEventListener('click', () => {
+        const isOpen = btn.classList.contains('open');
+        // Close all
+        document.querySelectorAll('.nav-accordion-btn.open').forEach(b => b.classList.remove('open'));
+        document.querySelectorAll('.nav-accordion-panel.open').forEach(p => p.classList.remove('open'));
+        // Toggle clicked
+        if (!isOpen) {
+          btn.classList.add('open');
+          panel.classList.add('open');
+        }
+        saveAccordionState();
+      });
+    });
+
+    function saveAccordionState() {
+      const open = Array.from(document.querySelectorAll('.nav-accordion-btn.open'))
+                        .map(b => b.dataset.accordion);
+      sessionStorage.setItem('crt_accordion', JSON.stringify(open));
+    }
+
+    function restoreAccordionState() {
+      // Server-rendered "has-active open" takes precedence; only restore if nothing is open
+      const alreadyOpen = document.querySelectorAll('.nav-accordion-btn.open').length > 0;
+      if (alreadyOpen) { saveAccordionState(); return; }
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('crt_accordion')) || [];
+        saved.forEach(key => {
+          const btn   = document.querySelector('[data-accordion="' + key + '"]');
+          const panel = document.getElementById('acc-' + key);
+          if (btn && panel) { btn.classList.add('open'); panel.classList.add('open'); }
+        });
+      } catch {}
+    }
+
+    restoreAccordionState();
+
+
+    // ── Topbar dropdowns ─────────────────────────────────────────────────
+    const gearBtn       = document.getElementById('gearBtn');
+    const gearDropdown  = document.getElementById('gearDropdown');
+    const userPillBtn   = document.getElementById('userPillBtn');
+    const userDropdown  = document.getElementById('userDropdown');
+
+    function closeAllDropdowns() {
+      if (gearDropdown)  gearDropdown.classList.remove('open');
+      if (userDropdown)  userDropdown.classList.remove('open');
+    }
+
+    if (gearBtn && gearDropdown) {
+      gearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = gearDropdown.classList.contains('open');
+        closeAllDropdowns();
+        if (!wasOpen) gearDropdown.classList.add('open');
+      });
+    }
+
+    if (userPillBtn && userDropdown) {
+      userPillBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = userDropdown.classList.contains('open');
+        closeAllDropdowns();
+        if (!wasOpen) userDropdown.classList.add('open');
+      });
+    }
+
+    document.addEventListener('click', closeAllDropdowns);
+
+
+    // ── Tab system ──────────────────────────────────────────────────────
+    const SCHEMA_VERSION  = 6;
+    const STORAGE_TABS    = 'crt_tabs';
+    const STORAGE_VERSION = 'crt_tabs_v';
+    const MAX_TABS        = 8;
+    const DEFAULT_TAB_URL = "{% url 'dashboard' %}";
+
+    if (Number(sessionStorage.getItem(STORAGE_VERSION)) !== SCHEMA_VERSION) {
+      sessionStorage.removeItem(STORAGE_TABS);
+      sessionStorage.setItem(STORAGE_VERSION, String(SCHEMA_VERSION));
+    }
+
+    function normalizePath(path) {
+      if (!path) return path;
+      // Garante formato "/foo/bar" (evita "pt-brcatalog" e similares)
+      if (!path.startsWith('/')) path = '/' + path;
+      return path;
+    }
+
+    function stripLang(path) {
+      path = normalizePath(path);
+      return path.replace(/^\/(pt-br|fr|nl|en)(\/|$)/, '/');
+    }
+
+    function getLangPrefix(path) {
+      path = normalizePath(path);
+      const m = path.match(/^\/(pt-br|fr|nl|en)(\/|$)/);
+      return m ? m[1] : null;
+    }
+
+    const currentUrl    = window.location.pathname;
+    const currentKey    = stripLang(currentUrl);
+    const currentLang   = getLangPrefix(currentUrl);
+
+    function toCurrentLang(url) {
+      url = normalizePath(url);
+      if (!currentLang) return url;
+      // Se já estiver no idioma atual, não prefixar de novo (evita "/pt-br/pt-br/...")
+      if (getLangPrefix(url) === currentLang) return url;
+      const bare = stripLang(url);
+      return '/' + currentLang + (bare.startsWith('/') ? bare : '/' + bare);
+    }
+
+    const body      = document.body;
+    const parentUrl = body.dataset.tabParent ? toCurrentLang(body.dataset.tabParent) : null;
+    const parentKey = parentUrl ? stripLang(parentUrl) : null;
+    const bodyIcon  = body.dataset.tabIcon || null;
+
+    const activeKey = parentKey || currentKey;
+
+    function loadTabs() {
+      try { return JSON.parse(sessionStorage.getItem(STORAGE_TABS)) || []; }
+      catch { return []; }
+    }
+
+    function saveTabs(tabs) {
+      sessionStorage.setItem(STORAGE_TABS, JSON.stringify(tabs));
+    }
+
+    function migrateTabLang(tabs) {
+      if (!currentLang) return tabs;
+      let changed = false;
+      const migrated = tabs.map(tab => {
+        const updated = toCurrentLang(tab.url);
+        if (updated !== tab.url) { changed = true; }
+        return { ...tab, url: updated };
+      });
+      if (changed) saveTabs(migrated);
+      return migrated;
+    }
+
+    function getTabMeta(tabUrl) {
+      const key   = stripLang(tabUrl || currentUrl);
+      const links = Array.from(document.querySelectorAll('.nav-link, .nav-sub-link'));
+      const match = links.find(l => stripLang(l.getAttribute('href') || '') === key);
+
+      // Importante: NÃO usar bodyIcon como fallback global, senão o ícone da página atual
+      // "vaza" e sobrescreve o ícone de outras abas ao navegar/sincronizar.
+      if (match && match.dataset.tabLabel) {
+        return { label: match.dataset.tabLabel, icon: match.dataset.tabIcon || '📄' };
+      }
+
+      // Só a aba corrente pode usar o tab_icon do body.
+      if (key === currentKey) {
+        return { label: document.title.split('—')[0].trim(), icon: bodyIcon || '📄' };
+      }
+
+      return { label: document.title.split('—')[0].trim(), icon: '📄' };
+    }
+
+    function syncTabsWithCurrentLanguage(tabs) {
+      let changed = false;
+      const synced = tabs.map(tab => {
+        const updatedUrl = toCurrentLang(tab.url);
+        const meta = getTabMeta(updatedUrl);
+        if (updatedUrl !== tab.url || meta.label !== tab.label || meta.icon !== tab.icon) {
+          changed = true;
+        }
+        return { ...tab, url: updatedUrl, label: meta.label, icon: meta.icon };
+      });
+      if (changed) saveTabs(synced);
+      return synced;
+    }
+
+    // ── Menu de contexto das abas ─────────────────────────────────────────
+    const ctxMenu       = document.getElementById('tab-ctx-menu');
+    const ctxCloseThis  = document.getElementById('ctx-close-this');
+    const ctxCloseAll   = document.getElementById('ctx-close-all');
+    let ctxTargetKey    = null;
+
+    function hideCtxMenu() { ctxMenu.style.display = 'none'; ctxTargetKey = null; }
+
+    ctxCloseAll.addEventListener('click', () => {
+      hideCtxMenu();
+      sessionStorage.removeItem(STORAGE_TABS);
+      window.location.href = DEFAULT_TAB_URL;
+    });
+
+    ctxCloseThis.addEventListener('click', () => {
+      const key = ctxTargetKey;
+      hideCtxMenu();
+      if (!key) return;
+      let list = loadTabs();
+      if (list.length <= 1) { sessionStorage.removeItem(STORAGE_TABS); window.location.href = DEFAULT_TAB_URL; return; }
+      const idx = list.findIndex(t => t.key === key);
+      list = list.filter(t => t.key !== key);
+      saveTabs(list);
+      if (key === activeKey) {
+        const target = list[idx - 1] || list[0];
+        window.location.href = target ? target.url : DEFAULT_TAB_URL;
+      } else {
+        renderTabs(list);
+      }
+    });
+
+    document.addEventListener('click', hideCtxMenu);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(); });
+
+    // hover highlight nos itens do menu
+    [ctxCloseThis, ctxCloseAll].forEach(btn => {
+      btn.addEventListener('mouseenter', () => btn.style.background = 'var(--surface2)');
+      btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+    });
+
+    function renderTabs(tabs) {
+      const canCloseTabs = tabs.length > 1;
+      const breadcrumb = tabbar.querySelector('.tabbar-breadcrumb');
+      tabbar.querySelectorAll('.tab').forEach(t => t.remove());
+
+      tabs.forEach(tab => {
+        const el = document.createElement('a');
+        el.className = 'tab' + (tab.key === activeKey ? ' is-active' : '');
+        el.href = tab.url;
+        el.innerHTML =
+          '<span class="tab-icon">' + tab.icon + '</span>' +
+          '<span>' + tab.label + '</span>' +
+          (canCloseTabs
+            ? '<button class="tab-close" data-key="' + tab.key + '"' +
+              ' title="' + CLOSE_TAB_LABEL + '"' +
+              ' onclick="event.preventDefault();event.stopPropagation();">×</button>'
+          : '');
+        el.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          ctxTargetKey = tab.key;
+          ctxCloseThis.style.display = tabs.length > 1 ? 'block' : 'none';
+          const x = Math.min(e.clientX, window.innerWidth  - 170);
+          const y = Math.min(e.clientY, window.innerHeight - 90);
+          ctxMenu.style.left    = x + 'px';
+          ctxMenu.style.top     = y + 'px';
+          ctxMenu.style.display = 'block';
+        });
+        tabbar.insertBefore(el, breadcrumb);
+      });
+
+      tabbar.querySelectorAll('.tab-close').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (loadTabs().length <= 1) {
+            window.location.href = DEFAULT_TAB_URL;
+            return;
+          }
+          const key  = btn.dataset.key;
+          let list   = loadTabs();
+          const idx  = list.findIndex(t => t.key === key);
+          list = list.filter(t => t.key !== key);
+          saveTabs(list);
+
+          if (!list.length) {
+            window.location.href = DEFAULT_TAB_URL;
+            return;
+          }
+
+          if (key === activeKey) {
+            const target = list[idx - 1] || list[0];
+            if (target) window.location.href = target.url;
+            else window.location.href = DEFAULT_TAB_URL;
+          } else {
+            renderTabs(list);
+          }
+        });
+      });
+    }
+
+    function registerCurrentTab() {
+      let tabs = syncTabsWithCurrentLanguage(migrateTabLang(loadTabs()));
+
+      const slot   = parentKey || currentKey;
+      const exists = tabs.find(t => t.key === slot);
+
+      if (!exists) {
+        const rootUrl = parentUrl || currentUrl;
+        const baseMeta = getTabMeta(rootUrl);
+        const meta    = { label: baseMeta.label, icon: bodyIcon || baseMeta.icon };
+        if (tabs.length >= MAX_TABS) tabs.shift();
+        tabs.push({ key: slot, url: rootUrl, label: meta.label, icon: meta.icon });
+        saveTabs(tabs);
+      } else {
+        const rootUrl = parentUrl || currentUrl;
+        const baseMeta = getTabMeta(rootUrl);
+        const meta    = { label: baseMeta.label, icon: bodyIcon || baseMeta.icon };
+        tabs = tabs.map(tab => (
+          tab.key === slot
+            ? { ...tab, url: rootUrl, label: meta.label, icon: meta.icon }
+            : tab
+        ));
+        saveTabs(tabs);
+      }
+
+      renderTabs(tabs);
+    }
+
+    registerCurrentTab();
+
+  })();
+  </script>
+
+  <script src="{% static 'js/smart-table.js' %}"></script>
+  {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

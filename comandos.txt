@@ -1,0 +1,19 @@
+venv\Scripts\activate
+
+
+Traduções:
+
+PT-BR
+django-admin makemessages -l pt_BR --ignore venv --ignore *.txt --ignore *.md
+
+FR
+django-admin makemessages -l fr --ignore venv --ignore *.txt --ignore *.md
+
+NL
+django-admin makemessages -l nl --ignore venv --ignore *.txt --ignore *.md
+
+EN
+django-admin makemessages -l en --ignore venv --ignore *.txt --ignore *.md
+
+Compilar as mensagens
+django-admin compilemessages

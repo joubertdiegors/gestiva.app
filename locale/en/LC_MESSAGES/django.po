@@ -1,0 +1,1983 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-19 02:00+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: English <en@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Perfil Construart"
+msgstr "Construart Profile"
+
+msgid "Senha"
+msgstr "Password"
+
+msgid "Confirmar senha"
+msgstr "Confirm password"
+
+msgid "— Sem perfil —"
+msgstr "— No profile —"
+
+msgid "As senhas não coincidem."
+msgstr "Passwords do not match."
+
+msgid "Nome do perfil"
+msgstr "Profile name"
+
+msgid "Descrição"
+msgstr "Description"
+
+msgid "Cor"
+msgstr "Color"
+
+msgid "Grupo"
+msgstr "Group"
+
+msgid "Laranja"
+msgstr "Orange"
+
+msgid "Verde"
+msgstr "Green"
+
+msgid "Amarelo"
+msgstr "Yellow"
+
+msgid "Vermelho"
+msgstr "Red"
+
+msgid "Cinzento"
+msgstr "Gray"
+
+msgid "Perfil de Acesso"
+msgstr "Access Profile"
+
+msgid "Perfis de Acesso"
+msgstr "Access Profiles"
+
+msgid "Telefone"
+msgstr "Phone"
+
+msgid "Perfil de acesso"
+msgstr "Access profile"
+
+msgid "Utilizador"
+msgstr "User"
+
+msgid "Utilizadores"
+msgstr "Users"
+
+msgid "Projetos"
+msgstr "Projects"
+
+msgid "Clientes"
+msgstr "Clients"
+
+msgid "Subcontratados"
+msgstr "Subcontractors"
+
+msgid "Colaboradores"
+msgstr "Collaborators"
+
+msgid "Planning"
+msgstr "Planning"
+
+msgid "Timesheets"
+msgstr "Timesheets"
+
+msgid "Ver"
+msgstr "View"
+
+msgid "Adicionar"
+msgstr "Add"
+
+msgid "Editar"
+msgstr "Edit"
+
+msgid "Eliminar"
+msgstr "Delete"
+
+msgid "Exportar"
+msgstr "Export"
+
+msgid "Perfis"
+msgstr "Profiles"
+
+msgid "Dados do perfil"
+msgstr "Profile data"
+
+msgid "Cor do perfil"
+msgstr "Profile color"
+
+msgid "Cancelar"
+msgstr "Cancel"
+
+msgid "Criar perfil"
+msgstr "Create profile"
+
+msgid "Guardar"
+msgstr "Save"
+
+msgid "Permissões"
+msgstr "Permissions"
+
+msgid "Selecione o que este perfil pode fazer em cada módulo"
+msgstr "Select what this profile can do in each module"
+
+msgid "Selecionar tudo"
+msgstr "Select all"
+
+msgid "Módulo"
+msgstr "Module"
+
+msgid "Não disponível"
+msgstr "Not available"
+
+msgid "Desmarcar tudo"
+msgstr "Deselect all"
+
+msgid "Defina o que cada perfil pode ver e fazer no sistema"
+msgstr "Define what each profile can see and do in the system"
+
+msgid "Novo perfil"
+msgstr "New profile"
+
+msgid "Sem permissões atribuídas"
+msgstr "No permissions assigned"
+
+msgid "utilizador(es) activo(s)"
+msgstr "active user(s)"
+
+msgid "Eliminar este perfil?"
+msgstr "Delete this profile?"
+
+msgid "Nenhum perfil criado"
+msgstr "No profile created"
+
+msgid "Crie perfis de acesso para controlar o que cada utilizador pode fazer."
+msgstr "Create access profiles to control what each user can do."
+
+msgid "Criar primeiro perfil"
+msgstr "Create first profile"
+
+msgid "A editar:"
+msgstr "Editing:"
+
+msgid "Dados pessoais"
+msgstr "Personal data"
+
+msgid "Preencha os dados do novo utilizador"
+msgstr "Fill in the data of the new user"
+
+msgid "Atualize as informações do utilizador"
+msgstr "Update user information"
+
+msgid "Identidade"
+msgstr "Identity"
+
+msgid "Primeiro nome"
+msgstr "First name"
+
+msgid "Apelido"
+msgstr "Last name"
+
+msgid "Nome de utilizador"
+msgstr "Username"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Perfil"
+msgstr "Profile"
+
+msgid "O perfil define as permissões do utilizador."
+msgstr "The profile defines user permissions."
+
+msgid "Criar novo perfil"
+msgstr "Create new profile"
+
+msgid "Estado da conta"
+msgstr "Account status"
+
+msgid "Conta ativa"
+msgstr "Active account"
+
+msgid "Utilizadores inativos não conseguem entrar no sistema"
+msgstr "Inactive users cannot log into the system"
+
+msgid "Criar utilizador"
+msgstr "Create user"
+
+msgid "Guardar alterações"
+msgstr "Save changes"
+
+msgid "Administração"
+msgstr "Administration"
+
+msgid "Gestão de contas e perfis de acesso"
+msgstr "Management of accounts and access profiles"
+
+msgid "Perfis de acesso"
+msgstr "Access profiles"
+
+msgid "Novo utilizador"
+msgstr "New user"
+
+msgid "resultado"
+msgid_plural "resultados"
+msgstr[0] "result"
+msgstr[1] "results"
+
+msgid "Pesquisar nome, email ou username…"
+msgstr "Search by name, email or username…"
+
+msgid "Todos os perfis"
+msgstr "All profiles"
+
+msgid "Qualquer estado"
+msgstr "Any status"
+
+msgid "Ativos"
+msgstr "Active"
+
+msgid "Inativos"
+msgstr "Inactive"
+
+msgid "Limpar"
+msgstr "Clear"
+
+#, fuzzy
+#| msgid "resultado"
+#| msgid_plural "resultados"
+msgid "Estado"
+msgstr "result"
+
+msgid "Membro desde"
+msgstr "Member since"
+
+msgid "Não pode alterar o próprio estado"
+msgstr "Cannot change your own status"
+
+#, fuzzy
+#| msgid "Ativos"
+msgid "Ativo"
+msgstr "Active"
+
+#, fuzzy
+#| msgid "Inativos"
+msgid "Inativo"
+msgstr "Inactive"
+
+#, fuzzy
+#| msgid "Nenhum perfil criado"
+msgid "Nenhum utilizador encontrado"
+msgstr "No profile created"
+
+#, fuzzy
+#| msgid "Preencha os dados do novo utilizador"
+msgid "Ajuste os filtros ou crie um novo utilizador."
+msgstr "Fill in the data of the new user"
+
+#, fuzzy
+#| msgid "Redefiniçer senha"
+msgid "Redefinir Senha"
+msgstr "Reset password"
+
+msgid ""
+"A senha será redefinida imediatamente. O utilizador precisará de usar a nova "
+"senha no próximo acesso."
+msgstr ""
+
+#, fuzzy
+#| msgid "Confirmar senha"
+msgid "Nova senha"
+msgstr "Confirm password"
+
+#, fuzzy
+#| msgid "Confirmar senha"
+msgid "Confirmar nova senha"
+msgstr "Confirm password"
+
+#, fuzzy
+#| msgid "Redefiniçer senha"
+msgid "Redefinir senha"
+msgstr "Reset password"
+
+#, python-format
+msgid "Utilizador '%(name)s' criado com sucesso."
+msgstr "User '%(name)s' created successfully."
+
+#, fuzzy
+#| msgid "Novo utilizador"
+msgid "Novo Utilizador"
+msgstr "New user"
+
+#, python-format
+msgid "Utilizador '%(name)s' atualizado."
+msgstr "User '%(name)s' updated."
+
+#, fuzzy
+#| msgid "Criar utilizador"
+msgid "Editar Utilizador"
+msgstr "Create user"
+
+msgid "Não pode desativar a sua própria conta."
+msgstr "You cannot deactivate your own account."
+
+#, fuzzy
+#| msgid "Inativos"
+msgid "ativado"
+msgstr "Inactive"
+
+msgid "desativado"
+msgstr "deactivated"
+
+#, python-format
+msgid "Utilizador '%(name)s' %(state)s."
+msgstr "User '%(name)s' %(state)s."
+
+#, python-format
+msgid "Senha de '%(name)s' redefinida com sucesso."
+msgstr "Password for '%(name)s' reset successfully."
+
+#, python-format
+msgid "Perfil '%(name)s' criado com sucesso."
+msgstr "Profile '%(name)s' created successfully."
+
+#, fuzzy
+#| msgid "Novo perfil"
+msgid "Novo Perfil"
+msgstr "New profile"
+
+#, python-format
+msgid "Perfil '%(name)s' atualizado."
+msgstr "Profile '%(name)s' updated."
+
+#, fuzzy
+#| msgid "Criar perfil"
+msgid "Editar Perfil"
+msgstr "Create profile"
+
+#, python-format
+msgid "Perfil '%(name)s' eliminado."
+msgstr "Profile '%(name)s' deleted."
+
+msgid "Privé"
+msgstr "Private"
+
+msgid "Professionnel"
+msgstr "Professional"
+
+msgid "Monsieur"
+msgstr "Mr."
+
+msgid "Madame"
+msgstr "Ms."
+
+msgid "Entreprise"
+msgstr "Company"
+
+msgid "Raison sociale"
+msgstr "Legal name"
+
+#, fuzzy
+#| msgid "Commercial"
+msgid "Nom commercial"
+msgstr "Commercial"
+
+msgid "Catégorie"
+msgstr "Category"
+
+msgid "Forme juridique"
+msgstr "Legal form"
+
+msgid "TVA"
+msgstr "VAT"
+
+msgid "Taxe TVA (%)"
+msgstr "VAT Rate (%)"
+
+msgid "Responsable"
+msgstr "Contact person"
+
+msgid "Informations"
+msgstr "Information"
+
+#, fuzzy
+#| msgid "Active"
+msgid "Actif"
+msgstr "Active"
+
+msgid "Créé le"
+msgstr "Created on"
+
+msgid "Mis à jour le"
+msgstr "Updated on"
+
+msgid "Client"
+msgstr "Client"
+
+msgid "Clients"
+msgstr "Clients"
+
+msgid "Libellé"
+msgstr "Label"
+
+msgid "Rue"
+msgstr "Street"
+
+msgid "Numéro"
+msgstr "Number"
+
+msgid "Complément"
+msgstr "Complement"
+
+msgid "Ville"
+msgstr "City"
+
+msgid "Code postal"
+msgstr "Postal code"
+
+msgid "Région"
+msgstr "Region"
+
+msgid "Pays"
+msgstr "Country"
+
+msgid "Adresse par défaut"
+msgstr "Default address"
+
+msgid "Adresse"
+msgstr "Address"
+
+msgid "Adresses"
+msgstr "Addresses"
+
+msgid "Général"
+msgstr "General"
+
+msgid "Finance"
+msgstr "Finance"
+
+msgid "Commercial"
+msgstr "Commercial"
+
+msgid "Type de contact"
+msgstr "Contact type"
+
+msgid "Nom"
+msgstr "Name"
+
+msgid "Téléphone"
+msgstr "Phone"
+
+msgid "Site web"
+msgstr "Website"
+
+msgid "Contact principal"
+msgstr "Main contact"
+
+msgid "Contact"
+msgstr "Contact"
+
+msgid "Contacts"
+msgstr "Contacts"
+
+msgid "Voltar"
+msgstr "Back"
+
+msgid "Informações"
+msgstr "Information"
+
+#, fuzzy
+#| msgid "Commercial"
+msgid "Nome comercial"
+msgstr "Commercial"
+
+msgid "Taxa TVA"
+msgstr "VAT Rate"
+
+msgid "Responsável"
+msgstr "Contact person"
+
+msgid "Notas"
+msgstr "Notes"
+
+#, fuzzy
+#| msgid "Contacts"
+msgid "Contactos"
+msgstr "Contacts"
+
+msgid "Sem contactos registados."
+msgstr "No contacts registered."
+
+msgid "Endereços"
+msgstr "Addresses"
+
+msgid "Principal"
+msgstr "Home"
+
+msgid "Sem endereços registados."
+msgstr "No addresses registered."
+
+#, python-format
+msgid "Projetos (%(counter)s)"
+msgid_plural "Projetos (%(counter)s)"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy
+#| msgid "Projetos"
+msgid "Sem projetos."
+msgstr "Projects"
+
+msgid "Novo projeto para este cliente"
+msgstr "New project for this client"
+
+#, fuzzy
+#| msgid "Notificações"
+msgid "Identificação"
+msgstr "Notifications"
+
+msgid "Razão social / Nome"
+msgstr "Legal name / Name"
+
+msgid "Forma jurídica"
+msgstr "Legal form"
+
+msgid "Categoria"
+msgstr "Category"
+
+msgid "Número VAT"
+msgstr "VAT Number"
+
+#, python-format
+msgid "Taxa TVA (%%)"
+msgstr "VAT Rate (%%)"
+
+msgid "Notas e Estado"
+msgstr "Notes and Status"
+
+#, fuzzy
+#| msgid "Clientes"
+msgid "Cliente ativo"
+msgstr "Clients"
+
+#, fuzzy
+#| msgid "Guardar"
+msgid "Guardar cliente"
+msgstr "Save"
+
+msgid "Donos de obra e empresas clientes"
+msgstr "Site owners and client companies"
+
+#, fuzzy
+#| msgid "Clientes"
+msgid "Novo cliente"
+msgstr "Clients"
+
+msgid "Pesquisar por nome, VAT..."
+msgstr "Search by name, VAT..."
+
+msgid "Todos"
+msgstr "All"
+
+#, python-format
+msgid "%(counter)s projeto"
+msgid_plural "%(counter)s projetos"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy
+#| msgid "Clientes"
+msgid "Sem clientes"
+msgstr "Clients"
+
+msgid "Adicione o primeiro cliente para começar."
+msgstr "Add the first client to get started."
+
+msgid "Data"
+msgstr "Date"
+
+#, fuzzy
+#| msgid "Utilizador"
+msgid "Atualizar"
+msgstr "User"
+
+msgid "Apagar dia"
+msgstr "Delete day"
+
+msgid "Duplicar"
+msgstr "Duplicate"
+
+msgid "Imprimir"
+msgstr "Print"
+
+msgid "Remover obra do board"
+msgstr "Remove site from board"
+
+msgid "Registo"
+msgstr "Entry"
+
+msgid "Sem check-in"
+msgstr "No check-in"
+
+msgid "Remover"
+msgstr "Remove"
+
+msgid "Arraste um nome para cá"
+msgstr "Drag a name here"
+
+msgid "Arraste uma obra…"
+msgstr "Drag a site here…"
+
+msgid "Clique aqui para escrever algo…"
+msgstr "Click here to write something…"
+
+msgid "Obras"
+msgstr "Sites"
+
+#, fuzzy
+#| msgid "Pesquisar cliente, obra, documento…"
+msgid "Pesquisar obra, cliente, endereço…"
+msgstr "Search client, project, document…"
+
+msgid "Todas as obras activas já estão no board."
+msgstr "All active sites are already on the board."
+
+msgid "Funcionários"
+msgstr "Workers"
+
+#, fuzzy
+#| msgid "Pesquisar nome, email ou username…"
+msgid "Pesquisar nome, empresa…"
+msgstr "Search by name, email or username…"
+
+#, fuzzy
+#| msgid "Selecionar tudo"
+msgid "Já selecionados"
+msgstr "Select all"
+
+msgid "A carregar…"
+msgstr "Loading…"
+
+#, fuzzy
+#| msgid "Pesquisar cliente, obra, documento…"
+msgid "Pesquisar subcontratado…"
+msgstr "Search client, project, document…"
+
+msgid "Start date"
+msgstr "Start date"
+
+msgid "End date"
+msgstr "End date"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Work Registration Type"
+msgstr "Work Registration Type"
+
+msgid "Work Registration Types"
+msgstr "Work Registration Types"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Paused"
+msgstr "Paused"
+
+msgid "Finished"
+msgstr "Finished"
+
+msgid "Address"
+msgstr "Address"
+
+msgid "Managers"
+msgstr "Managers"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Has work registration"
+msgstr "Has work registration"
+
+msgid "Registration type"
+msgstr "Registration type"
+
+msgid "Registration number"
+msgstr "Registration number"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Created by"
+msgstr "Created by"
+
+msgid "Updated by"
+msgstr "Updated by"
+
+msgid "Created at"
+msgstr "Created at"
+
+msgid "Updated at"
+msgstr "Updated at"
+
+msgid "End date cannot be before start date."
+msgstr "End date cannot be before start date."
+
+msgid "Select a registration type."
+msgstr "Select a registration type."
+
+msgid "Enter the registration number."
+msgstr "Enter the registration number."
+
+msgid "Project"
+msgstr "Project"
+
+msgid "Projects"
+msgstr "Projects"
+
+msgid "Blocked"
+msgstr "Blocked"
+
+msgid "VAT Number"
+msgstr "VAT Number"
+
+msgid "Contact Name"
+msgstr "Contact Name"
+
+msgid "Phone"
+msgstr "Phone"
+
+msgid "Subcontractor"
+msgstr "Subcontractor"
+
+msgid "Subcontractors"
+msgstr "Subcontractors"
+
+msgid "Expandir menu"
+msgstr "Expand menu"
+
+msgid "Recolher menu"
+msgstr "Collapse menu"
+
+msgid "Fechar aba"
+msgstr "Close tab"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Pesquisar cliente, obra, documento…"
+msgstr "Search client, project, document…"
+
+msgid "Notificações"
+msgstr "Notifications"
+
+msgid "Ajuda"
+msgstr "Help"
+
+#, fuzzy
+#| msgid "Notificações"
+msgid "Configurações"
+msgstr "Notifications"
+
+msgid "Usuários"
+msgstr "Users"
+
+#, fuzzy
+#| msgid "Perfis de Acesso"
+msgid "Gestão de Acessos"
+msgstr "Access Profiles"
+
+msgid "Meus Dados"
+msgstr "My Profile"
+
+msgid "Alterar Senha"
+msgstr "Change Password"
+
+msgid "Sair"
+msgstr "Log out"
+
+msgid "Controle de Horas"
+msgstr "Timesheets"
+
+msgid "Lista de Horas"
+msgstr "Hours List"
+
+msgid "Quadro de Horas"
+msgstr "Daily Board"
+
+msgid "Lista de Clientes/Prospects"
+msgstr "Clients / Prospects"
+
+#, fuzzy
+#| msgid "Clientes"
+msgid "Novo Cliente"
+msgstr "Clients"
+
+msgid "Novo Cliente/Prospect"
+msgstr "New Client / Prospect"
+
+#, fuzzy
+#| msgid "Contacts"
+msgid "Contatos"
+msgstr "Contacts"
+
+msgid "Lista de Orçamentos"
+msgstr "Quotes"
+
+msgid "Fornecedores"
+msgstr "Suppliers"
+
+msgid "Lista de Fornecedores"
+msgstr "Suppliers List"
+
+msgid "Novo Fornecedor"
+msgstr "New Supplier"
+
+#, fuzzy
+#| msgid "Subcontratados"
+msgid "Lista de Subcontratados"
+msgstr "Subcontractors"
+
+msgid "Equipe"
+msgstr "Team"
+
+#, fuzzy
+#| msgid "Subcontratados"
+msgid "Equipe dos Subcontratados"
+msgstr "Subcontractors"
+
+#, fuzzy
+#| msgid "Subcontratados"
+msgid "Novo Subcontratado"
+msgstr "Subcontractors"
+
+msgid "Worker"
+msgstr "Worker"
+
+msgid "Planning entry"
+msgstr "Planning entry"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Start time"
+msgstr "Start time"
+
+msgid "End time"
+msgstr "End time"
+
+msgid "Hours worked"
+msgstr "Hours worked"
+
+msgid "Hourly rate (snapshot)"
+msgstr "Hourly rate (snapshot)"
+
+msgid "Rate at the time of entry, frozen for audit."
+msgstr "Rate at the time of entry, frozen for audit."
+
+msgid "Overtime"
+msgstr "Overtime"
+
+msgid "Overtime multiplier"
+msgstr "Overtime multiplier"
+
+msgid "Timesheet"
+msgstr "Timesheet"
+
+msgid "End time must be after start time."
+msgstr "End time must be after start time."
+
+msgid "Enter either start/end times or a number of hours worked."
+msgstr "Enter either start/end times or a number of hours worked."
+
+msgid "Dia"
+msgstr "Day"
+
+msgid "Funcionário"
+msgstr "Worker"
+
+msgid "Obra"
+msgstr "Site"
+
+msgid "Horas"
+msgstr "Hours"
+
+msgid "Viatura"
+msgstr "Vehicle"
+
+msgid "Informação"
+msgstr "Information"
+
+msgid "Observação…"
+msgstr "Note…"
+
+msgid "Messages"
+msgstr ""
+
+msgid "Site Maps"
+msgstr ""
+
+msgid "Static Files"
+msgstr ""
+
+msgid "Syndication"
+msgstr ""
+
+#. Translators: String used to replace omitted page numbers in elided page
+#. range generated by paginators, e.g. [1, 2, '…', 5, 6, 7, '…', 9, 10].
+msgid "…"
+msgstr ""
+
+msgid "That page number is not an integer"
+msgstr ""
+
+msgid "That page number is less than 1"
+msgstr ""
+
+msgid "That page contains no results"
+msgstr ""
+
+msgid "Enter a valid value."
+msgstr ""
+
+msgid "Enter a valid domain name."
+msgstr ""
+
+msgid "Enter a valid URL."
+msgstr ""
+
+msgid "Enter a valid integer."
+msgstr ""
+
+msgid "Enter a valid email address."
+msgstr ""
+
+#. Translators: "letters" means latin letters: a-z and A-Z.
+msgid ""
+"Enter a valid “slug” consisting of letters, numbers, underscores or hyphens."
+msgstr ""
+
+msgid ""
+"Enter a valid “slug” consisting of Unicode letters, numbers, underscores, or "
+"hyphens."
+msgstr ""
+
+#, python-format
+msgid "Enter a valid %(protocol)s address."
+msgstr ""
+
+msgid "IPv4"
+msgstr ""
+
+msgid "IPv6"
+msgstr ""
+
+msgid "IPv4 or IPv6"
+msgstr ""
+
+msgid "Enter only digits separated by commas."
+msgstr ""
+
+#, python-format
+msgid "Ensure this value is %(limit_value)s (it is %(show_value)s)."
+msgstr ""
+
+#, python-format
+msgid "Ensure this value is less than or equal to %(limit_value)s."
+msgstr ""
+
+#, python-format
+msgid "Ensure this value is greater than or equal to %(limit_value)s."
+msgstr ""
+
+#, python-format
+msgid "Ensure this value is a multiple of step size %(limit_value)s."
+msgstr ""
+
+#, python-format
+msgid ""
+"Ensure this value is a multiple of step size %(limit_value)s, starting from "
+"%(offset)s, e.g. %(offset)s, %(valid_value1)s, %(valid_value2)s, and so on."
+msgstr ""
+
+#, python-format
+msgid ""
+"Ensure this value has at least %(limit_value)d character (it has "
+"%(show_value)d)."
+msgid_plural ""
+"Ensure this value has at least %(limit_value)d characters (it has "
+"%(show_value)d)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid ""
+"Ensure this value has at most %(limit_value)d character (it has "
+"%(show_value)d)."
+msgid_plural ""
+"Ensure this value has at most %(limit_value)d characters (it has "
+"%(show_value)d)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy
+#| msgid "Enter the registration number."
+msgid "Enter a number."
+msgstr "Enter the registration number."
+
+#, python-format
+msgid "Ensure that there are no more than %(max)s digit in total."
+msgid_plural "Ensure that there are no more than %(max)s digits in total."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Ensure that there are no more than %(max)s decimal place."
+msgid_plural "Ensure that there are no more than %(max)s decimal places."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid ""
+"Ensure that there are no more than %(max)s digit before the decimal point."
+msgid_plural ""
+"Ensure that there are no more than %(max)s digits before the decimal point."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid ""
+"File extension “%(extension)s” is not allowed. Allowed extensions are: "
+"%(allowed_extensions)s."
+msgstr ""
+
+#, fuzzy
+#| msgid "Overlapping hourly rate periods are not allowed."
+msgid "Null characters are not allowed."
+msgstr "Overlapping hourly rate periods are not allowed."
+
+msgid "and"
+msgstr ""
+
+#, python-format
+msgid "%(model_name)s with this %(field_labels)s already exists."
+msgstr ""
+
+#, python-format
+msgid "Constraint “%(name)s” is violated."
+msgstr ""
+
+#, python-format
+msgid "Value %(value)r is not a valid choice."
+msgstr ""
+
+msgid "This field cannot be null."
+msgstr ""
+
+msgid "This field cannot be blank."
+msgstr ""
+
+#, python-format
+msgid "%(model_name)s with this %(field_label)s already exists."
+msgstr ""
+
+#. Translators: The 'lookup_type' is one of 'date', 'year' or
+#. 'month'. Eg: "Title must be unique for pub_date year"
+#, python-format
+msgid ""
+"%(field_label)s must be unique for %(date_field_label)s %(lookup_type)s."
+msgstr ""
+
+#, python-format
+msgid "Field of type: %(field_type)s"
+msgstr ""
+
+#, python-format
+msgid "“%(value)s” value must be either True or False."
+msgstr ""
+
+#, python-format
+msgid "“%(value)s” value must be either True, False, or None."
+msgstr ""
+
+msgid "Boolean (Either True or False)"
+msgstr ""
+
+#, python-format
+msgid "String (up to %(max_length)s)"
+msgstr ""
+
+msgid "String (unlimited)"
+msgstr ""
+
+msgid "Comma-separated integers"
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has an invalid date format. It must be in YYYY-MM-DD "
+"format."
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has the correct format (YYYY-MM-DD) but it is an invalid "
+"date."
+msgstr ""
+
+msgid "Date (without time)"
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has an invalid format. It must be in YYYY-MM-DD "
+"HH:MM[:ss[.uuuuuu]][TZ] format."
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has the correct format (YYYY-MM-DD HH:MM[:ss[.uuuuuu]]"
+"[TZ]) but it is an invalid date/time."
+msgstr ""
+
+msgid "Date (with time)"
+msgstr ""
+
+#, python-format
+msgid "“%(value)s” value must be a decimal number."
+msgstr ""
+
+#, fuzzy
+#| msgid "Registration number"
+msgid "Decimal number"
+msgstr "Registration number"
+
+#, python-format
+msgid ""
+"“%(value)s” value has an invalid format. It must be in [DD] "
+"[[HH:]MM:]ss[.uuuuuu] format."
+msgstr ""
+
+msgid "Duration"
+msgstr ""
+
+#, fuzzy
+#| msgid "Address"
+msgid "Email address"
+msgstr "Address"
+
+msgid "File path"
+msgstr ""
+
+#, python-format
+msgid "“%(value)s” value must be a float."
+msgstr ""
+
+#, fuzzy
+#| msgid "Registration number"
+msgid "Floating point number"
+msgstr "Registration number"
+
+#, python-format
+msgid "“%(value)s” value must be an integer."
+msgstr ""
+
+msgid "Integer"
+msgstr ""
+
+msgid "Big (8 byte) integer"
+msgstr ""
+
+msgid "Small integer"
+msgstr ""
+
+#, fuzzy
+#| msgid "Address"
+msgid "IPv4 address"
+msgstr "Address"
+
+#, fuzzy
+#| msgid "Address"
+msgid "IP address"
+msgstr "Address"
+
+#, python-format
+msgid "“%(value)s” value must be either None, True or False."
+msgstr ""
+
+msgid "Boolean (Either True, False or None)"
+msgstr ""
+
+msgid "Positive big integer"
+msgstr ""
+
+msgid "Positive integer"
+msgstr ""
+
+msgid "Positive small integer"
+msgstr ""
+
+#, python-format
+msgid "Slug (up to %(max_length)s)"
+msgstr ""
+
+msgid "Text"
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has an invalid format. It must be in HH:MM[:ss[.uuuuuu]] "
+"format."
+msgstr ""
+
+#, python-format
+msgid ""
+"“%(value)s” value has the correct format (HH:MM[:ss[.uuuuuu]]) but it is an "
+"invalid time."
+msgstr ""
+
+#, fuzzy
+#| msgid "Timesheet"
+msgid "Time"
+msgstr "Timesheet"
+
+msgid "URL"
+msgstr ""
+
+msgid "Raw binary data"
+msgstr ""
+
+#, python-format
+msgid "“%(value)s” is not a valid UUID."
+msgstr ""
+
+msgid "Universally unique identifier"
+msgstr ""
+
+msgid "File"
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
+msgid "A JSON object"
+msgstr ""
+
+msgid "Value must be valid JSON."
+msgstr ""
+
+#, python-format
+msgid "%(model)s instance with %(field)s %(value)r is not a valid choice."
+msgstr ""
+
+msgid "Foreign Key (type determined by related field)"
+msgstr ""
+
+msgid "One-to-one relationship"
+msgstr ""
+
+#, python-format
+msgid "%(from)s-%(to)s relationship"
+msgstr ""
+
+#, python-format
+msgid "%(from)s-%(to)s relationships"
+msgstr ""
+
+msgid "Many-to-many relationship"
+msgstr ""
+
+#. Translators: If found as last label character, these punctuation
+#. characters will prevent the default label_suffix to be appended to the label
+msgid ":?.!"
+msgstr ""
+
+msgid "This field is required."
+msgstr ""
+
+#, fuzzy
+#| msgid "Enter the registration number."
+msgid "Enter a whole number."
+msgstr "Enter the registration number."
+
+msgid "Enter a valid date."
+msgstr ""
+
+msgid "Enter a valid time."
+msgstr ""
+
+msgid "Enter a valid date/time."
+msgstr ""
+
+msgid "Enter a valid duration."
+msgstr ""
+
+#, python-brace-format
+msgid "The number of days must be between {min_days} and {max_days}."
+msgstr ""
+
+msgid "No file was submitted. Check the encoding type on the form."
+msgstr ""
+
+msgid "No file was submitted."
+msgstr ""
+
+msgid "The submitted file is empty."
+msgstr ""
+
+#, python-format
+msgid "Ensure this filename has at most %(max)d character (it has %(length)d)."
+msgid_plural ""
+"Ensure this filename has at most %(max)d characters (it has %(length)d)."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Please either submit a file or check the clear checkbox, not both."
+msgstr ""
+
+msgid ""
+"Upload a valid image. The file you uploaded was either not an image or a "
+"corrupted image."
+msgstr ""
+
+#, python-format
+msgid "Select a valid choice. %(value)s is not one of the available choices."
+msgstr ""
+
+msgid "Enter a list of values."
+msgstr ""
+
+msgid "Enter a complete value."
+msgstr ""
+
+msgid "Enter a valid UUID."
+msgstr ""
+
+msgid "Enter a valid JSON."
+msgstr ""
+
+#. Translators: This is the default suffix added to form field labels
+msgid ":"
+msgstr ""
+
+#, python-format
+msgid "(Hidden field %(name)s) %(error)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"ManagementForm data is missing or has been tampered with. Missing fields: "
+"%(field_names)s. You may need to file a bug report if the issue persists."
+msgstr ""
+
+#, python-format
+msgid "Please submit at most %(num)d form."
+msgid_plural "Please submit at most %(num)d forms."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "Please submit at least %(num)d form."
+msgid_plural "Please submit at least %(num)d forms."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Order"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+#, python-format
+msgid "Please correct the duplicate data for %(field)s."
+msgstr ""
+
+#, python-format
+msgid "Please correct the duplicate data for %(field)s, which must be unique."
+msgstr ""
+
+#, python-format
+msgid ""
+"Please correct the duplicate data for %(field_name)s which must be unique "
+"for the %(lookup)s in %(date_field)s."
+msgstr ""
+
+msgid "Please correct the duplicate values below."
+msgstr ""
+
+msgid "The inline value did not match the parent instance."
+msgstr ""
+
+msgid "Select a valid choice. That choice is not one of the available choices."
+msgstr ""
+
+#, python-format
+msgid "“%(pk)s” is not a valid value."
+msgstr ""
+
+#, python-format
+msgid ""
+"%(datetime)s couldn’t be interpreted in time zone %(current_timezone)s; it "
+"may be ambiguous or it may not exist."
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Currently"
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+#, fuzzy
+#| msgid "Nom"
+msgid "No"
+msgstr "Name"
+
+#. Translators: Please do not add spaces around commas.
+msgid "yes,no,maybe"
+msgstr ""
+
+#, python-format
+msgid "%(size)d byte"
+msgid_plural "%(size)d bytes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s KB"
+msgstr ""
+
+#, python-format
+msgid "%s MB"
+msgstr ""
+
+#, python-format
+msgid "%s GB"
+msgstr ""
+
+#, python-format
+msgid "%s TB"
+msgstr ""
+
+#, python-format
+msgid "%s PB"
+msgstr ""
+
+msgid "p.m."
+msgstr ""
+
+msgid "a.m."
+msgstr ""
+
+msgid "PM"
+msgstr ""
+
+msgid "AM"
+msgstr ""
+
+msgid "midnight"
+msgstr ""
+
+msgid "noon"
+msgstr ""
+
+msgid "Monday"
+msgstr ""
+
+msgid "Tuesday"
+msgstr ""
+
+msgid "Wednesday"
+msgstr ""
+
+msgid "Thursday"
+msgstr ""
+
+msgid "Friday"
+msgstr ""
+
+msgid "Saturday"
+msgstr ""
+
+msgid "Sunday"
+msgstr ""
+
+msgid "Mon"
+msgstr ""
+
+#, fuzzy
+#| msgid "Rue"
+msgid "Tue"
+msgstr "Street"
+
+msgid "Wed"
+msgstr ""
+
+msgid "Thu"
+msgstr ""
+
+msgid "Fri"
+msgstr ""
+
+#, fuzzy
+#| msgid "Status"
+msgid "Sat"
+msgstr "Status"
+
+msgid "Sun"
+msgstr ""
+
+msgid "January"
+msgstr ""
+
+msgid "February"
+msgstr ""
+
+msgid "March"
+msgstr ""
+
+msgid "April"
+msgstr ""
+
+msgid "May"
+msgstr ""
+
+msgid "June"
+msgstr ""
+
+msgid "July"
+msgstr ""
+
+msgid "August"
+msgstr ""
+
+msgid "September"
+msgstr ""
+
+msgid "October"
+msgstr ""
+
+msgid "November"
+msgstr ""
+
+msgid "December"
+msgstr ""
+
+msgid "jan"
+msgstr ""
+
+msgid "feb"
+msgstr ""
+
+#, fuzzy
+#| msgid "Amarelo"
+msgid "mar"
+msgstr "Yellow"
+
+msgid "apr"
+msgstr ""
+
+#, fuzzy
+#| msgid "Company"
+msgid "may"
+msgstr "Company"
+
+msgid "jun"
+msgstr ""
+
+msgid "jul"
+msgstr ""
+
+msgid "aug"
+msgstr ""
+
+msgid "sep"
+msgstr ""
+
+#, fuzzy
+#| msgid "Contact"
+msgid "oct"
+msgstr "Contact"
+
+msgid "nov"
+msgstr ""
+
+msgid "dec"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Jan."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Feb."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "March"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "April"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "May"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "June"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "July"
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Aug."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Sept."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Oct."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Nov."
+msgstr ""
+
+msgctxt "abbrev. month"
+msgid "Dec."
+msgstr ""
+
+msgctxt "alt. month"
+msgid "January"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "February"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "March"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "April"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "May"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "June"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "July"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "August"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "September"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "October"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "November"
+msgstr ""
+
+msgctxt "alt. month"
+msgid "December"
+msgstr ""
+
+msgid "This is not a valid IPv6 address."
+msgstr ""
+
+#, python-format
+msgctxt "String to return when truncating text"
+msgid "%(truncated_text)s…"
+msgstr ""
+
+#, fuzzy
+#| msgid "Cor"
+msgid "or"
+msgstr "Color"
+
+#. Translators: This string is used as a separator between list elements
+msgid ", "
+msgstr ""
+
+#, python-format
+msgid "%(num)d year"
+msgid_plural "%(num)d years"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d month"
+msgid_plural "%(num)d months"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d week"
+msgid_plural "%(num)d weeks"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d day"
+msgid_plural "%(num)d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Forbidden"
+msgstr ""
+
+msgid "CSRF verification failed. Request aborted."
+msgstr ""
+
+msgid ""
+"You are seeing this message because this HTTPS site requires a “Referer "
+"header” to be sent by your web browser, but none was sent. This header is "
+"required for security reasons, to ensure that your browser is not being "
+"hijacked by third parties."
+msgstr ""
+
+msgid ""
+"If you have configured your browser to disable “Referer” headers, please re-"
+"enable them, at least for this site, or for HTTPS connections, or for “same-"
+"origin” requests."
+msgstr ""
+
+msgid ""
+"If you are using the <meta name=\"referrer\" content=\"no-referrer\"> tag or "
+"including the “Referrer-Policy: no-referrer” header, please remove them. The "
+"CSRF protection requires the “Referer” header to do strict referer checking. "
+"If you’re concerned about privacy, use alternatives like <a "
+"rel=\"noreferrer\" …> for links to third-party sites."
+msgstr ""
+
+msgid ""
+"You are seeing this message because this site requires a CSRF cookie when "
+"submitting forms. This cookie is required for security reasons, to ensure "
+"that your browser is not being hijacked by third parties."
+msgstr ""
+
+msgid ""
+"If you have configured your browser to disable cookies, please re-enable "
+"them, at least for this site, or for “same-origin” requests."
+msgstr ""
+
+msgid "More information is available with DEBUG=True."
+msgstr ""
+
+msgid "No year specified"
+msgstr ""
+
+msgid "Date out of range"
+msgstr ""
+
+msgid "No month specified"
+msgstr ""
+
+msgid "No day specified"
+msgstr ""
+
+msgid "No week specified"
+msgstr ""
+
+#, python-format
+msgid "No %(verbose_name_plural)s available"
+msgstr ""
+
+#, python-format
+msgid ""
+"Future %(verbose_name_plural)s not available because "
+"%(class_name)s.allow_future is False."
+msgstr ""
+
+#, python-format
+msgid "Invalid date string “%(datestr)s” given format “%(format)s”"
+msgstr ""
+
+#, python-format
+msgid "No %(verbose_name)s found matching the query"
+msgstr ""
+
+msgid "Page is not “last”, nor can it be converted to an int."
+msgstr ""
+
+#, python-format
+msgid "Invalid page (%(page_number)s): %(message)s"
+msgstr ""
+
+#, python-format
+msgid "Empty list and “%(class_name)s.allow_empty” is False."
+msgstr ""
+
+msgid "Directory indexes are not allowed here."
+msgstr ""
+
+#, python-format
+msgid "“%(path)s” does not exist"
+msgstr ""
+
+#, python-format
+msgid "Index of %(directory)s"
+msgstr ""
+
+msgid "The install worked successfully! Congratulations!"
+msgstr ""
+
+#, python-format
+msgid ""
+"View <a href=\"https://docs.djangoproject.com/en/%(version)s/releases/\" "
+"target=\"_blank\" rel=\"noopener\">release notes</a> for Django %(version)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"You are seeing this page because <a href=\"https://docs.djangoproject.com/en/"
+"%(version)s/ref/settings/#debug\" target=\"_blank\" "
+"rel=\"noopener\">DEBUG=True</a> is in your settings file and you have not "
+"configured any URLs."
+msgstr ""
+
+msgid "Django Documentation"
+msgstr ""
+
+msgid "Topics, references, &amp; how-to’s"
+msgstr ""
+
+msgid "Tutorial: A Polling App"
+msgstr ""
+
+msgid "Get started with Django"
+msgstr ""
+
+msgid "Django Community"
+msgstr ""
+
+msgid "Connect, get help, or contribute"
+msgstr ""
+
+msgid "Insurance Fund"
+msgstr "Insurance Fund"
+
+msgid "Insurance Funds"
+msgstr "Insurance Funds"
+
+msgid "Role"
+msgstr "Role"
+
+msgid "Insurance Fund Contact"
+msgstr "Insurance Fund Contact"
+
+msgid "Insurance Fund Contacts"
+msgstr "Insurance Fund Contacts"
+
+msgid "Inactive"
+msgstr "Inactive"
+
+msgid "Company"
+msgstr "Company"
+
+msgid "Collaborator"
+msgstr "Collaborator"
+
+msgid "Collaborators"
+msgstr "Collaborators"
+
+msgid "Hourly Rate"
+msgstr "Hourly Rate"
+
+msgid "Start Date"
+msgstr "Start Date"
+
+msgid "End Date"
+msgstr "End Date"
+
+msgid "Hourly Rates"
+msgstr "Hourly Rates"
+
+msgid "There is already an active hourly rate."
+msgstr "There is already an active hourly rate."
+
+msgid "Overlapping hourly rate periods are not allowed."
+msgstr "Overlapping hourly rate periods are not allowed."
+
+#~ msgid "Ação"
+#~ msgstr "Action"
+
+#~ msgid "Sem utilizadores nesta seleção"
+#~ msgstr "No users in this selection"
+
+#~ msgid "Eliminar utilizador?"
+#~ msgstr "Delete user?"
+
+#~ msgid "Redefiniçer password"
+#~ msgstr "Reset password"
+
+#~ msgid "Utilizador para redefiniçer"
+#~ msgstr "User to reset"
+
+#~ msgid "Nova senha temporária"
+#~ msgstr "New temporary password"
+
+#~ msgid "Copiou para clipboard?"
+#~ msgstr "Copied to clipboard?"
+
+#~ msgid "Enviar email para notificar"
+#~ msgstr "Send email to notify"
+
+#~ msgid "Enviado"
+#~ msgstr "Sent"
+
+#~ msgid "Cadastros"
+#~ msgstr "Records"

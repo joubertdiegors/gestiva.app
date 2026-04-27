@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ budget.number }} — {{ budget.title }}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'budget:budget_list' %}">{% trans "Orçamentos" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ budget.number }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.detail-layout{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start}
+@media(max-width:820px){.detail-layout{grid-template-columns:1fr}}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.info-card-header{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:600;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.info-row{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.info-value{font-size:14px;color:var(--text)}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border)}
+.dt td{padding:8px 12px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.dt tr.chapter-row{background:var(--surface2)}
+.dt tr.chapter-row td{font-weight:600;font-size:12px;color:var(--text2);padding:6px 12px}
+.totals-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)}
+.tc{padding:10px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.tc:nth-child(even){border-right:none}
+.tc-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.tc-value{font-size:15px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.tc-value.secondary{color:var(--text2);font-size:13px}
+.tc-value.green{color:var(--green)}
+.tc-span{grid-column:span 2;border-right:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+  <div>
+    <h1 class="page-title">{{ budget.number }}</h1>
+    <p class="page-sub">{{ budget.title }}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{% url 'budget:budget_update' budget.pk %}" class="btn btn-primary">✏️ {% trans "Editar / Itens" %}</a>
+    <a href="{% url 'budget:budget_list' %}"             class="btn btn-ghost">{% trans "← Lista" %}</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+  <!-- Left -->
+  <div>
+    <div class="info-card">
+      <div class="info-card-header">{% trans "Informações" %}</div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Estado" %}</span>
+        <span class="info-value">
+          <span class="badge status-{{ budget.status }}">{{ budget.get_status_display }}</span>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Cliente" %}</span>
+        <span class="info-value">{{ budget.client.name|default:"—" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Obra / Projecto" %}</span>
+        <span class="info-value">{{ budget.project.name|default:"—" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Data de emissão" %}</span>
+        <span class="info-value">{{ budget.issue_date|date:"d/m/Y"|default:"—" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Válido até" %}</span>
+        <span class="info-value">{{ budget.valid_until|date:"d/m/Y"|default:"—" }}</span>
+      </div>
+      {% if budget.global_margin_percent %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Margem global" %}</span>
+        <span class="info-value">{{ budget.global_margin_percent }}%</span>
+      </div>
+      {% endif %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Desconto global" %}</span>
+        <span class="info-value">{{ budget.discount_percent }}%</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "IVA padrão" %}</span>
+        <span class="info-value">{{ budget.vat_rate }}%</span>
+      </div>
+      {% if budget.payment_terms %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Cond. pagamento" %}</span>
+        <span class="info-value" style="font-size:13px;white-space:pre-wrap">{{ budget.payment_terms }}</span>
+      </div>
+      {% endif %}
+      {% if budget.notes %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Notas internas" %}</span>
+        <span class="info-value" style="font-size:12px;color:var(--text2);white-space:pre-wrap">{{ budget.notes }}</span>
+      </div>
+      {% endif %}
+      {% if budget.notes_client %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Notas p/ cliente" %}</span>
+        <span class="info-value" style="font-size:12px;color:var(--text2);white-space:pre-wrap">{{ budget.notes_client }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Totals -->
+    <div class="info-card">
+      <div class="info-card-header">{% trans "Resumo Financeiro" %}</div>
+      <div class="totals-grid">
+        <div class="tc">
+          <div class="tc-label">{% trans "Subtotal custo" %}</div>
+          <div class="tc-value secondary">{{ budget.subtotal_cost|floatformat:2 }} €</div>
+        </div>
+        <div class="tc">
+          <div class="tc-label">{% trans "Subtotal HT" %}</div>
+          <div class="tc-value secondary">{{ budget.subtotal_ht|floatformat:2 }} €</div>
+        </div>
+        <div class="tc">
+          <div class="tc-label">{% trans "Desconto" %}</div>
+          <div class="tc-value secondary">- {{ budget.discount_amount|floatformat:2 }} €</div>
+        </div>
+        <div class="tc">
+          <div class="tc-label">{% trans "Total HT" %}</div>
+          <div class="tc-value secondary">{{ budget.total_ht|floatformat:2 }} €</div>
+        </div>
+        <div class="tc">
+          <div class="tc-label">{% trans "IVA" %}</div>
+          <div class="tc-value secondary">{{ budget.total_vat|floatformat:2 }} €</div>
+        </div>
+        <div class="tc">
+          <div class="tc-label">{% trans "Margem bruta" %}</div>
+          <div class="tc-value green">{{ budget.gross_margin_percent|floatformat:1 }}%</div>
+        </div>
+        <div class="tc tc-span" style="border-bottom:none">
+          <div class="tc-label">{% trans "Total TTC" %}</div>
+          <div class="tc-value">{{ budget.total_ttc|floatformat:2 }} €</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: items table -->
+  <div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border)">
+        <span style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">{% trans "Itens do Orçamento" %}</span>
+        <a href="{% url 'budget:budget_update' budget.pk %}" class="btn btn-primary btn-sm">✏️ {% trans "Gerir itens" %}</a>
+      </div>
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>{% trans "Descrição" %}</th>
+            <th>{% trans "Unid." %}</th>
+            <th class="num">{% trans "Qtd" %}</th>
+            <th class="num">{% trans "P. Unit." %}</th>
+            <th class="num">{% trans "Desc.%" %}</th>
+            <th class="num">{% trans "IVA%" %}</th>
+            <th class="num">{% trans "Total HT" %}</th>
+            <th class="num">{% trans "Total TTC" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if chapters or items %}
+            {% for ch in chapters %}{% if not ch.parent_id %}
+            <tr class="chapter-row">
+              <td colspan="8">▶ {{ ch.title }}</td>
+            </tr>
+            {% for item in items %}{% if item.chapter_id == ch.pk %}
+            <tr>
+              <td style="padding-left:24px">
+                <strong>{{ item.service_name_snapshot }}</strong>
+                <span style="color:var(--text3);font-size:11px;margin-left:4px">{{ item.service_code_snapshot }}</span>
+                {% if item.description %}<div style="font-size:11px;color:var(--text3)">{{ item.description }}</div>{% endif %}
+              </td>
+              <td class="muted">{{ item.service_unit_snapshot }}</td>
+              <td class="num">{{ item.quantity|floatformat:2 }}</td>
+              <td class="num">{{ item.effective_unit_price|floatformat:4 }} €</td>
+              <td class="num muted">{{ item.discount_percent }}%</td>
+              <td class="num muted">{{ item.vat_rate }}%</td>
+              <td class="num">{{ item.total_price|floatformat:2 }} €</td>
+              <td class="num"><strong>{{ item.total_ttc|floatformat:2 }} €</strong></td>
+            </tr>
+            {% endif %}{% endfor %}
+            {% endif %}{% endfor %}
+            {% for item in items %}{% if not item.chapter_id %}
+            <tr>
+              <td>
+                <strong>{{ item.service_name_snapshot }}</strong>
+                <span style="color:var(--text3);font-size:11px;margin-left:4px">{{ item.service_code_snapshot }}</span>
+                {% if item.description %}<div style="font-size:11px;color:var(--text3)">{{ item.description }}</div>{% endif %}
+              </td>
+              <td class="muted">{{ item.service_unit_snapshot }}</td>
+              <td class="num">{{ item.quantity|floatformat:2 }}</td>
+              <td class="num">{{ item.effective_unit_price|floatformat:4 }} €</td>
+              <td class="num muted">{{ item.discount_percent }}%</td>
+              <td class="num muted">{{ item.vat_rate }}%</td>
+              <td class="num">{{ item.total_price|floatformat:2 }} €</td>
+              <td class="num"><strong>{{ item.total_ttc|floatformat:2 }} €</strong></td>
+            </tr>
+            {% endif %}{% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">
+              {% trans "Nenhum item. " %}
+              <a href="{% url 'budget:budget_update' budget.pk %}" style="color:var(--accent)">{% trans "Adicionar →" %}</a>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

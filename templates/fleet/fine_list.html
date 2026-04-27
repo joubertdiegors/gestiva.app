@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Fines" %} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Fines" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .data-table th { text-align: left; padding: 8px 12px; font-size: 12px; color: var(--text3); font-family: sans-serif; border-bottom: 1px solid var(--border); font-weight: 500; text-transform: uppercase; letter-spacing: .6px; }
+  .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--surface2); }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .sf-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; text-decoration: none; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .plate { font-weight: 600; font-size: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 2px 7px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">⚠️ {% trans "Fines" %}</h1>
+    <p class="page-sub">{% trans "All vehicle fines and payroll deductions" %}</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <a href="?" class="sf-btn {% if not status_filter and not payroll_only %}active{% endif %}">{% trans "All" %}</a>
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="sf-btn {% if status_filter == val %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+  <a href="?payroll=1" class="sf-btn {% if payroll_only %}active{% endif %}">💶 {% trans "Payroll Pending" %}</a>
+</div>
+
+{% if fines %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Vehicle" %}</th>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Driver" %}</th>
+        <th>{% trans "Offence" %}</th>
+        <th>{% trans "Amount" %}</th>
+        <th>{% trans "Points" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Payroll" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fine in fines %}
+      <tr>
+        <td><a href="{% url 'fleet:vehicle_detail' fine.vehicle.pk %}" class="plate">{{ fine.vehicle.license_plate }}</a></td>
+        <td>{{ fine.date }}</td>
+        <td>{{ fine.driver|default:"—" }}</td>
+        <td>{{ fine.offence_description|truncatechars:60 }}</td>
+        <td>€ {{ fine.amount|floatformat:2 }}</td>
+        <td>{{ fine.points }}</td>
+        <td>
+          <span class="badge
+            {% if fine.status == 'paid' %}badge-green
+            {% elif fine.status == 'contested' %}badge-amber
+            {% else %}badge-red{% endif %}">
+            {{ fine.get_status_display }}
+          </span>
+        </td>
+        <td>
+          {% if fine.deduct_from_payroll %}
+            {% if fine.payroll_deducted %}
+              <span class="badge badge-green">✓</span>
+            {% else %}
+              <span class="badge badge-red">{% trans "Pending" %}</span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td><a href="{% url 'fleet:fine_edit' fine.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
+  <p>{% trans "No fines found." %}</p>
+</div>
+{% endif %}
+{% endblock %}

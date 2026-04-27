@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if is_create %}{% trans "Novo Orçamento" %}{% else %}{% trans "Editar Orçamento" %}{% endif %}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'budget:budget_list' %}">{% trans "Orçamentos" %}</a>
+<span class="bc-sep">›</span>
+<span>{% if is_create %}{% trans "Novo" %}{% else %}{% trans "Editar" %}{% endif %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-grid.full{grid-template-columns:1fr}
+@media(max-width:640px){.form-grid,.form-grid.three{grid-template-columns:1fr}}
+.section-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px}
+.form-note{font-size:12px;color:var(--text3);margin-top:4px;font-family:sans-serif}
+.project-row{display:flex;gap:8px;align-items:flex-end}
+.project-row .form-control{flex:1}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:24px">
+  <div>
+    <h1 class="page-title">{% if is_create %}{% trans "Novo Orçamento" %}{% else %}{% trans "Editar Orçamento" %}{% endif %}</h1>
+    <p class="page-sub">{% trans "Preencha os dados do orçamento. Os itens/capítulos são adicionados após guardar." %}</p>
+  </div>
+  <a href="{% url 'budget:budget_list' %}" class="btn btn-ghost">{% trans "← Voltar" %}</a>
+</div>
+
+{% if form.errors %}
+<div class="alert alert-error" style="margin-bottom:16px">
+  {% for field, errs in form.errors.items %}
+    {% for e in errs %}<div>{{ e }}</div>{% endfor %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" id="budget-form">
+{% csrf_token %}
+
+<!-- Identificação -->
+<div class="form-section">
+  <div class="section-title">{% trans "Identificação" %}</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">{% trans "Número" %} <span style="color:var(--accent)">*</span></label>
+      {{ form.number }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "Título" %} <span style="color:var(--accent)">*</span></label>
+      {{ form.title }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">{% trans "Cliente" %}</label>
+      {{ form.client }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "Obra / Projecto" %}</label>
+      <div class="project-row">
+        {{ form.project }}
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-new-project" title="{% trans 'Criar obra rápida' %}">+ {% trans "Nova obra" %}</button>
+      </div>
+      <p class="form-note">{% trans "Seleccione um projecto/obra existente ou crie um novo." %}</p>
+    </div>
+  </div>
+</div>
+
+<!-- Datas -->
+<div class="form-section">
+  <div class="section-title">{% trans "Datas e Validade" %}</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">{% trans "Data de emissão" %}</label>
+      {{ form.issue_date }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "Válido até" %}</label>
+      {{ form.valid_until }}
+    </div>
+  </div>
+</div>
+
+<!-- Financeiro -->
+<div class="form-section">
+  <div class="section-title">{% trans "Condições Financeiras" %}</div>
+  <div class="form-grid three">
+    <div class="form-group">
+      <label class="form-label">{% trans "Margem global (%)" %}</label>
+      {{ form.global_margin_percent }}
+      <p class="form-note">{% trans "Se preenchida, substitui a margem de cada item." %}</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "Desconto global (%)" %}</label>
+      {{ form.discount_percent }}
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "IVA padrão (%)" %}</label>
+      {{ form.vat_rate }}
+      <p class="form-note">{% trans "Pré-preenchido em cada novo item." %}</p>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">{% trans "Condições de pagamento" %}</label>
+    {{ form.payment_terms }}
+  </div>
+</div>
+
+<!-- Notas -->
+<div class="form-section">
+  <div class="section-title">{% trans "Notas" %}</div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label class="form-label">{% trans "Notas internas" %}</label>
+      {{ form.notes }}
+      <p class="form-note">{% trans "Não aparecem no documento enviado ao cliente." %}</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">{% trans "Notas para o cliente" %}</label>
+      {{ form.notes_client }}
+      <p class="form-note">{% trans "Aparecem no documento do orçamento." %}</p>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;justify-content:flex-end">
+  <a href="{% url 'budget:budget_list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+  <button type="submit" class="btn btn-primary">
+    {% if is_create %}{% trans "Guardar e adicionar itens →" %}{% else %}{% trans "Guardar alterações" %}{% endif %}
+  </button>
+</div>
+</form>
+
+<!-- Modal: Nova Obra Rápida -->
+<dialog id="dlg-project" style="margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box">
+  <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);width:420px;max-width:calc(100vw - 40px);box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)">
+      <span style="font-weight:600;font-size:15px">{% trans "Nova Obra / Projecto" %}</span>
+      <button type="button" onclick="closeDlg()" style="background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer">×</button>
+    </div>
+    <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+      <div id="dlg-error" style="display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb"></div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">{% trans "Nome da obra" %} <span style="color:var(--accent)">*</span></label>
+        <input type="text" id="dlg-project-name" class="form-control" autocomplete="off" maxlength="255">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)">
+      <button type="button" class="btn btn-ghost" onclick="closeDlg()">{% trans "Cancelar" %}</button>
+      <button type="button" class="btn btn-primary" id="dlg-btn-save">{% trans "Criar" %}</button>
+    </div>
+  </div>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CSRF = '{{ csrf_token }}';
+const URL_PROJECTS = '{% url "budget:ajax_projects" %}';
+const URL_PROJECT_CREATE = '{% url "budget:ajax_project_create" %}';
+
+const clientSel  = document.getElementById('id_client');
+const projectSel = document.getElementById('id_project');
+const dlg        = document.getElementById('dlg-project');
+const dlgErr     = document.getElementById('dlg-error');
+const dlgName    = document.getElementById('dlg-project-name');
+const dlgSaveBtn = document.getElementById('dlg-btn-save');
+
+function loadProjects(clientId, selectPk) {
+  projectSel.innerHTML = '<option value="">— {% trans "Sem obra" %} —</option>';
+  if (!clientId) return;
+  fetch(URL_PROJECTS + '?client_id=' + clientId)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(p => {
+        const o = new Option(p.name, p.id);
+        if (selectPk && p.id == selectPk) o.selected = true;
+        projectSel.appendChild(o);
+      });
+    });
+}
+
+clientSel.addEventListener('change', () => loadProjects(clientSel.value, null));
+
+// On edit page, pre-load projects for selected client
+{% if form.client.value %}loadProjects('{{ form.client.value }}', '{{ form.project.value }}');{% endif %}
+
+// Quick-create project dialog
+document.getElementById('btn-new-project').addEventListener('click', () => {
+  if (!clientSel.value) { alert('{% trans "Seleccione o cliente primeiro." %}'); return; }
+  dlgErr.style.display = 'none';
+  dlgName.value = '';
+  try { dlg.showModal(); } catch(e) { dlg.setAttribute('open',''); }
+  setTimeout(() => dlgName.focus(), 60);
+});
+
+function closeDlg() {
+  try { dlg.close(); } catch(e) {}
+  dlg.removeAttribute('open');
+}
+
+dlgSaveBtn.addEventListener('click', () => {
+  const name = dlgName.value.trim();
+  if (!name) { dlgErr.textContent = '{% trans "Nome obrigatório." %}'; dlgErr.style.display='block'; return; }
+  dlgSaveBtn.disabled = true;
+  fetch(URL_PROJECT_CREATE, {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF},
+    body: new URLSearchParams({csrfmiddlewaretoken: CSRF, client_id: clientSel.value, name}),
+  }).then(r => r.json()).then(json => {
+    dlgSaveBtn.disabled = false;
+    if (!json.ok) { dlgErr.textContent = json.error; dlgErr.style.display='block'; return; }
+    const o = new Option(json.name, json.id, true, true);
+    projectSel.appendChild(o);
+    closeDlg();
+  }).catch(() => { dlgSaveBtn.disabled=false; });
+});
+
+dlg.addEventListener('click', e => { if (e.target === dlg || !e.target.closest('[style*="background:var"]')) closeDlg(); });
+</script>
+{% endblock %}

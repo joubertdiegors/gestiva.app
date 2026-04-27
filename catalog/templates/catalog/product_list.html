@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Produtos" %}{% endblock %}
+{% block tab_parent %}/catalog/{% endblock %}
+{% block tab_icon %}📦{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Catálogo" %}</span>
+<span class="bc-sep">›</span>
+<span>{% trans "Produtos" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.filter-bar input,.filter-bar select{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--surface);color:var(--text)}
+.filter-bar input{width:260px}
+.filter-bar select{min-width:160px}
+.sf-btn{height:32px;padding:0 14px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;background:none;color:var(--text2);cursor:pointer;transition:all .15s}
+.sf-btn.active,.sf-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.product-name{font-weight:600;color:var(--text)}
+.product-brand{font-size:11px;color:var(--text3)}
+.actions{display:flex;gap:6px;justify-content:flex-end}
+.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px;margin:4px 0}
+.pagination{display:flex;align-items:center;gap:6px;padding:14px 18px;border-top:1px solid var(--border);justify-content:flex-end;flex-wrap:wrap}
+.pagination a,.pagination span{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 8px;border-radius:var(--radius);font-size:13px;text-decoration:none;border:1px solid var(--border);color:var(--text2)}
+.pagination a:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
+.pagination span.current{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.pagination span.disabled{opacity:.4;pointer-events:none}
+.results-info{font-size:12px;color:var(--text3);margin-right:auto}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Produtos" %}</h1>
+    <p class="page-sub">{% trans "Catálogo canónico de materiais e produtos." %}</p>
+  </div>
+  <a href="{% url 'catalog:product_create' %}" class="btn btn-primary">+ {% trans "Novo produto" %}</a>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="filter-bar" id="filter-form">
+  <input type="text" name="q" value="{{ q }}" placeholder="{% trans "Pesquisar nome, marca, código barras…" %}"
+         oninput="document.getElementById('filter-form').submit()">
+
+  <select name="category" onchange="this.form.submit()">
+    <option value="">{% trans "Todas as categorias" %}</option>
+    {% for cat in categories %}
+    <option value="{{ cat.pk }}" {% if sel_cat == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    {% for val, label in statuses %}
+    <button type="submit" name="status" value="{{ val }}"
+            class="sf-btn {% if sel_status == val %}active{% endif %}">{{ label }}</button>
+    {% endfor %}
+  </div>
+
+  {% if q or sel_cat or sel_status %}
+  <a href="{% url 'catalog:product_list' %}" class="btn btn-ghost btn-sm">✕ {% trans "Limpar" %}</a>
+  {% endif %}
+</form>
+
+<div class="card" style="padding:0;overflow:hidden">
+  {% if page.object_list %}
+  <table class="dt">
+    <thead>
+      <tr>
+        <th>{% trans "Produto" %}</th>
+        <th>{% trans "Categoria" %}</th>
+        <th>{% trans "Unidade" %}</th>
+        <th style="text-align:right">{% trans "IVA" %}</th>
+        <th style="text-align:right">{% trans "Margem" %}</th>
+        <th>{% trans "Estado" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in page.object_list %}
+      <tr onclick="window.location='{% url "catalog:product_detail" product.pk %}'">
+        <td>
+          <div class="product-name">{{ product.name }}</div>
+          {% if product.brand %}<div class="product-brand">{{ product.brand }}</div>{% endif %}
+        </td>
+        <td class="muted">{{ product.category.name|default:"—" }}</td>
+        <td class="muted">{{ product.unit.symbol }}</td>
+        <td style="text-align:right" class="muted">{{ product.vat_rate|floatformat:0 }}%</td>
+        <td style="text-align:right" class="muted">{{ product.sale_margin|floatformat:1 }}%</td>
+        <td>
+          {% if not product.is_active %}
+            <span class="badge badge-gray">{% trans "Inactivo" %}</span>
+          {% elif product.is_approved %}
+            <span class="badge badge-green">{% trans "Aprovado" %}</span>
+          {% else %}
+            <span class="badge badge-amber">{% trans "Pendente" %}</span>
+          {% endif %}
+        </td>
+        <td onclick="event.stopPropagation()">
+          <div class="actions">
+            <a href="{% url 'catalog:product_update' product.pk %}" class="btn-icon" title="{% trans "Editar" %}">✏️</a>
+            {% if product.supplier_offers_count == 0 and product.service_usages_count == 0 and product.budget_usages_count == 0 %}
+              <form method="post" action="{% url 'catalog:product_delete' product.pk %}" style="display:inline"
+                    onsubmit="return confirm('{% trans "Excluir este produto? Esta ação não pode ser desfeita." %}')">
+                {% csrf_token %}
+                <button type="submit" class="btn-icon" title="{% trans "Excluir" %}" style="color:var(--red)">🗑️</button>
+              </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Paginação -->
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span class="results-info">
+      {% blocktrans with start=page.start_index end=page.end_index count=total %}
+      {{ start }}–{{ end }} de {{ count }} produtos
+      {% endblocktrans %}
+    </span>
+    {% if page.has_previous %}
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if sel_cat %}category={{ sel_cat }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ page.previous_page_number }}">‹</a>
+    {% else %}<span class="disabled">‹</span>{% endif %}
+
+    {% for num in page.paginator.page_range %}
+      {% if num == page.number %}
+        <span class="current">{{ num }}</span>
+      {% elif num >= page.number|add:"-3" and num <= page.number|add:"3" %}
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if sel_cat %}category={{ sel_cat }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ num }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+
+    {% if page.has_next %}
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if sel_cat %}category={{ sel_cat }}&{% endif %}{% if sel_status %}status={{ sel_status }}&{% endif %}page={{ page.next_page_number }}">›</a>
+    {% else %}<span class="disabled">›</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="es-icon">📦</div>
+    {% if q or sel_cat or sel_status %}
+      <p>{% trans "Nenhum produto encontrado com esses filtros." %}</p>
+      <p><a href="{% url 'catalog:product_list' %}">{% trans "Limpar filtros" %}</a></p>
+    {% else %}
+      <p>{% trans "Ainda não há produtos no catálogo." %}</p>
+      <p><a href="{% url 'catalog:product_create' %}" class="btn btn-primary btn-sm" style="margin-top:10px">{% trans "Criar primeiro produto" %}</a></p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

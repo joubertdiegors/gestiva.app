@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ vehicle.license_plate }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <a href="{% url 'fleet:vehicle_list' %}">{% trans "Vehicles" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ vehicle.license_plate }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .vehicle-header-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: var(--shadow); margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .big-plate {
+    font-size: 22px; font-weight: 800; letter-spacing: 2px;
+    background: var(--surface2); border: 2px solid var(--border2);
+    border-radius: 10px; padding: 8px 18px; white-space: nowrap;
+  }
+  .vehicle-header-info { flex: 1; }
+  .vehicle-header-info h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .vehicle-meta-pills { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+  .pill {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 10px; color: var(--text2);
+    font-family: sans-serif;
+  }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; margin-top: 28px;
+  }
+  .section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--text3); font-family: sans-serif;
+  }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .data-table th {
+    text-align: left; padding: 8px 12px; font-size: 12px;
+    color: var(--text3); font-family: sans-serif; border-bottom: 1px solid var(--border);
+    font-weight: 500; text-transform: uppercase; letter-spacing: .6px;
+  }
+  .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--surface2); }
+
+  .expired-badge { color: var(--red); font-weight: 600; }
+  .soon-badge    { color: var(--amber); font-weight: 600; }
+
+  .cost-total {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; box-shadow: var(--shadow);
+  }
+  .cost-total .label { font-size: 13px; color: var(--text3); font-family: sans-serif; }
+  .cost-total .amount { font-size: 20px; font-weight: 700; color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header do veículo -->
+<div class="vehicle-header-card">
+  <span class="big-plate">{{ vehicle.license_plate }}</span>
+  <div class="vehicle-header-info">
+    <h2>{{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.year }})</h2>
+    <div class="vehicle-meta-pills">
+      <span class="pill">{{ vehicle.category }}</span>
+      <span class="pill">{{ vehicle.get_fuel_type_display }}</span>
+      <span class="pill">{{ vehicle.current_km|floatformat:0 }} km</span>
+      {% if vehicle.vin %}<span class="pill">VIN: {{ vehicle.vin }}</span>{% endif %}
+      {% if vehicle.color %}<span class="pill">{{ vehicle.color }}</span>{% endif %}
+      {% if vehicle.default_driver %}<span class="pill">👤 {{ vehicle.default_driver }}</span>{% endif %}
+    </div>
+  </div>
+  <span class="badge {% if vehicle.status == 'active' %}badge-green{% elif vehicle.status == 'maintenance' %}badge-amber{% else %}badge-gray{% endif %}" style="font-size:14px;padding:6px 14px;">
+    {{ vehicle.get_status_display }}
+  </span>
+  <a href="{% url 'fleet:vehicle_edit' vehicle.pk %}" class="btn btn-secondary">{% trans "Edit" %}</a>
+</div>
+
+<!-- Custo total -->
+<div class="cost-total">
+  <span class="label">{% trans "Total cost (maintenance + fuel + fines + expenses)" %}</span>
+  <span class="amount">€ {{ total_cost|floatformat:2 }}</span>
+</div>
+
+<!-- DOCUMENTOS -->
+<div class="section-header">
+  <span class="section-title">📄 {% trans "Documents" %}</span>
+  <a href="{% url 'fleet:document_create' vehicle.pk %}" class="btn btn-ghost btn-sm">+ {% trans "Add" %}</a>
+</div>
+{% if docs %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Entity / Insurer" %}</th>
+        <th>{% trans "Reference" %}</th>
+        <th>{% trans "Expiry" %}</th>
+        <th>{% trans "Cost" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in docs %}
+      <tr>
+        <td>{{ doc.get_doc_type_display }}</td>
+        <td>{{ doc.insurer_or_entity|default:"—" }}</td>
+        <td>{{ doc.reference|default:"—" }}</td>
+        <td>
+          {% if doc.expiry_date %}
+            {% if doc.is_expired %}
+              <span class="expired-badge">⛔ {{ doc.expiry_date }}</span>
+            {% elif doc.days_until_expiry <= 30 %}
+              <span class="soon-badge">⚠️ {{ doc.expiry_date }} ({{ doc.days_until_expiry }}d)</span>
+            {% elif doc.days_until_expiry <= 60 %}
+              <span style="color:var(--amber);">{{ doc.expiry_date }} ({{ doc.days_until_expiry }}d)</span>
+            {% else %}
+              {{ doc.expiry_date }}
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td>{% if doc.cost %}€ {{ doc.cost|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td><a href="{% url 'fleet:document_edit' doc.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--text3);font-size:14px;">{% trans "No documents." %}</p>
+{% endif %}
+
+<!-- MANUTENÇÕES -->
+<div class="section-header">
+  <span class="section-title">🔧 {% trans "Maintenances" %}</span>
+  <a href="{% url 'fleet:maintenance_create' vehicle.pk %}" class="btn btn-ghost btn-sm">+ {% trans "Add" %}</a>
+</div>
+{% if maintenances %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Scheduled" %}</th>
+        <th>{% trans "Completed" %}</th>
+        <th>{% trans "Workshop" %}</th>
+        <th>{% trans "Cost" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in maintenances %}
+      <tr>
+        <td>{{ m.get_maintenance_type_display }}</td>
+        <td>
+          <span class="badge
+            {% if m.status == 'done' %}badge-green
+            {% elif m.status == 'in_progress' %}badge-amber
+            {% else %}badge-gray{% endif %}">
+            {{ m.get_status_display }}
+          </span>
+        </td>
+        <td>{{ m.scheduled_date|default:"—" }}</td>
+        <td>{{ m.completed_date|default:"—" }}</td>
+        <td>{{ m.workshop|default:"—" }}</td>
+        <td>{% if m.cost %}€ {{ m.cost|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td><a href="{% url 'fleet:maintenance_edit' m.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--text3);font-size:14px;">{% trans "No maintenances." %}</p>
+{% endif %}
+
+<!-- ABASTECIMENTOS -->
+<div class="section-header">
+  <span class="section-title">⛽ {% trans "Fuelings" %}</span>
+  <a href="{% url 'fleet:fueling_create' vehicle.pk %}" class="btn btn-ghost btn-sm">+ {% trans "Add" %}</a>
+</div>
+{% if fuelings %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Driver" %}</th>
+        <th>{% trans "KM" %}</th>
+        <th>{% trans "Liters" %}</th>
+        <th>{% trans "€/L" %}</th>
+        <th>{% trans "Total" %}</th>
+        <th>{% trans "Station" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in fuelings %}
+      <tr>
+        <td>{{ f.date }}</td>
+        <td>{{ f.driver }}</td>
+        <td>{{ f.km|floatformat:0 }}</td>
+        <td>{{ f.liters }}</td>
+        <td>{% if f.price_per_liter %}€ {{ f.price_per_liter }}{% else %}—{% endif %}</td>
+        <td>€ {{ f.total_cost|floatformat:2 }}</td>
+        <td>{{ f.station|default:"—" }}</td>
+        <td><a href="{% url 'fleet:fueling_edit' f.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--text3);font-size:14px;">{% trans "No fuelings." %}</p>
+{% endif %}
+
+<!-- MULTAS -->
+<div class="section-header">
+  <span class="section-title">⚠️ {% trans "Fines" %}</span>
+  <a href="{% url 'fleet:fine_create' vehicle.pk %}" class="btn btn-ghost btn-sm">+ {% trans "Add" %}</a>
+</div>
+{% if fines %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Driver" %}</th>
+        <th>{% trans "Offence" %}</th>
+        <th>{% trans "Amount" %}</th>
+        <th>{% trans "Points" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th>{% trans "Payroll" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fine in fines %}
+      <tr>
+        <td>{{ fine.date }}</td>
+        <td>{{ fine.driver|default:"—" }}</td>
+        <td>{{ fine.offence_description|truncatechars:50 }}</td>
+        <td>€ {{ fine.amount|floatformat:2 }}</td>
+        <td>{{ fine.points }}</td>
+        <td>
+          <span class="badge
+            {% if fine.status == 'paid' %}badge-green
+            {% elif fine.status == 'contested' %}badge-amber
+            {% else %}badge-red{% endif %}">
+            {{ fine.get_status_display }}
+          </span>
+        </td>
+        <td>
+          {% if fine.deduct_from_payroll %}
+            {% if fine.payroll_deducted %}
+              <span class="badge badge-green">{% trans "Deducted" %}</span>
+            {% else %}
+              <span class="badge badge-red">{% trans "Pending" %}</span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td><a href="{% url 'fleet:fine_edit' fine.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--text3);font-size:14px;">{% trans "No fines." %}</p>
+{% endif %}
+
+<!-- DESPESAS -->
+<div class="section-header">
+  <span class="section-title">💶 {% trans "Expenses" %}</span>
+  <a href="{% url 'fleet:expense_create' vehicle.pk %}" class="btn btn-ghost btn-sm">+ {% trans "Add" %}</a>
+</div>
+{% if expenses %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>{% trans "Date" %}</th>
+        <th>{% trans "Type" %}</th>
+        <th>{% trans "Description" %}</th>
+        <th>{% trans "Amount" %}</th>
+        <th>{% trans "Driver" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for exp in expenses %}
+      <tr>
+        <td>{{ exp.date }}</td>
+        <td>{{ exp.get_expense_type_display }}</td>
+        <td>{{ exp.description|default:"—" }}</td>
+        <td>€ {{ exp.amount|floatformat:2 }}</td>
+        <td>{{ exp.driver|default:"—" }}</td>
+        <td><a href="{% url 'fleet:expense_edit' exp.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--text3);font-size:14px;">{% trans "No expenses." %}</p>
+{% endif %}
+{% endblock %}

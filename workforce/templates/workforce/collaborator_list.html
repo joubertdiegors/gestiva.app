@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Colaboradores — Construart{% endblock %}
+{% block breadcrumb %}<span class="current">Colaboradores</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .collab-grid { display: grid; gap: 12px; }
+  .collab-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 22px;
+    display: grid; grid-template-columns: 56px 1fr auto auto;
+    align-items: center; gap: 16px; box-shadow: var(--shadow); transition: all .15s;
+  }
+  .collab-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(200,98,42,.1); }
+  .avatar-link { display: flex; flex-shrink: 0; }
+  .avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600;
+    font-family: sans-serif; overflow: hidden; text-decoration: none;
+    transition: opacity .15s;
+  }
+  .avatar:hover { opacity: .8; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .collab-name a {
+    font-size: 15px; font-weight: 500; color: var(--text);
+    text-decoration: none;
+  }
+  .collab-name a:hover { color: var(--accent); }
+  .collab-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text3); font-family: sans-serif; margin-top: 3px; }
+  .collab-meta a { color: var(--text3); text-decoration: none; }
+  .collab-meta a:hover { color: var(--accent); }
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input { flex:1; min-width:200px; padding:8px 14px; border:1px solid var(--border2); border-radius:var(--radius); font-size:14px; font-family:'Georgia',serif; background:var(--surface); color:var(--text); }
+  .filter-bar input:focus { outline:none; border-color:var(--accent); }
+  .sf-btn { padding:7px 14px; border-radius:20px; border:1px solid var(--border2); background:var(--surface); color:var(--text2); font-size:13px; cursor:pointer; transition:all .15s; font-family:sans-serif; }
+  .sf-btn.active,.sf-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  @media (max-width: 640px) {
+    .collab-card { grid-template-columns: 56px 1fr; gap: 10px; }
+    .collab-card > .badge { grid-column: 2; justify-self: start; }
+    .collab-card > div:last-child { grid-column: 1 / -1; display: flex; gap: 8px; }
+    .filter-bar input { min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Colaboradores</h1>
+    <p class="page-sub">Trabalhadores registados no sistema</p>
+  </div>
+  <a href="{% url 'workforce:create' %}" class="btn btn-primary">+ Novo colaborador</a>
+</div>
+
+{% if filter_responsible %}
+<div style="margin-bottom:16px;padding:10px 16px;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius);font-size:13px;font-family:sans-serif;display:flex;align-items:center;justify-content:space-between;">
+  <span>A mostrar colaboradores do responsável: <strong>{{ filter_responsible }}</strong></span>
+  <a href="{% url 'workforce:list' %}" class="btn btn-ghost btn-sm">Limpar filtro</a>
+</div>
+{% endif %}
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="Pesquisar por nome, empresa, função..." oninput="filterCards()">
+  <div style="display:flex;gap:6px;">
+    <button class="sf-btn active" onclick="setStatus('all',this)">Todos</button>
+    <button class="sf-btn" onclick="setStatus('active',this)">Ativos</button>
+    <button class="sf-btn" onclick="setStatus('inactive',this)">Inativos</button>
+  </div>
+</div>
+
+{% if collaborators %}
+<div class="collab-grid" id="collab-grid">
+  {% for c in collaborators %}
+  <div class="collab-card" data-status="{{ c.status }}"
+       data-search="{{ c.name|lower }} {{ c.company.name|lower }} {{ c.role|lower }}">
+
+    <!-- Avatar clicável -->
+    <a href="{% url 'workforce:detail' c.pk %}" class="avatar-link">
+      <div class="avatar">
+        {% if c.photo %}
+          <img src="{{ c.photo.url }}" alt="{{ c.name }}">
+        {% else %}
+          {{ c.name|slice:":1"|upper }}
+        {% endif %}
+      </div>
+    </a>
+
+    <div>
+      <div class="collab-name">
+        <a href="{% url 'workforce:detail' c.pk %}">{{ c.name }}</a>
+      </div>
+      <div class="collab-meta">
+        <span>🏢 <a href="{% url 'subcontractors:detail' c.company.pk %}">{{ c.company.name }}</a></span>
+        {% if c.role %}<span>{{ c.role }}</span>{% endif %}
+        {% if c.phone %}<span>📞 {{ c.phone }}</span>{% endif %}
+        {% if c.insurance_fund %}<span>🏦 {{ c.insurance_fund.name }}</span>{% endif %}
+      </div>
+    </div>
+
+    <span class="badge {% if c.status == 'active' %}badge-green{% else %}badge-gray{% endif %}">
+      {{ c.get_status_display }}
+    </span>
+    <a href="{% url 'workforce:update' c.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="icon">👷</div>
+  <h3>Sem colaboradores</h3>
+  <p>Adicione o primeiro colaborador para começar.</p>
+  <a href="{% url 'workforce:create' %}" class="btn btn-primary" style="margin-top:16px">+ Novo colaborador</a>
+</div>
+{% endif %}
+
+<script>
+let currentStatus = 'all';
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.collab-card').forEach(card => {
+    const ms = !q || card.dataset.search.includes(q);
+    const mst = currentStatus === 'all' || card.dataset.status === currentStatus;
+    card.style.display = (ms && mst) ? '' : 'none';
+  });
+}
+function setStatus(s, btn) {
+  currentStatus = s;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+</script>
+{% endblock %}

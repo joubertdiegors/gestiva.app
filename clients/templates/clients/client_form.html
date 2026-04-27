@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'clients:list' %}">{% trans "Clientes" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  .form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .form-section:last-of-type { border-bottom: none; }
+  .form-section-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); font-family: sans-serif; margin-bottom: 16px;
+  }
+  @media(max-width:600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .span-2 { grid-column: span 1; }
+  }
+
+  /* ── Category switch ── */
+  .cat-switch {
+    display: inline-flex;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    background: var(--surface2);
+  }
+  .cat-switch-btn {
+    padding: 8px 28px;
+    font-size: 13px;
+    font-family: sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text2);
+    transition: background .15s, color .15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+  }
+  .cat-switch-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">{{ title }}</h1></div>
+</div>
+
+<div class="card" style="max-width:760px; padding:32px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.category }}  {# hidden input gerenciado pelo switch #}
+    {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+    <!-- ── Switch ── -->
+    <div class="cat-switch">
+      <button type="button" class="cat-switch-btn" id="btn-professional" onclick="setCategory('professional')">
+        🏢 {% trans "Profissional" %}
+      </button>
+      <button type="button" class="cat-switch-btn" id="btn-private" onclick="setCategory('private')">
+        👤 {% trans "Privado" %}
+      </button>
+    </div>
+
+    <!-- ── Identificação ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Identificação" %}</div>
+      <div class="form-grid">
+
+        <!-- Nome: sempre visível, label muda -->
+        <div class="form-group span-2">
+          <label class="form-label" id="label-name"></label>
+          {{ form.name }}
+          {% if form.name.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+
+        <!-- trade_name: label muda (profissional → "Nome comercial", privado → "Primeiro nome") -->
+        <div class="form-group" id="row-trade-name">
+          <label class="form-label" id="label-trade-name"></label>
+          {{ form.trade_name }}
+        </div>
+
+        <!-- legal_form: só profissional -->
+        <div class="form-group" id="row-legal-form">
+          <label class="form-label">{% trans "Forma jurídica" %}</label>
+          {{ form.legal_form }}
+        </div>
+
+        <!-- vat_number: só profissional -->
+        <div class="form-group" id="row-vat-number">
+          <label class="form-label">{% trans "Número de TVA" %}</label>
+          {{ form.vat_number }}
+          {% if form.vat_number.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.vat_number.errors.0 }}</div>{% endif %}
+        </div>
+
+        <!-- vat_rate: só profissional -->
+        <div class="form-group" id="row-vat-rate">
+          <label class="form-label">{% trans "Taxa TVA (%)" %}</label>
+          {{ form.vat_rate }}
+        </div>
+
+        <!-- responsible: label muda (profissional → "Responsável", privado → "Telefone") -->
+        <div class="form-group" id="row-responsible">
+          <label class="form-label" id="label-responsible"></label>
+          {{ form.responsible }}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Notas e Estado ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Notas e Estado" %}</div>
+      <div class="form-group">
+        <label class="form-label">{% trans "Notas / Informações" %}</label>
+        {{ form.notes }}
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px;">
+          {{ form.is_active }} <span>{% trans "Cliente ativo" %}</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">{% trans "Guardar cliente" %}</button>
+      {% if client %}
+      <a href="{% url 'clients:detail' client.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+      {% else %}
+      <a href="{% url 'clients:list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const catInput = document.getElementById('{{ form.category.auto_id }}');
+
+  const T = {
+    nameLabel:        { professional: '{% trans "Razão social" %} *',     private: '{% trans "Nome completo" %} *' },
+    tradeNameLabel:   { professional: '{% trans "Nome comercial / Fantasia" %}', private: '{% trans "Primeiro nome" %}' },
+    responsibleLabel: { professional: '{% trans "Responsável" %}',         private: '{% trans "Telefone" %}' },
+  };
+
+  // Campos visíveis apenas para Profissional
+  const proOnlyIds = ['row-legal-form', 'row-vat-number', 'row-vat-rate'];
+
+  function setCategory(cat) {
+    catInput.value = cat;
+    const isPro = cat === 'professional';
+
+    document.getElementById('btn-professional').classList.toggle('active', isPro);
+    document.getElementById('btn-private').classList.toggle('active', !isPro);
+
+    document.getElementById('label-name').textContent        = T.nameLabel[cat];
+    document.getElementById('label-trade-name').textContent  = T.tradeNameLabel[cat];
+    document.getElementById('label-responsible').textContent = T.responsibleLabel[cat];
+
+    proOnlyIds.forEach(id => {
+      document.getElementById(id).style.display = isPro ? '' : 'none';
+    });
+
+    // Em modo privado, limpar campos ocultos para não enviar lixo
+    if (!isPro) {
+      document.getElementById('{{ form.legal_form.auto_id }}').value  = '';
+      document.getElementById('{{ form.vat_number.auto_id }}').value  = '';
+      document.getElementById('{{ form.vat_rate.auto_id }}').value    = '0';
+    }
+  }
+
+  const initial = catInput.value || 'professional';
+  setCategory(initial);
+
+  window.setCategory = setCategory;
+})();
+</script>
+{% endblock %}

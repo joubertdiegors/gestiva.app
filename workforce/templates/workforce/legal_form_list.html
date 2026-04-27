@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Formas Jurídicas — Construart{% endblock %}
+{% block breadcrumb %}
+  <span class="current">Formas Jurídicas</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; font-family: sans-serif; }
+  .ref-table thead th {
+    padding: 10px 18px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .ref-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .ref-table tbody tr:last-child { border-bottom: none; }
+  .ref-table tbody tr:hover { background: var(--surface2); }
+  .ref-table td { padding: 11px 18px; color: var(--text); vertical-align: middle; }
+  .ref-table td.muted { color: var(--text3); font-size: 13px; }
+  .ref-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .btn-icon { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; text-decoration: none; transition: background .12s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+  .btn-icon.danger:hover { color: var(--red); border-color: var(--red); }
+  .abbr-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--accent-light); color: var(--accent); font-family: sans-serif; }
+  .empty-state { padding: 48px 24px; text-align: center; color: var(--text3); font-family: sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Formas Jurídicas</h1>
+    <p class="page-sub">Usadas em Clientes, Fornecedores e Subcontratados</p>
+  </div>
+  <a href="{% url 'workforce:legal_form_create' %}" class="btn btn-primary">+ Nova Forma Jurídica</a>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;">
+  {% if legal_forms %}
+    <table class="ref-table">
+      <thead>
+        <tr>
+          <th>Abreviatura</th>
+          <th>Nome completo</th>
+          <th>Clientes</th>
+          <th>Fornecedores</th>
+          <th>Subcontratados</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lf in legal_forms %}
+        <tr>
+          <td>
+            {% if lf.abbreviation %}
+              <span class="abbr-badge">{{ lf.abbreviation }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ lf.name }}</strong></td>
+          <td class="muted">{{ lf.clients.count }}</td>
+          <td class="muted">{{ lf.suppliers.count }}</td>
+          <td class="muted">{{ lf.subcontractors.count }}</td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'workforce:legal_form_edit' lf.pk %}" class="btn-icon" title="Editar">✏️</a>
+              <form method="post" action="{% url 'workforce:legal_form_delete' lf.pk %}" style="display:inline;"
+                    onsubmit="return confirm('Eliminar «{{ lf.display_name }}»? Os registos que usam esta forma ficam sem forma jurídica.')">
+                {% csrf_token %}
+                <button type="submit" class="btn-icon danger" title="Eliminar">🗑</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      Nenhuma forma jurídica cadastrada.<br>
+      <a href="{% url 'workforce:legal_form_create' %}" class="btn btn-primary" style="margin-top:14px;display:inline-block;">+ Adicionar primeira</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

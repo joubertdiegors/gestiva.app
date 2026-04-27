@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Vehicle Categories" %} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Vehicle Categories" %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">📂 {% trans "Vehicle Categories" %}</h1></div>
+  <a href="{% url 'fleet:category_create' %}" class="btn btn-primary">+ {% trans "New Category" %}</a>
+</div>
+
+{% if categories %}
+<div class="card" style="padding:0;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:8px 16px;font-size:12px;color:var(--text3);font-family:sans-serif;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.6px;">{% trans "Name" %}</th>
+        <th style="padding:8px 16px;border-bottom:1px solid var(--border);"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td style="padding:11px 16px;border-bottom:1px solid var(--border);">{{ cat.name }}</td>
+        <td style="padding:11px 16px;border-bottom:1px solid var(--border);text-align:right;">
+          <a href="{% url 'fleet:category_edit' cat.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
+  <p>{% trans "No categories yet." %}</p>
+  <a href="{% url 'fleet:category_create' %}" class="btn btn-primary" style="margin-top:16px;">{% trans "Add Category" %}</a>
+</div>
+{% endif %}
+{% endblock %}

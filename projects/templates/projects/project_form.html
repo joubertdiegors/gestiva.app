@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'project_list' %}">{% trans "Projetos" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  .form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .form-section:last-of-type { border-bottom: none; }
+  .form-section-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3); font-family: sans-serif; margin-bottom: 16px;
+  }
+  .registration-fields { display: none; }
+  .registration-fields.visible { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  @media(max-width:600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .span-2 { grid-column: span 1; }
+    .registration-fields.visible { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">{{ title }}</h1></div>
+</div>
+
+<div class="card" style="max-width:760px; padding:32px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <!-- ── Informações gerais ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Informações gerais" %}</div>
+      <div class="form-grid">
+
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Nome do projeto" %} *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Cliente" %} *</label>
+          {{ form.client }}
+          {% if form.client.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.client.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Estado" %}</label>
+          {{ form.status }}
+        </div>
+
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Contactos do cliente" %}</label>
+          {{ form.contacts }}
+          {% if form.contacts.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.contacts.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Morada da obra" %}</label>
+          {{ form.address }}
+          {% if form.address.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.address.errors.0 }}</div>{% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Equipa responsável ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Equipa responsável" %}</div>
+      <div class="form-group">
+        <label class="form-label">{% trans "Gestores" %}</label>
+        {{ form.managers }}
+        {% if form.managers.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.managers.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- ── Datas ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Datas" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{% trans "Data de início" %}</label>
+          {{ form.start_date }}
+          {% if form.start_date.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.start_date.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Data de fim" %}</label>
+          {{ form.end_date }}
+          {% if form.end_date.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.end_date.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Registo de obra ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Registo de obra" %}</div>
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px;">
+        {{ form.has_work_registration }}
+        <span>{% trans "Esta obra tem registo obrigatório" %}</span>
+      </label>
+      <div class="registration-fields {% if form.instance.has_work_registration %}visible{% endif %}" id="reg-fields">
+        <div class="form-group">
+          <label class="form-label">{% trans "Tipo de registo" %}</label>
+          {{ form.work_registration_type }}
+          {% if form.work_registration_type.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.work_registration_type.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Número de registo" %}</label>
+          {{ form.work_registration_number }}
+          {% if form.work_registration_number.errors %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ form.work_registration_number.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Notas ── -->
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Notas" %}</div>
+      <div class="form-group">
+        <label class="form-label">{% trans "Notas / Informações" %}</label>
+        {{ form.notes }}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">{% trans "Guardar projeto" %}</button>
+      {% if object %}
+        <a href="{% url 'project_detail' object.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+      {% else %}
+        <a href="{% url 'project_list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const hasReg = document.getElementById('id_has_work_registration');
+  const regFields = document.getElementById('reg-fields');
+
+  if (hasReg) {
+    hasReg.addEventListener('change', function () {
+      regFields.classList.toggle('visible', this.checked);
+    });
+  }
+
+  const clientSelect = document.getElementById('id_client');
+  const contactsSelect = document.getElementById('id_contacts');
+  const contactsUrl = "{% url 'ajax_contacts' %}";
+
+  if (clientSelect && contactsSelect) {
+    clientSelect.addEventListener('change', function () {
+      const clientId = this.value;
+      if (!clientId) { contactsSelect.innerHTML = ''; return; }
+      fetch(`${contactsUrl}?client_id=${encodeURIComponent(clientId)}`)
+        .then(r => r.json())
+        .then(data => {
+          contactsSelect.innerHTML = '';
+          data.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            contactsSelect.appendChild(opt);
+          });
+        });
+    });
+  }
+})();
+</script>
+{% endblock %}

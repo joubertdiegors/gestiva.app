@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ budget.number }} — {% trans "Editar" %}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'budget:budget_list' %}">{% trans "Orçamentos" %}</a>
+<span class="bc-sep">›</span>
+<a href="{% url 'budget:budget_detail' budget.pk %}">{{ budget.number }}</a>
+<span class="bc-sep">›</span>
+<span>{% trans "Editar" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Layout */
+.edit-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+@media(max-width:900px){.edit-layout{grid-template-columns:1fr}}
+
+/* Tabs */
+.tab-nav{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab-nav-btn{padding:8px 18px;font-size:13px;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'Georgia',serif;transition:color .12s}
+.tab-nav-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* Table */
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:8px 12px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.dt tr.chapter-row{background:var(--surface2)}
+.dt tr.chapter-row td{font-weight:600;font-size:12px;color:var(--text2);padding:6px 12px}
+.dt tr.chapter-row td:first-child{padding-left:calc(12px + var(--depth,0) * 16px)}
+.dt tr.item-row td:first-child{padding-left:calc(14px + var(--chapter-depth,0) * 16px)}
+
+/* Buttons */
+.btn-icon{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:background .12s,color .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
+
+/* Summary card */
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:sticky;top:calc(var(--topbar-h) + var(--tabbar-h) + 12px)}
+.summary-header{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:600;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.summary-row:last-child{border-bottom:none}
+.summary-row.total{font-weight:700;background:var(--accent-light)}
+.summary-row.total .sv{color:var(--accent);font-size:16px}
+.summary-row.margin .sv{color:var(--green)}
+.sl{color:var(--text3);font-size:12px}
+.sv{font-variant-numeric:tabular-nums}
+
+/* Inline form */
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:540px){.form-grid-2,.form-grid-3{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.fl .req{color:var(--accent)}
+.form-note{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Chapter depth indent */
+.ch-indent-0{padding-left:0}
+.ch-indent-1{padding-left:16px}
+.ch-indent-2{padding-left:32px}
+.ch-indent-3{padding-left:48px}
+
+/* Section form header */
+.section-add-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 0 8px;margin-bottom:8px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+  <div>
+    <h1 class="page-title">{{ budget.number }} — {{ budget.title }}</h1>
+    <p class="page-sub">{{ budget.client.name|default:"—" }} {% if budget.project %}· {{ budget.project.name }}{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{% url 'budget:budget_detail' budget.pk %}" class="btn btn-ghost">{% trans "Ver resumo" %}</a>
+    <a href="{% url 'budget:budget_list' %}"             class="btn btn-ghost">{% trans "← Lista" %}</a>
+  </div>
+</div>
+
+<div class="edit-layout">
+  <!-- LEFT: tabs -->
+  <div>
+    <div class="tab-nav">
+      <button class="tab-nav-btn active" data-tab="tab-items">📦 {% trans "Capítulos e Itens" %}</button>
+      <button class="tab-nav-btn"        data-tab="tab-info">📝 {% trans "Dados do Orçamento" %}</button>
+    </div>
+
+    <!-- TAB: Items -->
+    <div id="tab-items" class="tab-pane active">
+
+      <!-- Add chapter bar -->
+      <div class="section-add-bar">
+        <span style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">{% trans "Estrutura" %}</span>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-chapter">+ {% trans "Capítulo" %}</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-add-item">+ {% trans "Item" %}</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="dt" id="items-table">
+          <thead>
+            <tr>
+              <th style="min-width:200px">{% trans "Descrição" %}</th>
+              <th>{% trans "Unidade" %}</th>
+              <th class="num">{% trans "Qtd" %}</th>
+              <th class="num">{% trans "Preço unit." %}</th>
+              <th class="num">{% trans "Desc.%" %}</th>
+              <th class="num">{% trans "IVA%" %}</th>
+              <th class="num">{% trans "Total HT" %}</th>
+              <th class="num">{% trans "Total TTC" %}</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody">
+            {% include "budget/partials/items_tbody.html" %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Info -->
+    <div id="tab-info" class="tab-pane">
+      {% if form.errors %}
+      <div class="alert alert-error" style="margin-bottom:16px">
+        {% for field, errs in form.errors.items %}{% for e in errs %}<div>{{ e }}</div>{% endfor %}{% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="{% url 'budget:budget_update' budget.pk %}">
+        {% csrf_token %}
+        <div class="card" style="padding:20px 24px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">{% trans "Identificação" %}</div>
+          <div class="form-grid-2">
+            <div class="form-group"><label class="form-label">{% trans "Número" %}</label>{{ form.number }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Título" %}</label>{{ form.title }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Cliente" %}</label>{{ form.client }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Obra" %}</label>{{ form.project }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Emissão" %}</label>{{ form.issue_date }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Válido até" %}</label>{{ form.valid_until }}</div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">{% trans "Financeiro" %}</div>
+          <div class="form-grid-3">
+            <div class="form-group"><label class="form-label">{% trans "Margem global (%)" %}</label>{{ form.global_margin_percent }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Desconto global (%)" %}</label>{{ form.discount_percent }}</div>
+            <div class="form-group"><label class="form-label">{% trans "IVA padrão (%)" %}</label>{{ form.vat_rate }}</div>
+          </div>
+          <div class="form-group"><label class="form-label">{% trans "Condições de pagamento" %}</label>{{ form.payment_terms }}</div>
+        </div>
+        <div class="card" style="padding:20px 24px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">{% trans "Notas" %}</div>
+          <div class="form-grid-2">
+            <div class="form-group"><label class="form-label">{% trans "Notas internas" %}</label>{{ form.notes }}</div>
+            <div class="form-group"><label class="form-label">{% trans "Notas para o cliente" %}</label>{{ form.notes_client }}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button type="submit" class="btn btn-primary">{% trans "Guardar alterações" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: summary -->
+  <div>
+    <div class="summary-card">
+      <div class="summary-header">{% trans "Resumo" %}</div>
+      <div class="summary-row"><span class="sl">{% trans "Subtotal custo" %}</span><span class="sv" id="sv-cost">{{ totals.subtotal_cost }} €</span></div>
+      <div class="summary-row"><span class="sl">{% trans "Subtotal HT" %}</span><span class="sv" id="sv-ht">{{ totals.subtotal_ht }} €</span></div>
+      <div class="summary-row"><span class="sl">{% trans "Desconto" %}</span><span class="sv" id="sv-disc">- {{ totals.discount_amount }} €</span></div>
+      <div class="summary-row"><span class="sl">{% trans "Total HT" %}</span><span class="sv" id="sv-total-ht">{{ totals.total_ht }} €</span></div>
+      <div class="summary-row"><span class="sl">{% trans "IVA" %}</span><span class="sv" id="sv-vat">{{ totals.total_vat }} €</span></div>
+      <div class="summary-row total"><span class="sl" style="color:var(--text)">{% trans "Total TTC" %}</span><span class="sv" id="sv-ttc">{{ totals.total_ttc }} €</span></div>
+      <div class="summary-row margin"><span class="sl">{% trans "Margem bruta" %}</span><span class="sv" id="sv-margin">{{ totals.margin_amount }} € ({{ totals.margin_pct }}%)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODALS ═══════ -->
+
+<!-- Modal: Chapter -->
+<dialog id="dlg-chapter" style="margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box">
+  <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);width:440px;max-width:calc(100vw - 40px);box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)">
+      <span id="dlg-ch-title" style="font-weight:600;font-size:15px">{% trans "Novo Capítulo" %}</span>
+      <button type="button" onclick="closeChDlg()" style="background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer">×</button>
+    </div>
+    <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+      <div id="dlg-ch-error" style="display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb"></div>
+      <div class="fg">
+        <label class="fl">{% trans "Título" %} <span class="req">*</span></label>
+        <input type="text" id="ch-title" class="form-control" maxlength="200" autocomplete="off">
+      </div>
+      <div class="fg">
+        <label class="fl">{% trans "Capítulo pai" %}</label>
+        <select id="ch-parent" class="form-control">
+          <option value="">— {% trans "Raiz" %} —</option>
+          {% for ch in chapters %}
+          <option value="{{ ch.pk }}" class="ch-indent-{{ ch.depth }}">{{ ch.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)">
+      <button type="button" class="btn btn-ghost" onclick="closeChDlg()">{% trans "Cancelar" %}</button>
+      <button type="button" class="btn btn-primary" id="dlg-ch-save">{% trans "Guardar" %}</button>
+    </div>
+  </div>
+  </div>
+</dialog>
+
+<!-- Modal: Item -->
+<dialog id="dlg-item" style="margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box">
+  <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);width:620px;max-width:calc(100vw - 40px);box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span id="dlg-item-title" style="font-weight:600;font-size:15px">{% trans "Novo Item" %}</span>
+      <button type="button" onclick="closeItemDlg()" style="background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer">×</button>
+    </div>
+    <div style="padding:22px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px">
+      <div id="dlg-item-error" style="display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb"></div>
+
+      <div class="form-grid-2">
+        <div class="fg" style="grid-column:span 2">
+          <label class="fl">{% trans "Serviço" %} <span class="req">*</span></label>
+          <select id="item-service" class="form-control">
+            <option value="">— {% trans "Seleccione um serviço" %} —</option>
+            {% for s in services %}
+            <option value="{{ s.pk }}"
+                    data-labor="{{ s.labor_cost_per_unit }}"
+                    data-margin="{{ s.default_margin_percent }}"
+                    data-unit="{{ s.unit.symbol }}">
+              {{ s.code }} — {{ s.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fg" style="grid-column:span 2">
+          <label class="fl">{% trans "Capítulo" %}</label>
+          <select id="item-chapter" class="form-control">
+            <option value="">— {% trans "Sem capítulo" %} —</option>
+            {% for ch in chapters %}
+            <option value="{{ ch.pk }}" class="ch-indent-{{ ch.depth }}">{{ ch.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fg" style="grid-column:span 2">
+          <label class="fl">{% trans "Descrição (override)" %}</label>
+          <textarea id="item-desc" class="form-control" rows="2" placeholder="{% trans 'Opcional — substitui a descrição do catálogo' %}"></textarea>
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="fg">
+          <label class="fl">{% trans "Quantidade" %} <span class="req">*</span></label>
+          <input type="number" id="item-qty" class="form-control" step="0.0001" min="0" value="1">
+        </div>
+        <div class="fg">
+          <label class="fl">{% trans "Custo M.O. / unid." %}</label>
+          <input type="number" id="item-labor" class="form-control" step="0.0001" min="0" value="0">
+        </div>
+        <div class="fg">
+          <label class="fl">{% trans "Margem (%)" %} <span class="req">*</span></label>
+          <input type="number" id="item-margin" class="form-control" step="0.01" value="{{ budget.global_margin_percent|default:'30' }}">
+        </div>
+        <div class="fg">
+          <label class="fl">{% trans "Desconto item (%)" %}</label>
+          <input type="number" id="item-discount" class="form-control" step="0.01" min="0" max="100" value="0">
+        </div>
+        <div class="fg">
+          <label class="fl">{% trans "IVA (%)" %}</label>
+          <input type="number" id="item-vat" class="form-control" step="0.01" min="0" value="{{ budget.vat_rate }}">
+        </div>
+        <div class="fg">
+          <label class="fl">{% trans "Preço unit. (override)" %}</label>
+          <input type="number" id="item-price-override" class="form-control" step="0.0001" min="0" placeholder="{% trans 'Automático' %}">
+          <span class="form-note">{% trans "Deixe em branco para usar o preço calculado." %}</span>
+        </div>
+      </div>
+
+      <!-- Info card shown after service selection -->
+      <div id="item-service-info" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--text2)">
+        <div style="font-weight:600;margin-bottom:6px;color:var(--text)">{% trans "Dados do catálogo" %}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><span style="color:var(--text3)">{% trans "Custo total/unit" %}</span><br><strong id="si-cost">—</strong></div>
+          <div><span style="color:var(--text3)">{% trans "Preço sugerido" %}</span><br><strong id="si-price">—</strong></div>
+          <div><span style="color:var(--text3)">{% trans "Unidade" %}</span><br><strong id="si-unit">—</strong></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0">
+      <button type="button" class="btn btn-ghost" onclick="closeItemDlg()">{% trans "Cancelar" %}</button>
+      <button type="button" class="btn btn-primary" id="dlg-item-save">{% trans "Guardar" %}</button>
+    </div>
+  </div>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CSRF           = '{{ csrf_token }}';
+const BUDGET_PK      = {{ budget.pk }};
+const URL_CH_SAVE    = '{% url "budget:chapter_save"   budget_pk=budget.pk %}';
+const URL_CH_UPD     = '{% url "budget:chapter_update" budget_pk=budget.pk pk=0 %}';
+const URL_CH_DEL     = '{% url "budget:chapter_delete" budget_pk=budget.pk pk=0 %}';
+const URL_ITEM_SAVE  = '{% url "budget:item_save"      budget_pk=budget.pk %}';
+const URL_ITEM_UPD   = '{% url "budget:item_update"    budget_pk=budget.pk pk=0 %}';
+const URL_ITEM_DEL   = '{% url "budget:item_delete"    budget_pk=budget.pk pk=0 %}';
+const URL_SVC_INFO   = '{% url "budget:service_info"   pk=0 %}';
+
+function urlChUpd(pk) { return URL_CH_UPD.replace('/0/', '/'+pk+'/'); }
+function urlChDel(pk) { return URL_CH_DEL.replace('/0/', '/'+pk+'/'); }
+function urlItemUpd(pk){ return URL_ITEM_UPD.replace('/0/', '/'+pk+'/'); }
+function urlItemDel(pk){ return URL_ITEM_DEL.replace('/0/', '/'+pk+'/'); }
+function urlSvcInfo(pk){ return URL_SVC_INFO.replace('/0/', '/'+pk+'/'); }
+
+function post(url, data) {
+  return fetch(url, {
+    method:'POST', headers:{'X-CSRFToken':CSRF},
+    body: new URLSearchParams({csrfmiddlewaretoken:CSRF, ...data}),
+  }).then(r=>r.json());
+}
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+
+// ── Summary update ─────────────────────────────────────────────────────────
+function updateSummary(t) {
+  document.getElementById('sv-cost').textContent        = t.subtotal_cost+' €';
+  document.getElementById('sv-ht').textContent          = t.subtotal_ht+' €';
+  document.getElementById('sv-disc').textContent        = '- '+t.discount_amount+' €';
+  document.getElementById('sv-total-ht').textContent    = t.total_ht+' €';
+  document.getElementById('sv-vat').textContent         = t.total_vat+' €';
+  document.getElementById('sv-ttc').textContent         = t.total_ttc+' €';
+  document.getElementById('sv-margin').textContent      = t.margin_amount+' € ('+t.margin_pct+'%)';
+}
+
+// ── Tab nav ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Chapter modal ──────────────────────────────────────────────────────────
+const chDlg     = document.getElementById('dlg-chapter');
+const chTitle   = document.getElementById('dlg-ch-title');
+const chTitleIn = document.getElementById('ch-title');
+const chParent  = document.getElementById('ch-parent');
+const chErr     = document.getElementById('dlg-ch-error');
+const chSaveBtn = document.getElementById('dlg-ch-save');
+let editingChPk = null;
+
+function openChDlg(row) {
+  editingChPk = row ? parseInt(row.dataset.id) : null;
+  chTitle.textContent = editingChPk ? '{% trans "Editar Capítulo" %}' : '{% trans "Novo Capítulo" %}';
+  chTitleIn.value = row ? row.dataset.title : '';
+  chParent.value  = row ? (row.dataset.parentId || '') : '';
+  chErr.style.display = 'none';
+  try { chDlg.showModal(); } catch(e) { chDlg.setAttribute('open',''); }
+  setTimeout(() => chTitleIn.focus(), 60);
+}
+function closeChDlg() { try{chDlg.close();}catch(e){} chDlg.removeAttribute('open'); editingChPk=null; }
+
+chSaveBtn.addEventListener('click', () => {
+  const title = chTitleIn.value.trim();
+  if (!title) { chErr.textContent='{% trans "Título obrigatório." %}'; chErr.style.display='block'; return; }
+  chSaveBtn.disabled = true;
+  post(editingChPk ? urlChUpd(editingChPk) : URL_CH_SAVE, {title, parent: chParent.value})
+    .then(json => {
+      chSaveBtn.disabled = false;
+      if (!json.ok) { chErr.textContent = Object.values(json.errors||{}).flat().join(' '); chErr.style.display='block'; return; }
+      closeChDlg();
+      location.reload();
+    }).catch(() => { chSaveBtn.disabled=false; });
+});
+chDlg.addEventListener('click', e=>{ if(!e.target.closest('[style*="background:var"]')) closeChDlg(); });
+document.getElementById('btn-add-chapter').addEventListener('click', () => openChDlg(null));
+
+// ── Item modal ─────────────────────────────────────────────────────────────
+const itemDlg      = document.getElementById('dlg-item');
+const itemTitleEl  = document.getElementById('dlg-item-title');
+const itemErr      = document.getElementById('dlg-item-error');
+const itemSaveBtn  = document.getElementById('dlg-item-save');
+const itemSvcSel   = document.getElementById('item-service');
+const itemChSel    = document.getElementById('item-chapter');
+const svcInfo      = document.getElementById('item-service-info');
+let editingItemPk  = null;
+
+function setItemError(msg){ itemErr.textContent=msg; itemErr.style.display=msg?'block':'none'; }
+
+function openItemDlg(row) {
+  editingItemPk = row ? parseInt(row.dataset.id) : null;
+  itemTitleEl.textContent = editingItemPk ? '{% trans "Editar Item" %}' : '{% trans "Novo Item" %}';
+  setItemError('');
+  svcInfo.style.display = 'none';
+
+  if (row) {
+    itemSvcSel.value                                     = row.dataset.serviceId||'';
+    itemChSel.value                                      = row.dataset.chapterId||'';
+    document.getElementById('item-desc').value           = row.dataset.description||'';
+    document.getElementById('item-qty').value            = row.dataset.quantity||'1';
+    document.getElementById('item-labor').value          = row.dataset.laborCost||'0';
+    document.getElementById('item-margin').value         = row.dataset.marginPercent||'30';
+    document.getElementById('item-discount').value       = row.dataset.discountPercent||'0';
+    document.getElementById('item-vat').value            = row.dataset.vatRate||'23';
+    document.getElementById('item-price-override').value = row.dataset.unitPriceOverride||'';
+    if (itemSvcSel.value) loadServiceInfo(itemSvcSel.value);
+  } else {
+    itemSvcSel.value = '';
+    itemChSel.value  = '';
+    document.getElementById('item-desc').value           = '';
+    document.getElementById('item-qty').value            = '1';
+    document.getElementById('item-labor').value          = '0';
+    document.getElementById('item-margin').value         = '{{ budget.global_margin_percent|default:"30" }}';
+    document.getElementById('item-discount').value       = '0';
+    document.getElementById('item-vat').value            = '{{ budget.vat_rate }}';
+    document.getElementById('item-price-override').value = '';
+  }
+  try { itemDlg.showModal(); } catch(e) { itemDlg.setAttribute('open',''); }
+}
+function closeItemDlg() { try{itemDlg.close();}catch(e){} itemDlg.removeAttribute('open'); editingItemPk=null; }
+
+function loadServiceInfo(pk) {
+  if (!pk) { svcInfo.style.display='none'; return; }
+  fetch(urlSvcInfo(pk)).then(r=>r.json()).then(json => {
+    if (!json.ok) return;
+    document.getElementById('si-cost').textContent  = parseFloat(json.total_cost_per_unit).toFixed(4)+' €';
+    document.getElementById('si-price').textContent = parseFloat(json.effective_sale_price).toFixed(4)+' €';
+    document.getElementById('si-unit').textContent  = json.unit;
+    svcInfo.style.display = 'block';
+    // auto-fill labor and margin only for new item
+    if (!editingItemPk) {
+      document.getElementById('item-labor').value  = json.labor_cost_per_unit;
+      document.getElementById('item-margin').value = json.default_margin_percent;
+    }
+  });
+}
+itemSvcSel.addEventListener('change', e => loadServiceInfo(e.target.value));
+
+itemSaveBtn.addEventListener('click', () => {
+  const svc = itemSvcSel.value;
+  if (!svc) { setItemError('{% trans "Seleccione um serviço." %}'); return; }
+  const qty = document.getElementById('item-qty').value;
+  if (!qty || parseFloat(qty) <= 0) { setItemError('{% trans "Quantidade obrigatória." %}'); return; }
+  const margin = document.getElementById('item-margin').value;
+  if (margin === '') { setItemError('{% trans "Margem obrigatória." %}'); return; }
+  itemSaveBtn.disabled = true;
+  post(editingItemPk ? urlItemUpd(editingItemPk) : URL_ITEM_SAVE, {
+    service:             svc,
+    chapter:             itemChSel.value,
+    description:         document.getElementById('item-desc').value,
+    quantity:            qty,
+    labor_cost_per_unit: document.getElementById('item-labor').value,
+    margin_percent:      margin,
+    discount_percent:    document.getElementById('item-discount').value,
+    vat_rate:            document.getElementById('item-vat').value,
+    unit_price_override: document.getElementById('item-price-override').value,
+  }).then(json => {
+    itemSaveBtn.disabled = false;
+    if (!json.ok) { setItemError(Object.values(json.errors||{}).flat().join(' ')); return; }
+    closeItemDlg();
+    renderItem(json.item, editingItemPk);
+    updateSummary(json.totals);
+  }).catch(() => { itemSaveBtn.disabled=false; setItemError('{% trans "Erro de ligação." %}'); });
+});
+
+itemDlg.addEventListener('click', e=>{ if(!e.target.closest('[style*="background:var"],[style*="display:flex"]')) closeItemDlg(); });
+document.getElementById('btn-add-item').addEventListener('click', () => openItemDlg(null));
+
+// ── Render item row ────────────────────────────────────────────────────────
+function renderItem(it, editPk) {
+  const chDepth = getChapterDepth(it.chapter_id);
+  const row = `<tr class="item-row" data-id="${it.id}"
+    data-service-id="${it.service_id}"
+    data-chapter-id="${it.chapter_id||''}"
+    data-description="${String(it.description||'').replace(/"/g,'&quot;')}"
+    data-quantity="${it.quantity}"
+    data-labor-cost="${it.labor_cost_per_unit}"
+    data-margin-percent="${it.margin_percent}"
+    data-discount-percent="${it.discount_percent}"
+    data-vat-rate="${it.vat_rate}"
+    data-unit-price-override="${it.unit_price_override||''}"
+    style="--chapter-depth:${chDepth}">
+    <td>
+      <strong>${esc(it.service_name)}</strong>
+      <span style="color:var(--text3);font-size:11px;margin-left:6px">${esc(it.service_code)}</span>
+      ${it.description ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(it.description)}</div>` : ''}
+    </td>
+    <td class="muted">${esc(it.service_unit)}</td>
+    <td class="num">${parseFloat(it.quantity).toFixed(2)}</td>
+    <td class="num">${parseFloat(it.effective_unit_price).toFixed(4)} €</td>
+    <td class="num muted">${it.discount_percent}%</td>
+    <td class="num muted">${it.vat_rate}%</td>
+    <td class="num">${parseFloat(it.total_price).toFixed(2)} €</td>
+    <td class="num"><strong>${parseFloat(it.total_ttc).toFixed(2)} €</strong></td>
+    <td>
+      <div style="display:flex;gap:4px;justify-content:flex-end">
+        <button type="button" class="btn-icon btn-item-edit" title="{% trans 'Editar' %}">✏️</button>
+        <button type="button" class="btn-icon danger btn-item-del" title="{% trans 'Eliminar' %}">🗑</button>
+      </div>
+    </td>
+  </tr>`;
+  const tbody = document.getElementById('items-tbody');
+  if (editPk) {
+    const ex = tbody.querySelector(`tr.item-row[data-id="${editPk}"]`);
+    if (ex) { ex.outerHTML = row; return; }
+  }
+  // insert after chapter row if chapter set
+  if (it.chapter_id) {
+    const chRow = tbody.querySelector(`tr.chapter-row[data-id="${it.chapter_id}"]`);
+    if (chRow) { chRow.insertAdjacentHTML('afterend', row); return; }
+  }
+  tbody.insertAdjacentHTML('beforeend', row);
+  removeEmpty();
+}
+
+function getChapterDepth(chId) {
+  if (!chId) return 0;
+  const chRow = document.querySelector(`tr.chapter-row[data-id="${chId}"]`);
+  return chRow ? parseInt(chRow.dataset.depth||0)+1 : 0;
+}
+
+function removeEmpty() {
+  const em = document.getElementById('empty-row');
+  if (em) em.remove();
+}
+
+// ── Delete item ────────────────────────────────────────────────────────────
+document.getElementById('items-tbody').addEventListener('click', e => {
+  const editBtn = e.target.closest('.btn-item-edit');
+  const delBtn  = e.target.closest('.btn-item-del');
+  const chEditBtn = e.target.closest('.btn-ch-edit');
+  const chDelBtn  = e.target.closest('.btn-ch-del');
+
+  if (editBtn) {
+    const row = editBtn.closest('tr.item-row');
+    if (row) openItemDlg(row);
+  }
+  if (delBtn) {
+    if (!confirm('{% trans "Eliminar este item?" %}')) return;
+    const row = delBtn.closest('tr.item-row');
+    const pk  = parseInt(row.dataset.id);
+    post(urlItemDel(pk), {}).then(json => {
+      if (!json.ok) { alert(json.error||'Erro'); return; }
+      row.remove();
+      updateSummary(json.totals);
+      if (!document.querySelector('tr.item-row'))
+        document.getElementById('items-tbody').innerHTML =
+          '<tr id="empty-row"><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">{% trans "Nenhum item. Clique em «+ Item» para adicionar." %}</td></tr>';
+    });
+  }
+  if (chEditBtn) {
+    const row = chEditBtn.closest('tr.chapter-row');
+    if (row) openChDlg(row);
+  }
+  if (chDelBtn) {
+    if (!confirm('{% trans "Eliminar este capítulo?" %}')) return;
+    const row = chDelBtn.closest('tr.chapter-row');
+    const pk  = parseInt(row.dataset.id);
+    post(urlChDel(pk), {}).then(json => {
+      if (!json.ok) { alert(json.error||'Erro'); return; }
+      row.remove();
+      updateSummary(json.totals);
+    });
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (chDlg.open && e.key==='Enter'){ e.preventDefault(); chSaveBtn.click(); }
+  if (itemDlg.open && e.key==='Escape'){ closeItemDlg(); }
+  if (chDlg.open && e.key==='Escape'){ closeChDlg(); }
+});
+</script>
+{% endblock %}

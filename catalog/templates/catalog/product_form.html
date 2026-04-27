@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block tab_parent %}/catalog/{% endblock %}
+{% block tab_icon %}📦{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Catálogo" %}</span>
+<span class="bc-sep">›</span>
+<a href="{% url 'catalog:product_list' %}">{% trans "Produtos" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-card{max-width:760px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden}
+.form-section{padding:22px 26px;border-bottom:1px solid var(--border)}
+.form-section:last-child{border-bottom:none}
+.section-heading{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid .span-2{grid-column:span 2}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-grid .span-2{grid-column:span 1}}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.form-label .req{color:var(--accent)}
+.form-hint{font-size:11px;color:var(--text3);margin-top:2px}
+.errorlist{list-style:none;padding:0;margin:4px 0 0;font-size:12px;color:var(--red)}
+.form-check-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+.form-check-row label{font-size:13px;color:var(--text2);cursor:pointer}
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.vat-btns{display:flex;gap:6px;flex-wrap:wrap}
+.vat-btn{padding:5px 14px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;background:none;color:var(--text2);cursor:pointer;transition:all .15s}
+.vat-btn:hover,.vat-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{% trans "Produto canónico — o fornecedor é vinculado via Procurement." %}</p>
+  </div>
+  {% if product %}
+  <a href="{% url 'catalog:product_detail' product.pk %}" class="btn btn-ghost">{% trans "← Cancelar" %}</a>
+  {% else %}
+  <a href="{% url 'catalog:product_list' %}" class="btn btn-ghost">{% trans "← Cancelar" %}</a>
+  {% endif %}
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="form-card">
+
+    <!-- Identificação -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Identificação" %}</div>
+      <div class="form-grid">
+        <div class="form-group span-2">
+          <label class="form-label" for="{{ form.name.id_for_label }}">{% trans "Nome" %} <span class="req">*</span></label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.brand.id_for_label }}">{% trans "Marca" %}</label>
+          {{ form.brand }}
+          {{ form.brand.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.barcode.id_for_label }}">{% trans "Código de barras" %}</label>
+          {{ form.barcode }}
+          {{ form.barcode.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.category.id_for_label }}">{% trans "Categoria" %}</label>
+          {{ form.category }}
+          {{ form.category.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.unit.id_for_label }}">{% trans "Unidade base" %} <span class="req">*</span></label>
+          {{ form.unit }}
+          <span class="form-hint">{% trans "Ex: kg, m², un — unidade interna de referência." %}</span>
+          {{ form.unit.errors }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Preços e IVA -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Preços e IVA" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.vat_rate.id_for_label }}">{% trans "Taxa IVA (%)" %} <span class="req">*</span></label>
+          <div class="vat-btns" style="margin-bottom:8px">
+            <button type="button" class="vat-btn" onclick="setVat(0)">0%</button>
+            <button type="button" class="vat-btn" onclick="setVat(6)">6%</button>
+            <button type="button" class="vat-btn" onclick="setVat(12)">12%</button>
+            <button type="button" class="vat-btn" onclick="setVat(21)">21%</button>
+          </div>
+          {{ form.vat_rate }}
+          <span class="form-hint">{% trans "IVA belga: 0, 6, 12 ou 21%" %}</span>
+          {{ form.vat_rate.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.sale_margin.id_for_label }}">{% trans "Margem de venda (%)" %}</label>
+          {{ form.sale_margin }}
+          <span class="form-hint">{% trans "Aplicada sobre o melhor preço de compra." %}</span>
+          {{ form.sale_margin.errors }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Estado" %}</div>
+      <div class="form-check-row">
+        {{ form.is_active }}
+        <label for="{{ form.is_active.id_for_label }}">{% trans "Produto activo" %}</label>
+      </div>
+      <div class="form-check-row">
+        {{ form.is_approved }}
+        <label for="{{ form.is_approved.id_for_label }}">{% trans "Aprovado para orçamentos" %}</label>
+      </div>
+    </div>
+
+    <!-- Observações -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Observações" %}</div>
+      <div class="form-group">
+        {{ form.notes }}
+        {{ form.notes.errors }}
+      </div>
+    </div>
+
+    <!-- Acções -->
+    <div class="form-section" style="background:var(--surface2)">
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        {% if product %}
+        <a href="{% url 'catalog:product_detail' product.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+        {% else %}
+        <a href="{% url 'catalog:product_list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">
+          {% if product %}{% trans "Guardar alterações" %}{% else %}{% trans "Criar produto" %}{% endif %}
+        </button>
+      </div>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function setVat(val) {
+  document.getElementById('{{ form.vat_rate.id_for_label }}').value = val;
+  document.querySelectorAll('.vat-btn').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.textContent) === val);
+  });
+}
+// Marcar botão correcto ao carregar
+(function(){
+  const cur = parseFloat(document.getElementById('{{ form.vat_rate.id_for_label }}').value);
+  document.querySelectorAll('.vat-btn').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.textContent) === cur);
+  });
+})();
+</script>
+{% endblock %}

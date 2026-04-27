@@ -1,0 +1,54 @@
+{% load i18n %}
+<tr class="chapter-row" data-id="{{ chapter.pk }}" data-title="{{ chapter.title|escapejs }}"
+    data-parent-id="{{ chapter.parent_id|default:'' }}" data-depth="{{ depth }}"
+    style="--depth:{{ depth }}">
+  <td colspan="7">
+    {% for i in "xxx"|make_list %}{% if forloop.counter <= depth %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% endfor %}
+    {% if depth == 0 %}▶{% elif depth == 1 %}◆{% elif depth == 2 %}◇{% else %}·{% endif %}
+    {{ chapter.title }}
+  </td>
+  <td class="num" style="font-size:11px;color:var(--text3)">{{ chapter.subtotal_ht|floatformat:2 }} €</td>
+  <td>
+    <div style="display:flex;gap:4px;justify-content:flex-end">
+      <button type="button" class="btn-icon btn-ch-edit" title="{% trans 'Editar capítulo' %}">✏️</button>
+      <button type="button" class="btn-icon danger btn-ch-del" title="{% trans 'Eliminar capítulo' %}">🗑</button>
+    </div>
+  </td>
+</tr>
+{# Items belonging to this chapter #}
+{% for item in items %}{% if item.chapter_id == chapter.pk %}
+<tr class="item-row" data-id="{{ item.pk }}"
+    data-service-id="{{ item.service_id }}"
+    data-chapter-id="{{ item.chapter_id }}"
+    data-description="{{ item.description|default:''|escapejs }}"
+    data-quantity="{{ item.quantity }}"
+    data-labor-cost="{{ item.labor_cost_per_unit }}"
+    data-margin-percent="{{ item.margin_percent }}"
+    data-discount-percent="{{ item.discount_percent }}"
+    data-vat-rate="{{ item.vat_rate }}"
+    data-unit-price-override="{{ item.unit_price_override|default:'' }}"
+    style="--chapter-depth:{{ depth|add:1 }}">
+  <td>
+    <strong>{{ item.service_name_snapshot }}</strong>
+    <span style="color:var(--text3);font-size:11px;margin-left:6px">{{ item.service_code_snapshot }}</span>
+    {% if item.description %}<div style="font-size:11px;color:var(--text3);margin-top:2px">{{ item.description }}</div>{% endif %}
+  </td>
+  <td class="muted">{{ item.service_unit_snapshot }}</td>
+  <td class="num">{{ item.quantity|floatformat:2 }}</td>
+  <td class="num">{{ item.effective_unit_price|floatformat:4 }} €</td>
+  <td class="num muted">{{ item.discount_percent }}%</td>
+  <td class="num muted">{{ item.vat_rate }}%</td>
+  <td class="num">{{ item.total_price|floatformat:2 }} €</td>
+  <td class="num"><strong>{{ item.total_ttc|floatformat:2 }} €</strong></td>
+  <td>
+    <div style="display:flex;gap:4px;justify-content:flex-end">
+      <button type="button" class="btn-icon btn-item-edit" title="{% trans 'Editar' %}">✏️</button>
+      <button type="button" class="btn-icon danger btn-item-del" title="{% trans 'Eliminar' %}">🗑</button>
+    </div>
+  </td>
+</tr>
+{% endif %}{% endfor %}
+{# Recurse into sub-chapters #}
+{% for sub in chapters %}{% if sub.parent_id == chapter.pk %}
+  {% include "budget/partials/chapter_row.html" with chapter=sub depth=depth|add:1 %}
+{% endif %}{% endfor %}

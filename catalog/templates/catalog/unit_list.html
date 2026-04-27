@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Unidades de Medida" %}{% endblock %}
+{% block tab_parent %}/catalog/{% endblock %}
+{% block tab_icon %}📐{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Catálogo" %}</span>
+<span class="bc-sep">›</span>
+<span>{% trans "Unidades de Medida" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3)}
+.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:var(--radius-lg,10px);width:420px;max-width:96vw;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.modal-title{font-weight:600;font-size:15px;color:var(--text)}
+.modal-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
+.modal-body{padding:22px;display:flex;flex-direction:column;gap:16px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-label .req{color:var(--accent)}
+.modal-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
+.row-new{animation:rowIn .25s ease}
+@keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Unidades de Medida" %}</h1>
+    <p class="page-sub">{% trans "Unidades base utilizadas em produtos e serviços." %}</p>
+  </div>
+  <button type="button" class="btn btn-primary" id="btn-nova-unidade">+ {% trans "Nova unidade" %}</button>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="dt">
+    <thead>
+      <tr>
+        <th>{% trans "Símbolo" %}</th>
+        <th>{% trans "Nome" %}</th>
+        <th>{% trans "Descrição" %}</th>
+        <th style="text-align:right">{% trans "Produtos" %}</th>
+        <th style="width:72px"></th>
+      </tr>
+    </thead>
+    <tbody id="units-tbody">
+      {% for unit in units %}
+      <tr data-id="{{ unit.pk }}"
+          data-symbol="{{ unit.symbol|escapejs }}"
+          data-name="{{ unit.name|escapejs }}"
+          data-desc="{{ unit.description|escapejs }}"
+          data-count="{{ unit.product_count }}">
+        <td><strong>{{ unit.symbol }}</strong></td>
+        <td>{{ unit.name }}</td>
+        <td class="muted">{{ unit.description|default:"—" }}</td>
+        <td style="text-align:right">
+          <span class="badge {% if unit.product_count %}badge-accent{% else %}badge-gray{% endif %}">
+            {{ unit.product_count }}
+          </span>
+        </td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn-icon btn-edit" title="{% trans "Editar" %}">✏️</button>
+            {% if not unit.product_count %}
+            <button type="button" class="btn-icon danger btn-del" title="{% trans "Eliminar" %}" data-id="{{ unit.pk }}">🗑</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="empty-row">
+        <td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">
+          {% trans "Nenhuma unidade registada. Clique em «Nova unidade» para começar." %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-overlay" id="unit-overlay">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="unit-modal-title">
+    <div class="modal-header">
+      <span class="modal-title" id="unit-modal-title">{% trans "Nova unidade" %}</span>
+      <button type="button" class="modal-close" id="btn-close-modal" aria-label="{% trans "Fechar" %}">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-error" id="unit-error"></div>
+      <div class="form-group">
+        <label class="form-label" for="u-symbol">{% trans "Símbolo" %} <span class="req">*</span></label>
+        <input type="text" id="u-symbol" class="form-control" placeholder="kg, m², m³, un, h…" maxlength="20" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="u-name">{% trans "Nome" %} <span class="req">*</span></label>
+        <input type="text" id="u-name" class="form-control" placeholder="{% trans "Quilograma, Metro quadrado…" %}" maxlength="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="u-desc">{% trans "Descrição" %}</label>
+        <input type="text" id="u-desc" class="form-control" maxlength="255">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="btn-cancel-modal">{% trans "Cancelar" %}</button>
+      <button type="button" class="btn btn-primary" id="btn-save-unit">{% trans "Guardar" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CSRF = '{{ csrf_token }}';
+  var URL_SAVE = '{% url "catalog:unit_save" %}';
+  var URL_TMPL_UPD = '{% url "catalog:unit_update" pk=0 %}';
+  var URL_TMPL_DEL = '{% url "catalog:unit_delete" pk=0 %}';
+
+  function urlUpd(pk) { return URL_TMPL_UPD.replace('/0/', '/' + pk + '/'); }
+  function urlDel(pk) { return URL_TMPL_DEL.replace('/0/', '/' + pk + '/'); }
+
+  var editingPk = null;
+  var overlay = document.getElementById('unit-overlay');
+  var titleEl = document.getElementById('unit-modal-title');
+  var errorEl = document.getElementById('unit-error');
+  var fSymbol = document.getElementById('u-symbol');
+  var fName = document.getElementById('u-name');
+  var fDesc = document.getElementById('u-desc');
+  var btnSave = document.getElementById('btn-save-unit');
+  var tbody = document.getElementById('units-tbody');
+
+  function openModal(row) {
+    editingPk = row ? parseInt(row.dataset.id, 10) : null;
+    titleEl.textContent = editingPk ? '{% trans "Editar unidade" %}' : '{% trans "Nova unidade" %}';
+    fSymbol.value = row ? row.dataset.symbol : '';
+    fName.value = row ? row.dataset.name : '';
+    fDesc.value = row ? row.dataset.desc : '';
+    setError('');
+    overlay.classList.add('open');
+    setTimeout(function () { fSymbol.focus(); }, 60);
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    editingPk = null;
+  }
+
+  function setError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = msg ? 'block' : 'none';
+  }
+
+  function setBusy(busy) {
+    btnSave.disabled = busy;
+    btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}';
+  }
+
+  function postData(url, data) {
+    var params = new URLSearchParams({ csrfmiddlewaretoken: CSRF });
+    Object.keys(data).forEach(function (k) { params.append(k, data[k]); });
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+      body: params,
+    }).then(function (r) { return r.json(); });
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function buildRow(u) {
+    var canDelete = u.product_count === 0;
+    var delBtn = canDelete
+      ? '<button type="button" class="btn-icon danger btn-del" title="{% trans "Eliminar" %}" data-id="' + u.id + '">🗑</button>'
+      : '';
+    return '<tr data-id="' + u.id + '"' +
+      ' data-symbol="' + String(u.symbol).replace(/"/g, '&quot;') + '"' +
+      ' data-name="' + String(u.name).replace(/"/g, '&quot;') + '"' +
+      ' data-desc="' + String(u.description || '').replace(/"/g, '&quot;') + '"' +
+      ' data-count="' + u.product_count + '">' +
+      '<td><strong>' + escapeHtml(u.symbol) + '</strong></td>' +
+      '<td>' + escapeHtml(u.name) + '</td>' +
+      '<td class="muted">' + escapeHtml(u.description || '—') + '</td>' +
+      '<td style="text-align:right"><span class="badge ' + (u.product_count ? 'badge-accent' : 'badge-gray') + '">' + u.product_count + '</span></td>' +
+      '<td><div class="actions">' +
+      '<button type="button" class="btn-icon btn-edit" title="{% trans "Editar" %}">✏️</button>' +
+      delBtn +
+      '</div></td></tr>';
+  }
+
+  function saveUnit() {
+    var symbol = fSymbol.value.trim();
+    var name = fName.value.trim();
+    var desc = fDesc.value.trim();
+    if (!symbol || !name) {
+      setError('{% trans "Símbolo e Nome são obrigatórios." %}');
+      return;
+    }
+    setBusy(true);
+    postData(editingPk ? urlUpd(editingPk) : URL_SAVE, { symbol: symbol, name: name, description: desc })
+      .then(function (json) {
+        setBusy(false);
+        if (!json.ok) {
+          setError(Object.values(json.errors).flat().join(' '));
+          return;
+        }
+        var u = json.unit;
+        var emptyRow = document.getElementById('empty-row');
+        if (emptyRow) emptyRow.remove();
+        if (editingPk) {
+          var existing = tbody.querySelector('tr[data-id="' + u.id + '"]');
+          if (existing) existing.outerHTML = buildRow(u);
+        } else {
+          tbody.insertAdjacentHTML('beforeend', buildRow(u));
+          var newRow = tbody.querySelector('tr[data-id="' + u.id + '"]');
+          if (newRow) newRow.classList.add('row-new');
+        }
+        closeModal();
+      })
+      .catch(function () {
+        setBusy(false);
+        setError('{% trans "Erro de ligação. Tente novamente." %}');
+      });
+  }
+
+  function deleteUnit(pk) {
+    if (!confirm('{% trans "Eliminar esta unidade de medida?" %}')) return;
+    postData(urlDel(pk), {})
+      .then(function (json) {
+        if (!json.ok) { alert(json.error); return; }
+        var row = tbody.querySelector('tr[data-id="' + pk + '"]');
+        if (row) row.remove();
+        if (!tbody.querySelector('tr')) {
+          tbody.innerHTML = '<tr id="empty-row"><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">' +
+            '{% trans "Nenhuma unidade registada." %}</td></tr>';
+        }
+      });
+  }
+
+  document.getElementById('btn-nova-unidade').addEventListener('click', function () { openModal(null); });
+  document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+  document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+  btnSave.addEventListener('click', saveUnit);
+
+  tbody.addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.btn-edit');
+    var delBtn = e.target.closest('.btn-del');
+    if (editBtn) openModal(editBtn.closest('tr'));
+    if (delBtn) deleteUnit(parseInt(delBtn.dataset.id, 10));
+  });
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter') { e.preventDefault(); saveUnit(); }
+  });
+}());
+</script>
+{% endblock %}

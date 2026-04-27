@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Cotações (RFQ)" %}{% endblock %}
+{% block tab_parent %}/procurement/rfq/{% endblock %}
+{% block tab_icon %}🧾{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Procurement" %}</span>
+<span class="bc-sep">›</span>
+<span>{% trans "Cotações (RFQ)" %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Cotações (RFQ)" %}</h1>
+    <p class="page-sub">{% trans "Selecione produtos, escolha fornecedores e envie o pedido de orçamento." %}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'procurement:rfq_create' %}" class="btn btn-primary">+ {% trans "Nova cotação" %}</a>
+  </div>
+</div>
+
+<div class="card" style="padding:14px 16px;margin-bottom:14px;">
+  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+    <div class="form-group" style="margin:0;min-width:240px;flex:1">
+      <label class="form-label">{% trans "Pesquisar" %}</label>
+      <input class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Ex: RFQ-000123' %}">
+    </div>
+    <div class="form-group" style="margin:0;min-width:220px">
+      <label class="form-label">{% trans "Estado" %}</label>
+      <select class="form-control" name="status">
+        <option value="">{% trans "Todos" %}</option>
+        {% for k, lbl in statuses %}
+          <option value="{{ k }}" {% if sel_status == k %}selected{% endif %}>{{ lbl }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-secondary" type="submit">{% trans "Filtrar" %}</button>
+    <a class="btn btn-ghost" href="{% url 'procurement:rfq_list' %}">{% trans "Limpar" %}</a>
+  </form>
+</div>
+
+<div class="card" style="overflow:hidden;">
+  <table class="dt" style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>{% trans "Número" %}</th>
+        <th>{% trans "Estado" %}</th>
+        <th>{% trans "Prazo" %}</th>
+        <th>{% trans "Criado em" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rfq in page.object_list %}
+      <tr>
+        <td style="font-weight:600;">{{ rfq.number }}</td>
+        <td class="muted">{{ rfq.get_status_display }}</td>
+        <td class="muted">{% if rfq.due_date %}{{ rfq.due_date|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+        <td class="muted">{{ rfq.created_at|date:"d/m/Y H:i" }}</td>
+        <td style="text-align:right">
+          <a class="btn btn-ghost btn-sm" href="{% url 'procurement:rfq_detail' rfq.pk %}">{% trans "Abrir" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="dt-empty">{% trans "Nenhuma cotação encontrada." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page.paginator.num_pages > 1 %}
+  <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;">
+    {% if page.has_previous %}
+      <a class="btn btn-ghost btn-sm" href="?q={{ q }}&status={{ sel_status }}&page={{ page.previous_page_number }}">{% trans "Anterior" %}</a>
+    {% endif %}
+    <span class="muted" style="font-size:13px;">{% trans "Página" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+      <a class="btn btn-ghost btn-sm" href="?q={{ q }}&status={{ sel_status }}&page={{ page.next_page_number }}">{% trans "Próxima" %}</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}
+

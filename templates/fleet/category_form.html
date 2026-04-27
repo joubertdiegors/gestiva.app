@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <a href="{% url 'fleet:category_list' %}">{% trans "Vehicle Categories" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">{{ title }}</h1></div>
+  <a href="{% url 'fleet:category_list' %}" class="btn btn-ghost">← {% trans "Back" %}</a>
+</div>
+<div class="card" style="max-width:400px;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label">{{ form.name.label }}</label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="form-error">{{ form.name.errors }}</div>{% endif %}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <a href="{% url 'fleet:category_list' %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
+  <span class="sep">›</span>
+  <a href="{% url 'fleet:vehicle_list' %}">{% trans "Vehicles" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  .form-section { margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+  .form-section:last-of-type { border-bottom: none; }
+  .form-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; margin-bottom: 16px; }
+  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">{{ title }}</h1></div>
+  {% if vehicle %}<a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Back to Vehicle" %}</a>{% endif %}
+</div>
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Identification" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{{ form.license_plate.label }}</label>
+          {{ form.license_plate }}
+          {% if form.license_plate.errors %}<div class="form-error">{{ form.license_plate.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.category.label }}</label>
+          {{ form.category }}
+          {% if form.category.errors %}<div class="form-error">{{ form.category.errors }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.brand.label }}</label>
+          {{ form.brand }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.model.label }}</label>
+          {{ form.model }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.year.label }}</label>
+          {{ form.year }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.color.label }}</label>
+          {{ form.color }}
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{{ form.vin.label }}</label>
+          {{ form.vin }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Technical" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{{ form.fuel_type.label }}</label>
+          {{ form.fuel_type }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.status.label }}</label>
+          {{ form.status }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.current_km.label }}</label>
+          {{ form.current_km }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.default_driver.label }}</label>
+          {{ form.default_driver }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">{% trans "Notes" %}</div>
+      <div class="form-group">
+        {{ form.notes }}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      {% if vehicle %}
+      <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+      {% else %}
+      <a href="{% url 'fleet:vehicle_list' %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

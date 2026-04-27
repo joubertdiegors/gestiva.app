@@ -1,0 +1,2203 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Planning — {{ board_date|date:"d/m/Y" }}{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'planning:list' %}?date={{ board_date_str }}">Planning</a>
+  <span class="sep">›</span>
+  <span class="current">{{ board_date|date:"d/m/Y" }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Área full-bleed alinhada ao ecossistema Construart (--surface, sem cinza de fundo) */
+  .planning-workspace {
+    margin: -28px -32px;
+    padding: 22px 8px 32px;
+    min-height: calc(100vh - var(--topbar-h) - var(--tabbar-h));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-sizing: border-box;
+  }
+  /* Remove o cinza global do body nesta página */
+  body:has(.planning-workspace) {
+    background: var(--surface);
+  }
+  body:has(.planning-workspace) .tab.is-active {
+    background: var(--surface);
+  }
+  @media (max-width: 576px) {
+    .planning-workspace {
+      margin: -16px;
+      padding: 16px 4px;
+    }
+  }
+
+  /* Folha A4 paisagem (297×210 mm) ≈ proporção 297:210 */
+  .board-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .board-toolbar h1.page-title {
+    font-size: 22px;
+    font-weight: normal;
+    letter-spacing: -0.3px;
+    margin: 0;
+  }
+  .board-date-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .board-date-form label { font-size: 12px; color: var(--text2); font-family: sans-serif; }
+  .board-date-form input[type="date"] {
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color .15s, background .15s;
+  }
+  .board-date-form input[type="date"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+
+  .board-layout {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+  }
+  .board-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  /* Bloco só com proporção A4 — sem “card” à volta da grelha */
+  .board-sheet {
+    --a4-ratio: calc(297 / 210);
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 297 / 210;
+    max-height: min(794px, calc(100dvh - 168px));
+    align-self: stretch;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-shrink: 0;
+    padding: 0 2px 8px;
+    margin-bottom: 2px;
+    font-family: sans-serif;
+    font-size: 10px;
+    color: var(--text2);
+  }
+  .print-header__date { font-weight: 600; color: var(--text); font-size: 10px; }
+  .print-header__title { display: none; }
+  .print-header__page { color: var(--text3); font-size: 9px; }
+
+  .board-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(118px, auto);
+    gap: 1px;
+    border: none;
+    border-radius: 0;
+    background: var(--surface);
+    align-content: start;
+  }
+
+  @media (min-width: 901px) {
+    /* Três filas de altura igual dentro da área útil (12 células típicas A4) */
+    .board-grid {
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: minmax(118px, auto);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .board-sheet {
+      width: 100%;
+      max-height: none;
+      aspect-ratio: unset;
+      min-height: 480px;
+    }
+    .board-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: none;
+      grid-auto-rows: minmax(160px, auto);
+    }
+  }
+  @media (max-width: 768px) {
+    .board-toolbar { flex-direction: column; align-items: flex-start; }
+    .board-date-form { width: 100%; }
+    .board-sheet { min-height: 360px; }
+  }
+  @media (max-width: 560px) {
+    .board-layout { flex-direction: column-reverse; align-items: stretch; }
+    .board-sheet { width: 100%; }
+    .board-grid { grid-template-columns: 1fr; }
+  }
+
+  .site-card {
+    border: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+  .site-card__row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 8px;
+    padding: 4px 8px;
+    height: 36px;
+    max-height: 36px;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .site-card__chantier {
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-card__clientcell {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-card__address {
+    font-size: 11px;
+    color: var(--text3);
+    padding: 3px 8px;
+    height: 22px;
+    max-height: 22px;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.4;
+    flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .site-card__row2--meta {
+    padding: 3px 8px;
+    height: 26px;
+    max-height: 26px;
+    flex-shrink: 0;
+    align-items: center;
+    overflow: hidden;
+  }
+  .site-card__registration {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: ui-monospace, monospace;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-card__registration .reg-label {
+    font-family: sans-serif;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text3);
+    margin-bottom: 0;
+  }
+  .site-card__registration .reg-value {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-card__registration .reg-placeholder {
+    color: var(--text3);
+    font-family: sans-serif;
+    font-size: 11px;
+    font-style: italic;
+    white-space: nowrap;
+  }
+  .site-card__slot-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--red);
+    font-family: ui-monospace, monospace;
+    min-height: 0;
+  }
+
+  .site-card .card-workers {
+    flex: 1;
+    min-height: 0;
+    padding: 1px 4px 2px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 18px;
+    align-content: start;
+    gap: 0;
+    --line: 18px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--line) - 1px),
+      var(--border) calc(var(--line) - 1px),
+      var(--border) var(--line)
+    );
+    background-size: 100% var(--line);
+    background-position: 0 0;
+    min-height: calc(4 * var(--line));
+    overflow: hidden;
+    transition: background-color .12s, box-shadow .12s;
+  }
+  .site-card .card-workers:has(.board-chip:nth-child(5)) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .site-card .card-workers:has(.board-chip:nth-child(9)) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .card-workers.drag-over {
+    background-color: var(--accent-light);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .site-card--blank .site-card__blank-label {
+    color: var(--text3);
+    font-weight: 500;
+  }
+
+  .blank-lines-area {
+    flex: 1;
+    min-height: 0;
+    padding: 1px 4px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    --line: 18px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--line) - 1px),
+      var(--border) calc(var(--line) - 1px),
+      var(--border) var(--line)
+    );
+    background-size: 100% var(--line);
+    background-position: 0 0;
+    min-height: calc(4 * var(--line));
+  }
+  .blank-line {
+    font-size: 12px;
+    font-family: sans-serif;
+    line-height: 17px;
+    min-height: calc(var(--line) - 1px);
+    max-height: calc(var(--line) - 1px);
+    padding: 0 3px;
+    color: var(--text);
+    outline: none;
+    cursor: text;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .blank-line:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+    font-style: italic;
+    pointer-events: none;
+  }
+  .blank-line:focus {
+    background: var(--accent-light);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    border-radius: 1px;
+  }
+
+  .board-chip {
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    cursor: grab;
+    user-select: none;
+    line-height: 17px;
+    max-height: calc(var(--line) - 1px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: none;
+    flex-shrink: 0;
+  }
+  .board-chip:active { cursor: grabbing; }
+  .board-chip--pool {
+    border: none;
+    background: var(--hover, #f3f4f6);
+    border-radius: 8px;
+    white-space: normal;
+    max-height: none;
+    line-height: 1.4;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .board-chip__co { opacity: 0.65; font-size: 11px; }
+
+  .pool-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pool-empty {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    padding: 16px 8px;
+    font-family: sans-serif;
+  }
+
+  #board-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: sans-serif;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all .25s;
+    z-index: 500;
+    pointer-events: none;
+  }
+  #board-toast.show { opacity: 1; transform: translateY(0); }
+
+  .board-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Placeholder da área de trabalhadores */
+  .workers-hint {
+    display: none;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 11px;
+    font-family: sans-serif;
+    color: var(--text3);
+    font-style: italic;
+    pointer-events: none;
+    user-select: none;
+    grid-column: 1 / -1;
+  }
+  .card-workers:not(:has(.board-chip)) .workers-hint { display: block; }
+
+  /* Campo editável nos cards em branco */
+  .blank-editable {
+    outline: none;
+    cursor: text;
+    min-width: 20px;
+  }
+  .blank-editable:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+    font-style: italic;
+    font-weight: normal;
+    pointer-events: none;
+  }
+  .blank-editable:focus { background: var(--accent-light); border-radius: 2px; }
+
+  /* Caixa de texto grande do card em branco */
+  .blank-card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+  .blank-card-note {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 13px;
+    font-family: sans-serif;
+    line-height: 1.5;
+    color: var(--text);
+    text-align: center;
+    word-break: break-word;
+    white-space: pre-wrap;
+    outline: none;
+    cursor: text;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .12s;
+  }
+  .blank-card-note:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text3);
+    font-style: italic;
+    pointer-events: none;
+  }
+  .blank-card-note:focus { background: var(--accent-light); }
+
+  /* Secções recolhíveis da sidebar */
+  .pool-section {
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .pool-section:last-child { border-bottom: none; flex: 1; min-height: 0; }
+  .pool-section__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .pool-section__head:hover { background: var(--hover); }
+  .pool-section__title { flex: 1; }
+  .pool-section__count { font-size: 11px; color: var(--text3); font-weight: 400; }
+  .pool-section__arrow { transition: transform .2s; flex-shrink: 0; color: var(--text3); }
+  .pool-section__body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+  .pool-section__body--collapsed { display: none; }
+  .pool-sidebar__hint {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 400;
+    padding: 0 12px 6px;
+    font-family: sans-serif;
+    line-height: 1.35;
+  }
+
+  /* Pesquisa de obras */
+  .projects-search-bar {
+    padding: 6px 8px 4px;
+    flex-shrink: 0;
+  }
+  .projects-search-bar input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: sans-serif;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .projects-search-bar input:focus { outline: none; border-color: var(--accent); }
+
+  /* Filtros de status */
+  .projects-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 8px 6px;
+    flex-shrink: 0;
+  }
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-family: sans-serif;
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text2);
+    user-select: none;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .filter-chip input { display: none; }
+  .filter-chip--active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Pool de obras */
+  #projects-pool {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 60px;
+  }
+
+  /* Pool de funcionários */
+  #pool-drop {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 60px;
+  }
+  #pool-drop.card-workers {
+    background: var(--surface);
+    background-image: none;
+    min-height: 60px;
+  }
+
+  /* Chip de funcionário já atribuído (na lista lateral) */
+  .board-chip--pool-assigned {
+    border: none;
+    background: var(--hover, #f3f4f6);
+    border-radius: 8px;
+    white-space: normal;
+    max-height: none;
+    line-height: 1.4;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.6;
+  }
+  /* Filtro "Já selecionados" com cor diferente */
+  .filter-chip--assigned.filter-chip--active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Pool de subcontratados */
+  #subs-pool {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 60px;
+  }
+
+  /* Chip de subcontratado */
+  .board-chip--sub {
+    border: none;
+    background: var(--hover, #f3f4f6);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 10px;
+    cursor: grab;
+    white-space: normal;
+    max-height: none;
+    line-height: 1.3;
+  }
+  .board-chip--sub:active { cursor: grabbing; }
+  .chip-sub-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .board-chip--sub .board-chip__co { font-size: 11px; opacity: 0.65; }
+
+  /* Chip de subcontratado no card (no board) */
+  .board-chip--sub-assigned {
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--orange, #f97316);
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    cursor: default;
+    user-select: none;
+    line-height: 17px;
+    max-height: calc(18px - 1px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sub-chip-remove {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text3);
+    padding: 0;
+    border-radius: 2px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sub-chip-remove:hover { color: var(--red); background: var(--red-light, #fee2e2); }
+
+  /* Botão × para remover funcionário do card */
+  .board-chip:not(.board-chip--pool):not(.board-chip--pool-assigned) {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding-right: 3px;
+  }
+  .worker-chip-remove {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 13px;
+    line-height: 1;
+    padding: 0 1px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .worker-chip-remove:hover { color: var(--red); background: var(--red-light, #fee2e2); }
+
+  /* Chip de obra */
+  .board-chip--project {
+    border: none;
+    background: var(--hover, #f3f4f6);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 10px;
+    cursor: grab;
+    white-space: normal;
+    max-height: none;
+    line-height: 1.3;
+  }
+  .board-chip--project:active { cursor: grabbing; }
+  .chip-proj-name { font-size: 12px; font-weight: 600; color: var(--text); }
+  .board-chip--project .board-chip__co { font-size: 11px; opacity: 0.65; }
+
+  /* Botão × remover obra do card */
+  .card-remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text3);
+    border-radius: 3px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .card-remove-btn:hover { background: var(--red-light, #fee2e2); color: var(--red); }
+
+  /* Botão × no canto do card */
+  .card-corner-remove {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text3);
+    border-radius: 3px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .15s, background .15s, color .15s;
+    z-index: 2;
+  }
+  .site-card:hover .card-corner-remove { opacity: 1; }
+  .card-corner-remove:hover { background: var(--red-light, #fee2e2); color: var(--red); opacity: 1; }
+  .site-card { position: relative; }
+
+  /* Modal de confirmação */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 800;
+  }
+  .confirm-overlay.hidden { display: none; }
+  .confirm-box {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    padding: 24px 28px 20px;
+    max-width: 360px;
+    width: 90%;
+    font-family: sans-serif;
+  }
+  .confirm-box__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+  }
+  .confirm-box__body {
+    font-size: 13px;
+    color: var(--text2);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .confirm-box__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* Área de sous-traitants no card */
+  .card-subs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 2px 4px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Hint no card vazio */
+  .project-drop-hint {
+    color: var(--text3) !important;
+    font-style: italic;
+    font-weight: normal !important;
+    font-size: 11px !important;
+  }
+  .site-card--blank.drag-over { background: var(--accent-light) !important; box-shadow: inset 0 0 0 2px var(--accent); }
+
+  /* Separação entre páginas no ecrã */
+  .board-sheet--pagebreak {
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+    border-bottom: 2px dashed var(--border2);
+  }
+
+  /* Escondido no ecrã, visível apenas na impressão */
+  .print-van { display: none; }
+
+  @media print {
+    @page { margin: 6mm; size: A4 landscape; }
+
+    /* 1. Esconde os elementos de chrome da aplicação */
+    .topbar, .sidebar, .tabbar,
+    .board-toolbar, .pool-sidebar,
+    #board-toast, .card-remove-btn, .card-corner-remove,
+    .confirm-overlay, .project-drop-hint,
+    #btn-clear-day, .sub-chip-remove { display: none !important; }
+
+    /* 2. Zera o layout de todos os ancestrais do conteúdo */
+    body,
+    .layout-body,
+    .page-body,
+    .planning-workspace,
+    .board-layout,
+    .board-main {
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+      background: #fff !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    /* 3. Cada board-sheet = uma página A4 paisagem */
+    .board-sheet {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      height: calc(210mm - 12mm) !important;
+      max-height: calc(210mm - 12mm) !important;
+      overflow: hidden !important;
+      background: #fff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      break-after: page !important;
+      page-break-after: always !important;
+      aspect-ratio: unset !important;
+    }
+    .board-sheet:last-child {
+      break-after: auto !important;
+      page-break-after: auto !important;
+    }
+    .board-sheet--pagebreak {
+      margin-bottom: 0 !important;
+      padding-bottom: 0 !important;
+      border-bottom: none !important;
+    }
+
+    /* Cabeçalho de impressão — idêntico ao ecrã */
+    .print-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: baseline !important;
+      padding: 0 2px 4px !important;
+      margin-bottom: 2px !important;
+      border-bottom: 1px solid #ccc !important;
+      font-family: sans-serif;
+      flex-shrink: 0;
+    }
+    .print-header__date  { font-size: 8pt !important; font-weight: 600 !important; color: #000 !important; }
+    .print-header__title { display: none !important; }
+    .print-header__page  { font-size: 7pt !important; color: #666 !important; text-align: right !important; }
+
+    /* Grid: 4 colunas × 3 linhas, preenchendo o espaço restante */
+    .board-grid {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      grid-template-rows: repeat(3, 1fr) !important;
+      grid-auto-rows: unset !important;
+      gap: 0 !important;
+      flex: 1 !important;
+      overflow: visible !important;
+      background: #fff !important;
+      align-content: stretch !important;
+      border: 1px solid #888 !important;
+    }
+
+    /* Cards — altura fixa dividida em 3 linhas iguais de header + área de nomes */
+    .site-card {
+      display: flex !important;
+      flex-direction: column !important;
+      border: 1px solid #888 !important;
+      background: #fff !important;
+      overflow: hidden !important;
+      /* altura é controlada pelo grid-template-rows: repeat(3,1fr) do board-grid */
+    }
+
+    /* Reordenação: projeto+cliente → registo+V → endereço → linhas */
+    .site-card__row2 {
+      order: 1 !important;
+      flex-shrink: 0 !important;
+      height: 18px !important;
+      max-height: 18px !important;
+      overflow: hidden !important;
+      padding: 0 4px !important;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      align-items: center !important;
+      border-bottom: 1px solid #ccc !important;
+      gap: 4px !important;
+    }
+    .site-card__row2--meta {
+      order: 2 !important;
+      flex-shrink: 0 !important;
+      height: 16px !important;
+      max-height: 16px !important;
+      overflow: hidden !important;
+      padding: 0 4px !important;
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      align-items: center !important;
+      border-bottom: 1px solid #ccc !important;
+      gap: 4px !important;
+    }
+    .site-card__address {
+      order: 3 !important;
+      flex-shrink: 0 !important;
+      height: 14px !important;
+      max-height: 14px !important;
+      overflow: hidden !important;
+      padding: 0 4px !important;
+      border-bottom: 1px solid #ccc !important;
+      display: block !important;
+      white-space: nowrap !important;
+    }
+    .card-workers,
+    .blank-lines-area { order: 4 !important; }
+
+    /* Texto dos cards — sem quebra de linha, reduz até caber */
+    .site-card__chantier {
+      font-size: 7pt !important;
+      line-height: 18px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      font-weight: 700 !important;
+    }
+    .site-card__clientcell {
+      font-size: 6.5pt !important;
+      line-height: 18px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      text-align: right !important;
+    }
+    .site-card__address {
+      font-size: 6pt !important;
+      line-height: 14px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      color: #555 !important;
+      font-style: italic !important;
+    }
+    .site-card__registration {
+      font-size: 6pt !important;
+      line-height: 16px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+    .reg-label { display: none !important; }
+    .reg-value, .reg-placeholder { font-size: 6pt !important; line-height: 16px !important; white-space: nowrap !important; }
+    .site-card__slot-right { display: none !important; }
+
+    /* Campo V: oculto na impressão */
+    .print-van { display: none !important; }
+
+    /* Área de linhas */
+    .card-workers, .blank-lines-area {
+      --line: 14px;
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      grid-auto-rows: var(--line) !important;
+      align-content: start !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      padding: 0 3px !important;
+      overflow: hidden !important;
+      background-color: #fff !important;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(var(--line) - 1px),
+        #bbb calc(var(--line) - 1px),
+        #bbb var(--line)
+      ) !important;
+      background-size: 100% var(--line) !important;
+      background-position: 0 0 !important;
+    }
+    .card-workers:has(.board-chip:nth-child(5)) {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .card-workers:has(.board-chip:nth-child(9)) {
+      grid-template-columns: 1fr 1fr 1fr !important;
+    }
+
+    /* Chips como texto simples */
+    .board-chip {
+      font-size: 7pt !important;
+      border: none !important;
+      background: transparent !important;
+      color: #000 !important;
+      line-height: 13px !important;
+      max-height: 13px !important;
+      padding: 0 2px !important;
+      box-shadow: none !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .blank-line {
+      font-size: 7pt !important;
+      line-height: 13px !important;
+      max-height: 13px !important;
+    }
+
+    /* Esconde todos os placeholders na impressão */
+    .workers-hint { display: none !important; }
+    .blank-editable::before,
+    .blank-card-note::before { display: none !important; content: none !important; }
+
+    /* Card em branco na impressão */
+    .blank-card-body { flex: 1 !important; order: 4 !important; }
+    .blank-card-note {
+      flex: 1 !important;
+      font-size: 7pt !important;
+      text-align: center !important;
+      align-items: flex-start !important;
+      padding: 3px 4px !important;
+    }
+    .blank-editable { color: #000 !important; }
+    .site-card--blank .site-card__chantier,
+    .site-card--blank .site-card__clientcell { color: #000 !important; font-style: normal !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="board-toast"></div>
+
+<div class="planning-workspace">
+<div class="board-layout">
+  <div class="board-main">
+    <div class="board-toolbar">
+      <h1 class="page-title">Planning</h1>
+      <div class="board-toolbar__right">
+        <form class="board-date-form" method="get" action="{% url 'planning:list' %}" id="board-date-form">
+          <label for="id-board-date">{% trans "Data" %}</label>
+          <input type="date" id="id-board-date" name="date" value="{{ board_date_str }}">
+          <button type="submit" class="btn btn-secondary btn-sm">{% trans "Atualizar" %}</button>
+        </form>
+        <button type="button" id="btn-clear-day" class="btn btn-danger btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>{% trans "Apagar dia" %}
+        </button>
+        <button type="button" id="btn-duplicate-day" class="btn btn-secondary btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>{% trans "Duplicar" %}
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>{% trans "Imprimir" %}
+        </button>
+      </div>
+    </div>
+
+    {% for page in pages %}
+    <div class="board-sheet{% if not forloop.last %} board-sheet--pagebreak{% endif %}">
+      <div class="print-header">
+        <span class="print-header__date">{{ board_date|date:"d/m/Y" }} {{ board_date|date:"l" }}</span>
+        <strong class="print-header__title">CONSTRUART</strong>
+        <span class="print-header__page">{% if pages|length > 1 %}Página {{ forloop.counter }}/{{ pages|length }}{% else %}Planning{% endif %}</span>
+      </div>
+      <div class="board-grid">
+
+      {% for item in page %}
+      {% if item.kind == 'project' %}
+      <div class="site-card" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}" data-project-name="{{ item.project.name|escape }}">
+        <button class="card-corner-remove" title="{% trans 'Remover obra do board' %}">×</button>
+        <div class="site-card__row2">
+          <div class="site-card__chantier">{{ item.project.name }}</div>
+          <div class="site-card__clientcell">{{ item.project.client.name }}</div>
+        </div>
+        <div class="site-card__address">{{ item.project.address|default:"—" }}</div>
+        <div class="site-card__row2 site-card__row2--meta">
+          <div class="site-card__registration">
+            {% if item.project.has_work_registration and item.project.work_registration_number %}
+              <div class="reg-label">{% if item.project.work_registration_type %}{{ item.project.work_registration_type.name }}{% else %}{% trans "Registo" %}{% endif %}</div>
+              <div class="reg-value">{{ item.project.work_registration_number }}</div>
+            {% else %}
+              <span class="reg-placeholder">{% trans "Sem check-in" %}</span>
+            {% endif %}
+          </div>
+          <span class="print-van">V:</span>
+        </div>
+        {% if item.planning.planning_subcontractors.all %}
+        <div class="card-subs" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}">
+          {% for ps in item.planning.planning_subcontractors.all %}
+          <div class="board-chip--sub-assigned"
+               data-ps-id="{{ ps.pk }}"
+               data-sub-id="{{ ps.subcontractor_id }}"
+               data-sub-name="{{ ps.subcontractor.name|escape }}">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis">{{ ps.subcontractor.name }}</span>
+            <button class="sub-chip-remove" title="{% trans 'Remover' %}">×</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="card-workers" data-drop-type="project" data-project-id="{{ item.project.pk }}">
+          {% for pw in item.workers %}
+          <div class="board-chip"
+               draggable="true"
+               data-board-worker="{{ pw.worker_id }}"
+               data-worker-id="{{ pw.worker_id }}"
+               data-worker-name="{{ pw.worker.name|escape }}"
+               data-pw-id="{{ pw.pk }}">
+            <span>{{ pw.worker.name }}</span>
+            <button class="worker-chip-remove" title="{% trans 'Remover' %}" data-pw-id="{{ pw.pk }}">×</button>
+          </div>
+          {% endfor %}
+          <div class="workers-hint">{% trans "Arraste um nome para cá" %}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="site-card site-card--blank" data-blank-slot="{{ item.slot }}">
+        <div class="site-card__row2">
+          <div class="site-card__chantier project-drop-hint">{% trans "Arraste uma obra…" %}</div>
+          <div class="site-card__clientcell"></div>
+        </div>
+        <div class="site-card__address" style="color:var(--text3);font-style:italic;"></div>
+        <div class="site-card__row2 site-card__row2--meta">
+          <div class="site-card__registration"><span class="reg-placeholder"></span></div>
+          <span class="print-van" style="display:none">V:</span>
+        </div>
+        <div class="blank-card-body">
+          <div class="blank-card-note"
+               contenteditable="true"
+               spellcheck="false"
+               data-slot="{{ item.slot }}"
+               data-placeholder="{% trans 'Clique aqui para escrever algo…' %}">{% if item.lines %}{{ item.lines.0 }}{% endif %}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Sidebar direita: Obras + Funcionários -->
+  <aside class="pool-sidebar">
+
+    <!-- Secção: Obras -->
+    <div class="pool-section" id="section-projects">
+      <div class="pool-section__head" id="projects-toggle">
+        <span class="pool-section__title">{% trans "Obras" %}</span>
+        <span class="pool-section__count" id="projects-count"></span>
+        <svg class="pool-section__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pool-section__body pool-section__body--collapsed" id="projects-body">
+        <div class="projects-search-bar">
+          <input type="text" id="projects-search" placeholder="{% trans 'Pesquisar obra, cliente, endereço…' %}" autocomplete="off">
+        </div>
+        <div class="projects-filters" id="projects-filters">
+          {% for val, label in project_status_choices %}
+          <label class="filter-chip {% if val == 'active' or val == 'planning' %}filter-chip--active{% endif %}">
+            <input type="checkbox" value="{{ val }}" {% if val == 'active' or val == 'planning' %}checked{% endif %}> {{ label }}
+          </label>
+          {% endfor %}
+        </div>
+        <div id="projects-pool">
+          {% for p in sidebar_projects %}
+          <div class="board-chip board-chip--project"
+               draggable="true"
+               data-project-id="{{ p.pk }}"
+               data-project-name="{{ p.name|escape }}"
+               data-client-name="{{ p.client.name|escape }}"
+               data-address="{{ p.address|escape }}"
+               data-status="{{ p.status }}">
+            <span class="chip-proj-name">{{ p.name }}</span>
+            <span class="board-chip__co">{{ p.client.name }}</span>
+          </div>
+          {% empty %}
+          <div class="pool-empty" id="projects-empty-msg">{% trans "Todas as obras activas já estão no board." %}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Secção: Funcionários -->
+    <div class="pool-section" id="section-workers">
+      <div class="pool-section__head" id="workers-toggle">
+        <span class="pool-section__title">{% trans "Funcionários" %}</span>
+        <span class="pool-section__count" id="workers-count"></span>
+        <svg class="pool-section__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pool-section__body pool-section__body--collapsed" id="workers-body">
+        <div class="projects-search-bar">
+          <input type="text" id="workers-search" placeholder="{% trans 'Pesquisar nome, empresa…' %}" autocomplete="off">
+        </div>
+        <div class="projects-filters" id="workers-filters">
+          <label class="filter-chip filter-chip--active">
+            <input type="checkbox" name="wstatus" value="active" checked> {% trans "Ativos" %}
+          </label>
+          <label class="filter-chip">
+            <input type="checkbox" name="wstatus" value="inactive"> {% trans "Inativos" %}
+          </label>
+          <label class="filter-chip filter-chip--assigned">
+            <input type="checkbox" name="wstatus" value="assigned"> {% trans "Já selecionados" %}
+          </label>
+        </div>
+        <div id="pool-drop" class="card-workers" data-drop-type="pool" data-project-id="">
+          <div class="pool-empty" id="pool-empty-msg">{% trans "A carregar…" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secção: Sous-traitants -->
+    <div class="pool-section" id="section-subs">
+      <div class="pool-section__head" id="subs-toggle">
+        <span class="pool-section__title">{% trans "Subcontratados" %}</span>
+        <span class="pool-section__count" id="subs-count"></span>
+        <svg class="pool-section__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pool-section__body pool-section__body--collapsed" id="subs-body">
+        <div class="projects-search-bar">
+          <input type="text" id="subs-search" placeholder="{% trans 'Pesquisar subcontratado…' %}" autocomplete="off">
+        </div>
+        <div id="subs-pool">
+          <div class="pool-empty" id="subs-loading">{% trans "A carregar…" %}</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+</div>
+
+<!-- Modal de confirmação de remoção -->
+<div class="confirm-overlay hidden" id="confirm-overlay">
+  <div class="confirm-box">
+    <p class="confirm-box__title" id="confirm-title"></p>
+    <p class="confirm-box__body" id="confirm-msg"></p>
+    <div class="confirm-box__actions">
+      <button class="btn btn-secondary btn-sm" id="confirm-cancel">{% trans "Cancelar" %}</button>
+      <button class="btn btn-danger btn-sm" id="confirm-ok">{% trans "Remover" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const BOARD_DATE = "{{ board_date_str|escapejs }}";
+  const ASSIGN_URL        = "{% url 'planning:board_assign' %}";
+  const ASSIGN_PROJECT_URL = "{% url 'planning:board_assign_project' %}";
+  const PROJECTS_SEARCH_URL = "{% url 'planning:board_projects_search' %}";
+  const WORKERS_SEARCH_URL    = "{% url 'planning:board_workers_search' %}";
+  const DUPLICATE_URL         = "{% url 'planning:board_duplicate_planning' %}";
+  const CLEAR_DAY_URL         = "{% url 'planning:board_clear_day' %}";
+  const SUBS_SEARCH_URL       = "{% url 'planning:board_subcontractors_search' %}";
+  const ASSIGN_SUB_URL        = "{% url 'planning:board_assign_subcontractor' %}";
+  const REMOVE_WORKER_BASE_URL = "{% url 'planning:remove_worker' pw_pk=0 %}".replace('/0/', '/__PW__/');
+  const BLANK_SAVE_URL    = "{% url 'planning:blank_line_save' %}";
+  const CSRF = "{{ csrf_token }}";
+
+  /* ── Toast ── */
+  function toast(msg) {
+    const t = document.getElementById('board-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2200);
+  }
+
+  /* ── Persistência do estado das secções (sobrevive ao Atualizar) ── */
+  var SIDEBAR_STATE_KEY = 'planning_sidebar_state';
+  function saveSidebarState() {
+    var state = {
+      projects: !document.getElementById('projects-body').classList.contains('pool-section__body--collapsed'),
+      workers:  !document.getElementById('workers-body').classList.contains('pool-section__body--collapsed'),
+      subs:     !document.getElementById('subs-body').classList.contains('pool-section__body--collapsed'),
+    };
+    try { localStorage.setItem(SIDEBAR_STATE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+  function loadSidebarState() {
+    try { return JSON.parse(localStorage.getItem(SIDEBAR_STATE_KEY) || 'null'); } catch(e) { return null; }
+  }
+
+  /* ── Secções recolhíveis ── */
+  function initSection(toggleId, bodyId, countId, chipSelector) {
+    const toggle = document.getElementById(toggleId);
+    const body   = document.getElementById(bodyId);
+    const countEl = document.getElementById(countId);
+    if (!toggle || !body) return;
+
+    function updateCount() {
+      if (!countEl) return;
+      const n = body.querySelectorAll(chipSelector).length;
+      countEl.textContent = n > 0 ? '(' + n + ')' : '';
+    }
+    updateCount();
+
+    // Sincroniza seta com o estado inicial (HTML pode ter a classe já aplicada)
+    var arrow = toggle.querySelector('.pool-section__arrow');
+    if (body.classList.contains('pool-section__body--collapsed') && arrow) {
+      arrow.style.transform = 'rotate(-90deg)';
+    }
+
+    toggle.addEventListener('click', function() {
+      const collapsed = body.classList.toggle('pool-section__body--collapsed');
+      toggle.querySelector('.pool-section__arrow').style.transform = collapsed ? 'rotate(-90deg)' : '';
+      saveSidebarState();
+    });
+
+    return updateCount;
+  }
+
+  const updateProjectsCount = initSection('projects-toggle', 'projects-body', 'projects-count', '.board-chip--project');
+  const updateWorkersCount  = initSection('workers-toggle',  'workers-body',  'workers-count',  '.board-chip--pool');
+  const updateSubsCount     = initSection('subs-toggle',     'subs-body',     'subs-count',     '.board-chip--sub');
+
+  /* ── Salva estado antes de Atualizar (navegação GET) ── */
+  document.getElementById('board-date-form').addEventListener('submit', saveSidebarState);
+
+  /* ── Pesquisa de obras ── */
+  var searchTimer = null;
+  var currentStatuses = Array.from(document.querySelectorAll('#projects-filters input:checked')).map(function(el) { return el.value; });
+
+  function doSearch() {
+    var q = (document.getElementById('projects-search').value || '').trim();
+    var params = new URLSearchParams({ date: BOARD_DATE, q: q });
+    currentStatuses.forEach(function(s) { params.append('status', s); });
+
+    fetch(PROJECTS_SEARCH_URL + '?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var pool = document.getElementById('projects-pool');
+        pool.innerHTML = '';
+        if (!data.projects || data.projects.length === 0) {
+          pool.innerHTML = '<div class="pool-empty">Nenhuma obra encontrada.</div>';
+          if (updateProjectsCount) updateProjectsCount();
+          return;
+        }
+        data.projects.forEach(function(p) {
+          var div = document.createElement('div');
+          div.className = 'board-chip board-chip--project';
+          div.draggable = true;
+          div.dataset.projectId = p.id;
+          div.dataset.projectName = p.name;
+          div.dataset.clientName = p.client;
+          div.dataset.address = p.address;
+          div.dataset.status = p.status;
+          var nameSpan = document.createElement('span');
+          nameSpan.className = 'chip-proj-name';
+          nameSpan.textContent = p.name;
+          var coSpan = document.createElement('span');
+          coSpan.className = 'board-chip__co';
+          coSpan.textContent = p.client;
+          div.appendChild(nameSpan);
+          div.appendChild(coSpan);
+          pool.appendChild(div);
+        });
+        if (updateProjectsCount) updateProjectsCount();
+      });
+  }
+
+  document.getElementById('projects-search').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 280);
+  });
+
+  document.querySelectorAll('#projects-filters input').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      cb.closest('.filter-chip').classList.toggle('filter-chip--active', cb.checked);
+      currentStatuses = Array.from(document.querySelectorAll('#projects-filters input:checked')).map(function(el) { return el.value; });
+      doSearch();
+    });
+  });
+
+  /* ── Pesquisa de funcionários ── */
+  var workerSearchTimer = null;
+  var currentWorkerStatuses = ['active'];
+  var workerShowAssigned = false;
+
+  function doWorkerSearch() {
+    var q = (document.getElementById('workers-search').value || '').trim();
+    var params = new URLSearchParams({ date: BOARD_DATE, q: q });
+    currentWorkerStatuses.forEach(function(s) { params.append('status', s); });
+    if (workerShowAssigned) params.set('show_assigned', '1');
+
+    fetch(WORKERS_SEARCH_URL + '?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var pool = document.getElementById('pool-drop');
+        pool.querySelectorAll('.board-chip, .board-chip--pool-assigned').forEach(function(el) { el.remove(); });
+        var emptyMsg = pool.querySelector('.pool-empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        if (!data.workers || data.workers.length === 0) {
+          var d = document.createElement('div');
+          d.className = 'pool-empty';
+          d.id = 'pool-empty-msg';
+          d.textContent = q ? 'Nenhum funcionário encontrado.' : 'Nenhum funcionário disponível.';
+          pool.appendChild(d);
+          if (updateWorkersCount) updateWorkersCount();
+          return;
+        }
+        data.workers.forEach(function(w) {
+          var isAssigned = w.assigned_projects && w.assigned_projects.length > 0;
+          pool.appendChild(makeWorkerChip(String(w.id), w.name, '', true, w.company, isAssigned ? w.assigned_projects : null));
+        });
+        if (updateWorkersCount) updateWorkersCount();
+      });
+  }
+
+  document.getElementById('workers-search').addEventListener('input', function() {
+    clearTimeout(workerSearchTimer);
+    workerSearchTimer = setTimeout(doWorkerSearch, 280);
+  });
+
+  document.querySelectorAll('#workers-filters input').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      cb.closest('.filter-chip').classList.toggle('filter-chip--active', cb.checked);
+      if (cb.value === 'assigned') {
+        workerShowAssigned = cb.checked;
+      } else {
+        currentWorkerStatuses = Array.from(
+          document.querySelectorAll('#workers-filters input[value="active"], #workers-filters input[value="inactive"]')
+        ).filter(function(el) { return el.checked; }).map(function(el) { return el.value; });
+        if (currentWorkerStatuses.length === 0) currentWorkerStatuses = ['active'];
+      }
+      doWorkerSearch();
+    });
+  });
+
+  /* ── Flag de drag ativo ── */
+  var _draggingType = null; // 'project' | 'worker' | 'sub'
+
+  /* ── Sous-traitants ── */
+  var subSearchTimer = null;
+
+  function doSubSearch() {
+    var q = (document.getElementById('subs-search').value || '').trim();
+    var params = new URLSearchParams({ q: q });
+    fetch(SUBS_SEARCH_URL + '?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var pool = document.getElementById('subs-pool');
+        pool.innerHTML = '';
+        if (!data.subcontractors || data.subcontractors.length === 0) {
+          pool.innerHTML = '<div class="pool-empty">Nenhum subcontratado encontrado.</div>';
+          if (updateSubsCount) updateSubsCount();
+          return;
+        }
+        data.subcontractors.forEach(function(s) {
+          pool.appendChild(makeSubChip(s.id, s.name, s.contact));
+        });
+        if (updateSubsCount) updateSubsCount();
+      });
+  }
+
+  document.getElementById('subs-search').addEventListener('input', function() {
+    clearTimeout(subSearchTimer);
+    subSearchTimer = setTimeout(doSubSearch, 280);
+  });
+
+  // Carrega funcionários ao abrir a secção (lazy)
+  document.getElementById('workers-toggle').addEventListener('click', function() {
+    var body = document.getElementById('workers-body');
+    if (!body.classList.contains('pool-section__body--collapsed')) return;
+    if (document.getElementById('pool-empty-msg')) doWorkerSearch();
+  }, true);
+
+  // Carrega sous-traitants ao abrir a secção (lazy)
+  document.getElementById('subs-toggle').addEventListener('click', function() {
+    var body = document.getElementById('subs-body');
+    if (!body.classList.contains('pool-section__body--collapsed')) return;
+    if (document.getElementById('subs-loading')) doSubSearch();
+  }, true);
+
+  function makeSubChip(subId, subName, contact) {
+    var div = document.createElement('div');
+    div.className = 'board-chip board-chip--sub';
+    div.draggable = true;
+    div.dataset.subId   = subId;
+    div.dataset.subName = subName;
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'chip-sub-name';
+    nameSpan.textContent = subName;
+    div.appendChild(nameSpan);
+    if (contact) {
+      var coSpan = document.createElement('span');
+      coSpan.className = 'board-chip__co';
+      coSpan.textContent = contact;
+      div.appendChild(coSpan);
+    }
+    return div;
+  }
+
+  function makeSubAssignedChip(psId, subId, subName) {
+    var div = document.createElement('div');
+    div.className = 'board-chip--sub-assigned';
+    div.dataset.psId  = psId;
+    div.dataset.subId = subId;
+    div.dataset.subName = subName;
+    var label = document.createElement('span');
+    label.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis';
+    label.textContent = subName;
+    var btn = document.createElement('button');
+    btn.className = 'sub-chip-remove';
+    btn.title = 'Remover';
+    btn.textContent = '×';
+    div.appendChild(label);
+    div.appendChild(btn);
+    initSubRemoveBtn(btn, div);
+    return div;
+  }
+
+  function initSubRemoveBtn(btn, chip) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var psId    = chip.dataset.psId;
+      var subName = chip.dataset.subName || '';
+      fetch(ASSIGN_SUB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ action: 'remove', date: BOARD_DATE, ps_id: parseInt(psId, 10) })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast(data.error || 'Erro ao remover.'); return; }
+        var area = chip.closest('.card-subs');
+        chip.remove();
+        if (area && !area.querySelector('.board-chip--sub-assigned')) area.remove();
+        toast('"' + subName + '" removido da obra.');
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  /* Remove funcionário do card com confirmação */
+  function initWorkerRemoveBtn(btn, chip) {
+    btn.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      var workerName = chip.dataset.workerName || chip.querySelector('span') && chip.querySelector('span').textContent || '';
+      var card = chip.closest('.site-card');
+      var projectName = card ? (card.dataset.projectName || (card.querySelector('.site-card__chantier') || {}).textContent || '') : '';
+      projectName = projectName.trim();
+      var pwId = btn.dataset.pwId || chip.dataset.pwId;
+      if (!pwId) { toast('Erro: ID não encontrado.'); return; }
+      if (!confirm('Tem certeza que quer remover ' + workerName + ' da obra ' + projectName + '?')) return;
+      var url = REMOVE_WORKER_BASE_URL.replace('__PW__', pwId);
+      fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF }
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast('Erro ao remover.'); return; }
+        chip.remove();
+        toast('"' + workerName + '" removido da obra.');
+        if (updateWorkersCount) updateWorkersCount();
+        if (workerShowAssigned) doWorkerSearch();
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  /* Drop de subcontratado no card de obra */
+  function initSubDropOnCard(card) {
+    card.addEventListener('dragover', function(e) {
+      if (_draggingType === 'sub') {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    });
+    card.addEventListener('drop', function(e) {
+      var raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      var payload;
+      try { payload = JSON.parse(raw); } catch(_) { return; }
+      if (payload.type !== 'sub') return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      var projectId  = card.dataset.projectId;
+      var planningId = card.dataset.planningId;
+
+      // Bloqueia duplicação: ignora se o subcontratado já está neste card
+      if (card.querySelector('[data-sub-id="' + payload.sub_id + '"]')) return;
+
+      fetch(ASSIGN_SUB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+          action: 'add',
+          date: BOARD_DATE,
+          subcontractor_id: parseInt(payload.sub_id, 10),
+          project_id: parseInt(projectId, 10),
+        })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast(data.error || 'Erro ao atribuir.'); return; }
+        // Actualiza planning_id se acabou de ser criado
+        if (!planningId) card.dataset.planningId = data.planning_id;
+
+        // Garante que existe a área .card-subs antes de .card-workers
+        var subsArea = card.querySelector('.card-subs');
+        if (!subsArea) {
+          subsArea = document.createElement('div');
+          subsArea.className = 'card-subs';
+          subsArea.dataset.planningId = data.planning_id;
+          subsArea.dataset.projectId  = data.project_id;
+          var workers = card.querySelector('.card-workers');
+          card.insertBefore(subsArea, workers);
+        }
+        subsArea.appendChild(makeSubAssignedChip(data.ps_id, data.subcontractor_id, data.subcontractor_name));
+        toast('"' + data.subcontractor_name + '" atribuído à obra.');
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  /* ── Drag de obras para card vazio ── */
+  document.addEventListener('dragstart', function(e) {
+    // Chip de obra
+    var projChip = e.target.closest('.board-chip--project');
+    if (projChip) {
+      _draggingType = 'project';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type: 'project',
+        project_id: projChip.dataset.projectId,
+        project_name: projChip.dataset.projectName,
+        client_name: projChip.dataset.clientName,
+        address: projChip.dataset.address,
+      }));
+      return;
+    }
+    // Chip de funcionário
+    var workerChip = e.target.closest('.board-chip[data-worker-id]');
+    if (workerChip) {
+      _draggingType = 'worker';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type: 'worker',
+        worker_id: workerChip.dataset.workerId,
+        worker_name: workerChip.dataset.workerName || workerChip.textContent.trim()
+      }));
+      return;
+    }
+    // Chip de sous-traitant
+    var subChip = e.target.closest('.board-chip--sub');
+    if (subChip) {
+      _draggingType = 'sub';
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type: 'sub',
+        sub_id: subChip.dataset.subId,
+        sub_name: subChip.dataset.subName,
+      }));
+    }
+  });
+
+  document.addEventListener('dragend', function() { _draggingType = null; });
+
+  /* Drop zone: card em branco recebe obra */
+  function initBlankCardDrop(card) {
+    card.addEventListener('dragover', function(e) {
+      var raw = null;
+      try { raw = e.dataTransfer.types; } catch(_) {}
+      e.preventDefault();
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', function(e) {
+      if (!card.contains(e.relatedTarget)) card.classList.remove('drag-over');
+    });
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      var raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      var payload;
+      try { payload = JSON.parse(raw); } catch(_) { return; }
+      if (payload.type !== 'project') return;
+
+      fetch(ASSIGN_PROJECT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ project_id: parseInt(payload.project_id, 10), date: BOARD_DATE, action: 'add' })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast(data.error || 'Erro ao adicionar obra.'); return; }
+        convertBlankToProject(card, data);
+        removeProjectFromSidebar(String(data.project_id));
+        toast('Obra adicionada ao board.');
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  function convertBlankToProject(card, data) {
+    card.classList.remove('site-card--blank');
+    card.dataset.planningId  = data.planning_id;
+    card.dataset.projectId   = data.project_id;
+    card.dataset.projectName = data.project_name;
+
+    // Botão × de canto (cria se não existir)
+    var cornerBtn = card.querySelector('.card-corner-remove');
+    if (!cornerBtn) {
+      cornerBtn = document.createElement('button');
+      cornerBtn.className = 'card-corner-remove';
+      cornerBtn.title = 'Remover obra do board';
+      cornerBtn.textContent = '×';
+      card.insertBefore(cornerBtn, card.firstChild);
+    }
+    initRemoveBtn(cornerBtn, card);
+
+    var row2 = card.querySelector('.site-card__row2');
+    row2.innerHTML =
+      '<div class="site-card__chantier">' + escHtml(data.project_name) + '</div>' +
+      '<div class="site-card__clientcell">' + escHtml(data.client_name) + '</div>';
+
+    var addrEl = card.querySelector('.site-card__address');
+    addrEl.textContent = data.address || '—';
+    addrEl.style.cssText = '';
+
+    var metaEl = card.querySelector('.site-card__row2--meta');
+    var regHtml = data.has_work_registration && data.registration_number
+      ? '<div class="reg-label">' + escHtml(data.registration_type) + '</div><div class="reg-value">' + escHtml(data.registration_number) + '</div>'
+      : '<span class="reg-placeholder">Sem check-in</span>';
+    metaEl.innerHTML =
+      '<div class="site-card__registration">' + regHtml + '</div>' +
+      '<span class="print-van">V:</span>';
+
+    // Substituir blank-card-body por card-workers
+    var blankBody = card.querySelector('.blank-card-body');
+    if (blankBody) blankBody.remove();
+
+    var workers = document.createElement('div');
+    workers.className = 'card-workers';
+    workers.dataset.dropType  = 'project';
+    workers.dataset.projectId = data.project_id;
+    workers.innerHTML = '<div class="workers-hint">Arraste um nome para cá</div>';
+    card.appendChild(workers);
+    initWorkerDropZone(workers);
+    initSubDropOnCard(card);
+  }
+
+  function removeProjectFromSidebar(projectId) {
+    var chip = document.querySelector('#projects-pool [data-project-id="' + projectId + '"]');
+    if (chip) chip.remove();
+    if (updateProjectsCount) updateProjectsCount();
+    var pool = document.getElementById('projects-pool');
+    if (pool && !pool.querySelector('.board-chip--project')) {
+      if (!pool.querySelector('.pool-empty')) {
+        pool.innerHTML = '<div class="pool-empty">Todas as obras activas já estão no board.</div>';
+      }
+    }
+  }
+
+  function addProjectToSidebar(projectId, projectName, clientName, address, status) {
+    var pool = document.getElementById('projects-pool');
+    var empty = pool.querySelector('.pool-empty');
+    if (empty) empty.remove();
+    var div = document.createElement('div');
+    div.className = 'board-chip board-chip--project';
+    div.draggable = true;
+    div.dataset.projectId   = projectId;
+    div.dataset.projectName = projectName;
+    div.dataset.clientName  = clientName;
+    div.dataset.address     = address || '';
+    div.dataset.status      = status || '';
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'chip-proj-name';
+    nameSpan.textContent = projectName;
+    var coSpan = document.createElement('span');
+    coSpan.className = 'board-chip__co';
+    coSpan.textContent = clientName;
+    div.appendChild(nameSpan);
+    div.appendChild(coSpan);
+    pool.appendChild(div);
+    if (updateProjectsCount) updateProjectsCount();
+  }
+
+  /* ── Modal de confirmação ── */
+  var _confirmCallback = null;
+  var overlay    = document.getElementById('confirm-overlay');
+  var confirmTitle = document.getElementById('confirm-title');
+  var confirmMsg   = document.getElementById('confirm-msg');
+
+  document.getElementById('confirm-cancel').addEventListener('click', function() {
+    overlay.classList.add('hidden');
+    _confirmCallback = null;
+  });
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) { overlay.classList.add('hidden'); _confirmCallback = null; }
+  });
+  document.getElementById('confirm-ok').addEventListener('click', function() {
+    overlay.classList.add('hidden');
+    if (_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
+  });
+
+  function confirmRemove(title, message, onConfirm, okLabel) {
+    confirmTitle.textContent = title;
+    confirmMsg.textContent = message;
+    document.getElementById('confirm-ok').textContent = okLabel || 'Confirmar';
+    _confirmCallback = onConfirm;
+    overlay.classList.remove('hidden');
+  }
+
+  /* Botão × para remover obra do board */
+  function initRemoveBtn(btn, card) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var planningId  = card.dataset.planningId;
+      var projectName = card.dataset.projectName || card.querySelector('.site-card__chantier').textContent.trim();
+      var workers     = card.querySelectorAll('.card-workers .board-chip');
+      var nWorkers    = workers.length;
+      var msg = nWorkers > 0
+        ? 'Com ' + nWorkers + ' funcionário' + (nWorkers > 1 ? 's' : '') + ' atribuído' + (nWorkers > 1 ? 's' : '') + '. Esta ação não pode ser desfeita.'
+        : 'Esta ação não pode ser desfeita.';
+
+      confirmRemove('Remover "' + projectName + '" do board?', msg, function() {
+        fetch(ASSIGN_PROJECT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+          body: JSON.stringify({ planning_id: parseInt(planningId, 10), date: BOARD_DATE, action: 'remove' })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (!data.ok) { toast(data.error || 'Erro ao remover.'); return; }
+          convertProjectToBlank(card);
+          toast('Obra removida do board.');
+        }).catch(function() { toast('Erro de rede.'); });
+      }, 'Remover');
+    });
+  }
+
+  function convertProjectToBlank(card) {
+    var projectId   = card.dataset.projectId;
+    var projectName = card.querySelector('.site-card__chantier') ? card.querySelector('.site-card__chantier').textContent : '';
+    var clientName  = card.querySelector('.site-card__clientcell') ? card.querySelector('.site-card__clientcell').textContent : '';
+    var address     = card.querySelector('.site-card__address') ? card.querySelector('.site-card__address').textContent : '';
+
+    card.classList.add('site-card--blank');
+    delete card.dataset.planningId;
+    delete card.dataset.projectId;
+    delete card.dataset.projectName;
+
+    var cornerBtn = card.querySelector('.card-corner-remove');
+    if (cornerBtn) cornerBtn.remove();
+
+    var row2 = card.querySelector('.site-card__row2:not(.site-card__row2--meta)');
+    row2.innerHTML =
+      '<div class="site-card__chantier project-drop-hint">Arraste uma obra…</div>' +
+      '<div class="site-card__clientcell"></div>';
+
+    var addrEl = card.querySelector('.site-card__address');
+    addrEl.textContent = '';
+    addrEl.style.cssText = 'color:var(--text3);font-style:italic;';
+
+    var metaEl = card.querySelector('.site-card__row2--meta');
+    metaEl.innerHTML =
+      '<div class="site-card__registration"><span class="reg-placeholder"></span></div>' +
+      '<span class="print-van" style="display:none">V:</span>';
+
+    var workers = card.querySelector('.card-workers');
+    if (workers) workers.remove();
+
+    var blankBody = document.createElement('div');
+    blankBody.className = 'blank-card-body';
+    var note = document.createElement('div');
+    note.className = 'blank-card-note';
+    note.contentEditable = 'true';
+    note.spellcheck = false;
+    note.dataset.slot = '999';
+    note.dataset.placeholder = 'Clique aqui para escrever algo…';
+    blankBody.appendChild(note);
+    card.appendChild(blankBody);
+    initBlankNoteSave(note);
+
+    addProjectToSidebar(projectId, projectName, clientName, address);
+  }
+
+  /* ── Drop zone: funcionários ── */
+  function initWorkerDropZone(zone) {
+    zone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', function(e) {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      var raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      var payload;
+      try { payload = JSON.parse(raw); } catch(_) { return; }
+      if (payload.type !== 'worker') return;
+
+      var workerId   = payload.worker_id;
+      var workerName = payload.worker_name || '';
+      var dropType   = zone.dataset.dropType;
+      var projectId  = zone.dataset.projectId || null;
+
+      // Bloqueia duplicação: ignora se o funcionário já está neste card
+      if (dropType === 'project' && zone.querySelector('[data-board-worker="' + workerId + '"]')) return;
+
+      var body = { worker_id: parseInt(workerId, 10), date: BOARD_DATE, target: dropType };
+      if (dropType === 'project') body.project_id = parseInt(projectId, 10);
+
+      fetch(ASSIGN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify(body)
+      }).then(function(r) { return r.json(); }).then(function(res) {
+        if (!res.ok) { toast(res.error || 'Erro ao guardar.'); return; }
+
+        if (dropType === 'pool') {
+          // Devolver ao pool: remove todas as atribuições do dia e recarrega
+          clearWorkerChipsOnBoard(String(workerId));
+          doWorkerSearch();
+          toast('Devolvido à lista.');
+          return;
+        }
+        // Atribuir a obra: não remove chips de outros cards (multi-obra permitido)
+        // Remove apenas o chip do pool lateral (se existir)
+        removeWorkerFromPool(String(workerId));
+        var newChip = makeWorkerChip(String(res.worker_id), res.worker_name, String(res.pw_id), false, '');
+        zone.appendChild(newChip);
+        var removeBtn = newChip.querySelector('.worker-chip-remove');
+        if (removeBtn) initWorkerRemoveBtn(removeBtn, newChip);
+        // Se "Já selecionados" estiver ativo, recarrega o pool para mostrar o contador atualizado
+        if (workerShowAssigned) doWorkerSearch();
+        toast('Atribuído à obra.');
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  // Remove chips do worker apenas nos cards do board (não no pool lateral)
+  function clearWorkerChipsOnBoard(workerId) {
+    document.querySelectorAll('.card-workers [data-board-worker="' + workerId + '"]').forEach(function(el) { el.remove(); });
+  }
+
+  // Remove o chip do worker do pool lateral
+  function removeWorkerFromPool(workerId) {
+    document.querySelectorAll('#pool-drop [data-board-worker="' + workerId + '"]').forEach(function(el) { el.remove(); });
+    if (updateWorkersCount) updateWorkersCount();
+  }
+
+  function makeWorkerChip(workerId, workerName, pwId, isPool, companyName, assignedProjects) {
+    var div = document.createElement('div');
+    var isAssigned = assignedProjects && assignedProjects.length > 0;
+    div.className = 'board-chip' + (isPool ? (isAssigned ? ' board-chip--pool-assigned' : ' board-chip--pool') : '');
+    div.draggable = true;
+    div.dataset.boardWorker = workerId;
+    div.dataset.workerId    = workerId;
+    div.dataset.workerName  = workerName;
+    if (pwId) div.dataset.pwId = pwId;
+    if (isPool) {
+      div.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+      var nameRow = document.createElement('div');
+      nameRow.style.cssText = 'display:flex;align-items:center;gap:4px;';
+      var nameNode = document.createTextNode(workerName);
+      nameRow.appendChild(nameNode);
+      if (isAssigned) {
+        var cnt = document.createElement('span');
+        cnt.style.cssText = 'color:var(--red);font-weight:700;font-size:10px;';
+        cnt.textContent = '(' + assignedProjects.length + 'x)';
+        nameRow.appendChild(cnt);
+      }
+      div.appendChild(nameRow);
+      if (companyName) {
+        var span = document.createElement('span');
+        span.className = 'board-chip__co';
+        span.textContent = companyName;
+        div.appendChild(span);
+      }
+    } else {
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = workerName;
+      div.appendChild(nameSpan);
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'worker-chip-remove';
+      removeBtn.title = 'Remover';
+      removeBtn.textContent = '×';
+      if (pwId) removeBtn.dataset.pwId = pwId;
+      div.appendChild(removeBtn);
+    }
+    return div;
+  }
+
+  function ensurePoolEmptyHidden() {
+    var m = document.getElementById('pool-empty-msg');
+    if (m) m.remove();
+  }
+
+  function refreshPoolEmpty() {
+    var pool = document.getElementById('pool-drop');
+    if (!pool.querySelector('.board-chip')) {
+      var d = document.createElement('div');
+      d.className = 'pool-empty';
+      d.id = 'pool-empty-msg';
+      d.textContent = 'Todos os trabalhadores já estão atribuídos a um cartão.';
+      pool.appendChild(d);
+    }
+  }
+
+  /* ── Blank note save ── */
+  function initBlankNoteSave(el) {
+    el.addEventListener('blur', function() {
+      var slot = parseInt(el.dataset.slot, 10);
+      if (isNaN(slot)) return;
+      var text = (el.textContent || '').trim();
+      fetch(BLANK_SAVE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ date: BOARD_DATE, slot_index: slot, line_index: 0, text: text })
+      }).then(function(r) { return r.json(); }).then(function(j) {
+        if (j && j.error) toast(j.error);
+      }).catch(function() { toast('Erro ao guardar.'); });
+    });
+  }
+
+  /* ── Utilitários ── */
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Inicialização ── */
+
+  // Botão × nos cards de projeto existentes (renderizados pelo Django)
+  document.querySelectorAll('.site-card .card-corner-remove').forEach(function(btn) {
+    var card = btn.closest('.site-card');
+    if (card) initRemoveBtn(btn, card);
+  });
+
+  // ── Botão Duplicar dia inteiro ──
+  document.getElementById('btn-duplicate-day').addEventListener('click', function() {
+    var plannings = document.querySelectorAll('.site-card[data-planning-id]');
+    var n = plannings.length;
+    if (n === 0) {
+      toast('Não há obras no board para duplicar.');
+      return;
+    }
+    var nextDate = new Date(BOARD_DATE);
+    nextDate.setDate(nextDate.getDate() + 1);
+    var nextStr = nextDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    confirmRemove(
+      'Duplicar planning para o dia seguinte?',
+      n + ' obra' + (n > 1 ? 's' : '') + ' será' + (n > 1 ? 'o' : '') + ' copiada' + (n > 1 ? 's' : '') + ' para ' + nextStr + ', incluindo os funcionários atribuídos.',
+      function() {
+        fetch(DUPLICATE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+          body: JSON.stringify({ date: BOARD_DATE })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (!data.ok) { toast(data.error || 'Erro ao duplicar.'); return; }
+          var msg = 'Duplicado para ' + data.next_date_display + ': ' + data.created + ' criado' + (data.created !== 1 ? 's' : '');
+          if (data.already_existed) msg += ', ' + data.already_existed + ' já existia' + (data.already_existed > 1 ? 'm' : '');
+          toast(msg + '.');
+        }).catch(function() { toast('Erro de rede ao duplicar.'); });
+      },
+      'Duplicar'
+    );
+  });
+
+  // ── Botão Apagar dia inteiro ──
+  document.getElementById('btn-clear-day').addEventListener('click', function() {
+    var cards = document.querySelectorAll('.site-card[data-planning-id]');
+    var nCards = cards.length;
+    if (nCards === 0) {
+      toast('Não há obras no board para apagar.');
+      return;
+    }
+    var totalWorkers = 0;
+    cards.forEach(function(c) { totalWorkers += c.querySelectorAll('.card-workers .board-chip').length; });
+
+    var detail = nCards + ' obra' + (nCards > 1 ? 's' : '');
+    if (totalWorkers > 0) detail += ' e ' + totalWorkers + ' atribuição' + (totalWorkers > 1 ? 'ões' : '') + ' de funcionários';
+    var msg = 'Serão removidos do board: ' + detail + '.\n\nEsta ação é permanente e não pode ser desfeita.';
+
+    confirmRemove(
+      'Apagar o planning de {{ board_date|date:"d/m/Y" }}?',
+      msg,
+      function() {
+        fetch(CLEAR_DAY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+          body: JSON.stringify({ date: BOARD_DATE })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (!data.ok) { toast(data.error || 'Erro ao apagar.'); return; }
+          // Remove todos os cards do board e converte para blank
+          document.querySelectorAll('.site-card[data-planning-id]').forEach(function(card) {
+            convertProjectToBlank(card);
+          });
+          toast('Planning de {{ board_date|date:"d/m/Y" }} apagado.');
+        }).catch(function() { toast('Erro de rede ao apagar.'); });
+      },
+      'Apagar tudo'
+    );
+  });
+
+  // Drop zones de funcionários nos cards de projeto existentes
+  document.querySelectorAll('.card-workers[data-drop-type]').forEach(function(zone) {
+    initWorkerDropZone(zone);
+  });
+
+  // Drop de subcontratados nos cards existentes
+  document.querySelectorAll('.site-card[data-planning-id]').forEach(function(card) {
+    initSubDropOnCard(card);
+  });
+
+  // Botões × nos chips de subcontratados já renderizados pelo Django
+  document.querySelectorAll('.card-subs .sub-chip-remove').forEach(function(btn) {
+    var chip = btn.closest('.board-chip--sub-assigned');
+    if (chip) initSubRemoveBtn(btn, chip);
+  });
+
+  // Botões × nos chips de funcionários já renderizados pelo Django
+  document.querySelectorAll('.card-workers .worker-chip-remove').forEach(function(btn) {
+    var chip = btn.closest('.board-chip');
+    if (chip) initWorkerRemoveBtn(btn, chip);
+  });
+
+  // Drop zones de obras nos cards em branco existentes
+  document.querySelectorAll('.site-card--blank').forEach(function(card) {
+    initBlankCardDrop(card);
+  });
+
+  // Blank note save em cards em branco existentes
+  document.querySelectorAll('.blank-card-note').forEach(function(el) {
+    initBlankNoteSave(el);
+  });
+
+  /* ── Restaura estado das secções após Atualizar ── */
+  (function() {
+    var state = loadSidebarState();
+    if (!state) return;
+    ['projects', 'workers', 'subs'].forEach(function(key) {
+      var body   = document.getElementById(key + '-body');
+      var toggle = document.getElementById(key + '-toggle');
+      if (!body || !toggle) return;
+      var arrow = toggle.querySelector('.pool-section__arrow');
+      if (state[key]) {
+        body.classList.remove('pool-section__body--collapsed');
+        if (arrow) arrow.style.transform = '';
+        if (key === 'workers' && document.getElementById('pool-empty-msg')) doWorkerSearch();
+        if (key === 'subs'    && document.getElementById('subs-loading'))   doSubSearch();
+      } else {
+        body.classList.add('pool-section__body--collapsed');
+        if (arrow) arrow.style.transform = 'rotate(-90deg)';
+      }
+    });
+  })();
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Fleet — Dashboard" %} — Construart{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Fleet — Dashboard" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .fleet-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .kpi-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .kpi-label { font-size: 12px; color: var(--text3); font-family: sans-serif; text-transform: uppercase; letter-spacing: .8px; }
+  .kpi-card.red .kpi-value   { color: var(--red); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+
+  .alert-section { margin-bottom: 28px; }
+  .alert-section-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--text3); font-family: sans-serif;
+    margin-bottom: 12px;
+  }
+  .alert-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .alert-row .plate {
+    font-weight: 600;
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+  .alert-row .info { flex: 1; color: var(--text2); }
+  .alert-row .days { font-family: sans-serif; font-size: 13px; font-weight: 600; }
+  .days.expired { color: var(--red); }
+  .days.soon    { color: var(--amber); }
+  .days.ok      { color: var(--green); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media(max-width:860px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🚛 {% trans "Fleet — Dashboard" %}</h1>
+    <p class="page-sub">{% trans "Overview of vehicles, documents, and alerts" %}</p>
+  </div>
+  <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary">+ {% trans "New Vehicle" %}</a>
+</div>
+
+<!-- KPIs -->
+<div class="fleet-kpi-grid">
+  <div class="kpi-card green">
+    <div class="kpi-value">{{ active_count }}</div>
+    <div class="kpi-label">{% trans "Active Vehicles" %}</div>
+  </div>
+  <div class="kpi-card {% if maintenance_count > 0 %}amber{% else %}green{% endif %}">
+    <div class="kpi-value">{{ maintenance_count }}</div>
+    <div class="kpi-label">{% trans "In Maintenance" %}</div>
+  </div>
+  <div class="kpi-card {% if expired_docs %}red{% else %}green{% endif %}">
+    <div class="kpi-value">{{ expired_docs|length }}</div>
+    <div class="kpi-label">{% trans "Expired Documents" %}</div>
+  </div>
+  <div class="kpi-card {% if pending_fines %}amber{% else %}green{% endif %}">
+    <div class="kpi-value">{{ pending_fines|length }}</div>
+    <div class="kpi-label">{% trans "Pending Fines" %}</div>
+  </div>
+  <div class="kpi-card {% if payroll_fines %}red{% else %}green{% endif %}">
+    <div class="kpi-value">{{ payroll_fines|length }}</div>
+    <div class="kpi-label">{% trans "Payroll Deductions Pending" %}</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- Documentos vencidos/a vencer -->
+  <div>
+    {% if expired_docs %}
+    <div class="alert-section">
+      <div class="alert-section-title">⛔ {% trans "Expired Documents" %}</div>
+      {% for doc in expired_docs %}
+      <div class="alert-row">
+        <span class="plate">{{ doc.vehicle.license_plate }}</span>
+        <span class="info">{{ doc.get_doc_type_display }}{% if doc.insurer_or_entity %} — {{ doc.insurer_or_entity }}{% endif %}</span>
+        <span class="days expired">{{ doc.expiry_date }}</span>
+        <a href="{% url 'fleet:document_edit' doc.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="alert-section">
+      <div class="alert-section-title">⚠️ {% trans "Documents Expiring in 60 Days" %}</div>
+      {% if expiring_docs %}
+        {% for doc in expiring_docs %}
+        <div class="alert-row">
+          <span class="plate">{{ doc.vehicle.license_plate }}</span>
+          <span class="info">{{ doc.get_doc_type_display }}{% if doc.insurer_or_entity %} — {{ doc.insurer_or_entity }}{% endif %}</span>
+          <span class="days {% if doc.days_until_expiry <= 30 %}soon{% else %}ok{% endif %}">
+            {{ doc.days_until_expiry }}d
+          </span>
+          <a href="{% url 'fleet:document_edit' doc.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--text3);font-size:14px;">{% trans "No documents expiring soon." %}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Multas + Manutenções -->
+  <div>
+    {% if payroll_fines %}
+    <div class="alert-section">
+      <div class="alert-section-title">💶 {% trans "Payroll Deductions Pending" %}</div>
+      {% for fine in payroll_fines %}
+      <div class="alert-row">
+        <span class="plate">{{ fine.vehicle.license_plate }}</span>
+        <span class="info">{% if fine.driver %}{{ fine.driver }}{% else %}—{% endif %} — €{{ fine.amount }}</span>
+        <span class="days soon">{{ fine.date }}</span>
+        <a href="{% url 'fleet:fine_edit' fine.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="alert-section">
+      <div class="alert-section-title">🔧 {% trans "Scheduled Maintenances" %}</div>
+      {% if scheduled_maintenances %}
+        {% for m in scheduled_maintenances %}
+        <div class="alert-row">
+          <span class="plate">{{ m.vehicle.license_plate }}</span>
+          <span class="info">{{ m.get_maintenance_type_display }} — {{ m.description|truncatechars:50 }}</span>
+          <span class="days {% if m.status == 'in_progress' %}soon{% else %}ok{% endif %}">{{ m.scheduled_date }}</span>
+          <a href="{% url 'fleet:maintenance_edit' m.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--text3);font-size:14px;">{% trans "No maintenances scheduled." %}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Lista rápida de veículos activos -->
+<div class="alert-section">
+  <div class="alert-section-title">🚗 {% trans "Active Fleet" %}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+    {% for v in vehicles %}
+    <a href="{% url 'fleet:vehicle_detail' v.pk %}"
+       style="display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;text-decoration:none;color:var(--text);transition:border-color .15s;"
+       onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px;">{{ v.license_plate }}</div>
+      <div style="font-size:13px;color:var(--text2);">{{ v.brand }} {{ v.model }} ({{ v.year }})</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px;font-family:sans-serif;">
+        {{ v.category }} · {{ v.current_km|floatformat:0 }} km
+        {% if v.default_driver %} · {{ v.default_driver }}{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

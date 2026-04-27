@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load money %}
+
+{% block title %}{{ product.name }}{% endblock %}
+{% block tab_parent %}/catalog/{% endblock %}
+{% block tab_icon %}📦{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Catálogo" %}</span>
+<span class="bc-sep">›</span>
+<a href="{% url 'catalog:product_list' %}">{% trans "Produtos" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ product.name }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.detail-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media(max-width:768px){.detail-layout{grid-template-columns:1fr}}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden}
+.info-card-header{padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.info-row{display:flex;flex-direction:column;gap:2px;padding:12px 18px;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.info-value{font-size:14px;color:var(--text)}
+.info-value.big{font-size:18px;font-weight:700;color:var(--accent)}
+.right-col{display:flex;flex-direction:column;gap:20px}
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.section-title{font-weight:600;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3)}
+.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.empty-mini{padding:24px;text-align:center;color:var(--text3);font-size:13px}
+.toggle-btn{padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid;cursor:pointer;font-weight:600;transition:all .15s}
+.toggle-approved.yes{background:var(--green,#2d7a4f);color:#fff;border-color:var(--green,#2d7a4f)}
+.toggle-approved.no{background:none;color:var(--amber,#b8760a);border-color:var(--amber,#b8760a)}
+.toggle-active.yes{background:var(--green,#2d7a4f);color:#fff;border-color:var(--green,#2d7a4f)}
+.toggle-active.no{background:none;color:var(--text3);border-color:var(--border)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ product.name }}</h1>
+    <p class="page-sub">
+      {% if product.brand %}{{ product.brand }} · {% endif %}
+      {{ product.unit.symbol }}
+      {% if product.category %} · {{ product.category.name }}{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'catalog:product_update' product.pk %}" class="btn btn-primary">✏️ {% trans "Editar" %}</a>
+    {% if can_delete %}
+      <form method="post" action="{% url 'catalog:product_delete' product.pk %}" style="display:inline"
+            onsubmit="return confirm('{% trans "Excluir este produto? Esta ação não pode ser desfeita." %}')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑️ {% trans "Excluir" %}</button>
+      </form>
+    {% else %}
+      <button type="button" class="btn btn-ghost" disabled
+              title="{% trans "Este produto está em uso e não pode ser excluído." %}">
+        🗑️ {% trans "Excluir" %}
+      </button>
+    {% endif %}
+    <a href="{% url 'catalog:product_list' %}" class="btn btn-ghost">{% trans "← Voltar" %}</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+  <!-- Coluna esquerda: info principal -->
+  <div class="info-card">
+    <div class="info-card-header">{% trans "Informações" %}</div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Estado" %}</span>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">
+        <button class="toggle-btn toggle-active {% if product.is_active %}yes{% else %}no{% endif %}"
+                onclick="toggleActive()" id="btn-active">
+          {% if product.is_active %}✓ {% trans "Activo" %}{% else %}✗ {% trans "Inactivo" %}{% endif %}
+        </button>
+        <button class="toggle-btn toggle-approved {% if product.is_approved %}yes{% else %}no{% endif %}"
+                onclick="toggleApproved()" id="btn-approved">
+          {% if product.is_approved %}✓ {% trans "Aprovado" %}{% else %}⏳ {% trans "Pendente" %}{% endif %}
+        </button>
+      </div>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Categoria" %}</span>
+      <span class="info-value">{{ product.category.name|default:"—" }}</span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Unidade base" %}</span>
+      <span class="info-value">{{ product.unit.symbol }} — {{ product.unit.name }}</span>
+    </div>
+
+    {% if product.barcode %}
+    <div class="info-row">
+      <span class="info-label">{% trans "Código de barras" %}</span>
+      <span class="info-value">{{ product.barcode }}</span>
+    </div>
+    {% endif %}
+
+    <div class="info-row">
+      <span class="info-label">{% trans "IVA" %}</span>
+      <span class="info-value">{{ product.vat_rate|floatformat:2 }}%</span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Margem de venda" %}</span>
+      <span class="info-value">{{ product.sale_margin|floatformat:2 }}%</span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Melhor preço de compra HT" %}</span>
+      <span class="info-value big">
+        {% if product.best_purchase_price %}
+          {{ product.best_purchase_price|eur }}
+        {% else %}—{% endif %}
+      </span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Preço de venda HT" %}</span>
+      <span class="info-value">
+        {% if product.sale_price_ht %}{{ product.sale_price_ht|eur }}{% else %}—{% endif %}
+      </span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Preço de venda TTC" %}</span>
+      <span class="info-value">
+        {% if product.sale_price_ttc %}{{ product.sale_price_ttc|eur }}{% else %}—{% endif %}
+      </span>
+    </div>
+
+    {% if product.notes %}
+    <div class="info-row">
+      <span class="info-label">{% trans "Observações" %}</span>
+      <span class="info-value" style="white-space:pre-wrap">{{ product.notes }}</span>
+    </div>
+    {% endif %}
+
+    <div class="info-row">
+      <span class="info-label">{% trans "Criado por" %}</span>
+      <span class="info-value muted" style="font-size:12px;color:var(--text3)">
+        {{ product.created_by.get_full_name|default:product.created_by.username|default:"—" }}
+        · {{ product.created_at|date:"d/m/Y" }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Coluna direita: fornecedores -->
+  <div class="right-col">
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">{% trans "Ofertas de fornecedores" %}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-primary btn-sm" onclick="openOfferPopup()">
+            + {% trans "Adicionar preço" %}
+          </button>
+          <a href="{% url 'suppliers:list' %}" class="btn btn-ghost btn-sm">{% trans "Ver fornecedores" %}</a>
+        </div>
+      </div>
+
+      {% if product.supplier_offers.all %}
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>{% trans "Fornecedor" %}</th>
+            <th>{% trans "Ref. fornecedor" %}</th>
+            <th class="num">{% trans "Preço unit. HT" %}</th>
+            <th class="num">{% trans "Embalagem" %}</th>
+            <th>{% trans "Validade" %}</th>
+            <th>{% trans "Preferido" %}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="offers-tbody">
+          {% for offer in product.supplier_offers.all %}
+          <tr data-id="{{ offer.pk }}"
+              data-supplier-id="{{ offer.supplier_id }}"
+              data-supplier-ref="{{ offer.supplier_ref|default:''|escape }}"
+              data-supplier-description="{{ offer.supplier_description|default:''|escape }}"
+              data-unit-price="{{ offer.unit_price }}"
+              data-package-qty="{{ offer.package_qty }}"
+              data-package-unit-id="{{ offer.package_unit_id|default:'' }}"
+              data-minimum-order-qty="{{ offer.minimum_order_qty }}"
+              data-lead-time-days="{{ offer.lead_time_days }}"
+              data-is-preferred="{% if offer.is_preferred %}1{% else %}0{% endif %}"
+              data-is-active="{% if offer.is_active %}1{% else %}0{% endif %}"
+              data-valid-from="{{ offer.valid_from|date:'Y-m-d' }}"
+              data-valid-until="{{ offer.valid_until|date:'Y-m-d' }}">
+            <td><strong>{{ offer.supplier.trade_name|default:offer.supplier.name }}</strong></td>
+            <td class="muted">{{ offer.supplier_ref|default:"—" }}</td>
+            <td class="num"><strong>{{ offer.unit_price|eur }}</strong></td>
+            <td class="num muted">
+              {{ offer.package_qty|floatformat:2 }}
+              {% if offer.package_unit %}{{ offer.package_unit.symbol }}{% endif %}
+            </td>
+            <td class="muted">
+              {% if offer.valid_until %}
+                {{ offer.valid_until|date:"d/m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if offer.is_preferred %}
+                <span class="badge badge-green">★ {% trans "Sim" %}</span>
+              {% else %}
+                <span class="badge badge-gray">{% trans "Não" %}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="openOfferPopup({{ offer.pk }})">✏️</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="openOfferHistory({{ offer.pk }})">🕘</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteOffer({{ offer.pk }})">🗑️</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-mini">{% trans "Nenhum fornecedor associado a este produto." %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP OFERTA (preço por fornecedor) ══ -->
+<div class="modal-overlay" id="offer-overlay">
+  <div class="modal" style="width:640px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title" id="offer-title">{% trans "Preço por fornecedor" %}</div>
+      <button class="modal-close" onclick="closeOfferPopup()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error" id="offer-error" style="display:none"></div>
+      <div class="form-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">{% trans "Fornecedor" %} *</label>
+          <select id="offer-supplier" class="form-control">
+            <option value="">{% trans "— selecione —" %}</option>
+            {% for s in suppliers %}
+              <option value="{{ s.pk }}">{{ s.trade_name|default:s.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="field-error" id="err-supplier" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Preço unit. HT" %} *</label>
+          <input id="offer-unit-price" type="number" step="0.0001" min="0" class="form-control">
+          <div class="field-error" id="err-unit_price" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Lead time (dias)" %}</label>
+          <input id="offer-lead-time" type="number" min="0" class="form-control">
+          <div class="field-error" id="err-lead_time_days" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Qtd por embalagem" %}</label>
+          <input id="offer-package-qty" type="number" step="0.0001" min="0" class="form-control" value="1">
+          <div class="field-error" id="err-package_qty" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Unid. embalagem" %}</label>
+          <select id="offer-package-unit" class="form-control">
+            <option value="">{% trans "—" %}</option>
+            {% for u in units %}
+              <option value="{{ u.pk }}">{{ u.symbol }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Qtd mínima" %}</label>
+          <input id="offer-min-qty" type="number" step="0.0001" min="0" class="form-control" value="1">
+          <div class="field-error" id="err-minimum_order_qty" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Ref. fornecedor" %}</label>
+          <input id="offer-supplier-ref" type="text" class="form-control">
+        </div>
+
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">{% trans "Descrição fornecedor" %}</label>
+          <input id="offer-supplier-desc" type="text" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{% trans "Válido de" %}</label>
+          <input id="offer-valid-from" type="date" class="form-control">
+          <div class="field-error" id="err-valid_from" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Válido até" %}</label>
+          <input id="offer-valid-until" type="date" class="form-control">
+          <div class="field-error" id="err-valid_until" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">{% trans "Motivo (histórico)" %}</label>
+          <input id="offer-note" type="text" class="form-control" placeholder="{% trans 'Ex: tabela 2026, negociação…' %}">
+        </div>
+
+        <div class="form-group" style="grid-column:span 2;display:flex;gap:16px;align-items:center">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" id="offer-preferred"> <span>{% trans "Preferido" %}</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" id="offer-active" checked> <span>{% trans "Ativo" %}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="offer-save-btn" onclick="saveOffer()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closeOfferPopup()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL HISTÓRICO ══ -->
+<div class="modal-overlay" id="history-overlay">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title" id="history-title">{% trans "Histórico de preço" %}</div>
+      <button class="modal-close" onclick="closeOfferHistory()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error" id="history-error" style="display:none"></div>
+      <div style="overflow:auto">
+        <table class="dt">
+          <thead>
+            <tr>
+              <th>{% trans "Data" %}</th>
+              <th class="num">{% trans "Preço" %}</th>
+              <th>{% trans "Por" %}</th>
+              <th>{% trans "Motivo" %}</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody">
+            <tr><td colspan="4" class="muted">{% trans "Carregando…" %}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeOfferHistory()">{% trans "Fechar" %}</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{# URLs geradas pelo Django com prefixo de língua correcto #}
+<span id="url-toggle-approved" data-url="{% url 'catalog:product_toggle_approved' product.pk %}" style="display:none"></span>
+<span id="url-toggle-active"   data-url="{% url 'catalog:product_toggle_active'   product.pk %}" style="display:none"></span>
+<span id="url-offer-save" data-url="{% url 'procurement:product_offer_save' product.pk %}" style="display:none"></span>
+<span id="url-offer-update" data-url-template="{% url 'procurement:product_offer_update' product.pk 999999 %}" style="display:none"></span>
+<span id="url-offer-delete" data-url-template="{% url 'procurement:product_offer_delete' product.pk 999999 %}" style="display:none"></span>
+<span id="url-offer-history" data-url-template="{% url 'procurement:offer_price_history' 999999 %}" style="display:none"></span>
+<script>
+const CSRF              = '{{ csrf_token }}';
+const URL_TOGGLE_APPR   = document.getElementById('url-toggle-approved').dataset.url;
+const URL_TOGGLE_ACTIVE = document.getElementById('url-toggle-active').dataset.url;
+const URL_OFFER_SAVE    = document.getElementById('url-offer-save').dataset.url;
+const URL_OFFER_UPD_TPL = document.getElementById('url-offer-update').dataset.urlTemplate;
+const URL_OFFER_DEL_TPL = document.getElementById('url-offer-delete').dataset.urlTemplate;
+const URL_OFFER_HIS_TPL = document.getElementById('url-offer-history').dataset.urlTemplate;
+
+function post(url) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ csrfmiddlewaretoken: CSRF }),
+  }).then(r => r.json());
+}
+
+function toggleApproved() {
+  post(URL_TOGGLE_APPR).then(json => {
+    if (!json.ok) return;
+    const btn = document.getElementById('btn-approved');
+    if (json.is_approved) {
+      btn.className = 'toggle-btn toggle-approved yes';
+      btn.textContent = '✓ {% trans "Aprovado" %}';
+    } else {
+      btn.className = 'toggle-btn toggle-approved no';
+      btn.textContent = '⏳ {% trans "Pendente" %}';
+    }
+  });
+}
+
+function toggleActive() {
+  post(URL_TOGGLE_ACTIVE).then(json => {
+    if (!json.ok) return;
+    const btn = document.getElementById('btn-active');
+    if (json.is_active) {
+      btn.className = 'toggle-btn toggle-active yes';
+      btn.textContent = '✓ {% trans "Activo" %}';
+    } else {
+      btn.className = 'toggle-btn toggle-active no';
+      btn.textContent = '✗ {% trans "Inactivo" %}';
+    }
+  });
+}
+
+// ══ Offers CRUD (Preço por fornecedor) ═══════════════════════════════════
+let editingOfferPk = null;
+
+function urlFromTemplate(tpl, pk) { return tpl.replace('999999', String(pk)); }
+
+function clearOfferErrors() {
+  document.getElementById('offer-error').style.display = 'none';
+  document.getElementById('offer-error').textContent = '';
+  ['supplier','unit_price','package_qty','minimum_order_qty','lead_time_days','valid_from','valid_until']
+    .forEach(f => { const el = document.getElementById('err-' + f); if (el) el.textContent = ''; });
+}
+
+function openOfferPopup(pk) {
+  editingOfferPk = pk || null;
+  clearOfferErrors();
+  document.getElementById('offer-title').textContent = pk ? '{% trans "Editar preço" %}' : '{% trans "Novo preço" %}';
+
+  // reset defaults
+  document.getElementById('offer-supplier').value = '';
+  document.getElementById('offer-supplier-ref').value = '';
+  document.getElementById('offer-supplier-desc').value = '';
+  document.getElementById('offer-unit-price').value = '';
+  document.getElementById('offer-package-qty').value = '1';
+  document.getElementById('offer-package-unit').value = '';
+  document.getElementById('offer-min-qty').value = '1';
+  document.getElementById('offer-lead-time').value = '0';
+  document.getElementById('offer-valid-from').value = '';
+  document.getElementById('offer-valid-until').value = '';
+  document.getElementById('offer-note').value = '';
+  document.getElementById('offer-preferred').checked = false;
+  document.getElementById('offer-active').checked = true;
+
+  if (pk) {
+    const row = document.querySelector(`#offers-tbody tr[data-id="${pk}"]`);
+    if (row) {
+      document.getElementById('offer-supplier').value = row.dataset.supplierId || '';
+      document.getElementById('offer-supplier-ref').value = row.dataset.supplierRef || '';
+      document.getElementById('offer-supplier-desc').value = row.dataset.supplierDescription || '';
+      document.getElementById('offer-unit-price').value = row.dataset.unitPrice || '';
+      document.getElementById('offer-package-qty').value = row.dataset.packageQty || '1';
+      document.getElementById('offer-package-unit').value = row.dataset.packageUnitId || '';
+      document.getElementById('offer-min-qty').value = row.dataset.minimumOrderQty || '1';
+      document.getElementById('offer-lead-time').value = row.dataset.leadTimeDays || '0';
+      document.getElementById('offer-valid-from').value = row.dataset.validFrom || '';
+      document.getElementById('offer-valid-until').value = row.dataset.validUntil || '';
+      document.getElementById('offer-preferred').checked = (row.dataset.isPreferred === '1');
+      document.getElementById('offer-active').checked = (row.dataset.isActive !== '0');
+    }
+  }
+
+  document.getElementById('offer-overlay').classList.add('open');
+}
+
+function closeOfferPopup() {
+  document.getElementById('offer-overlay').classList.remove('open');
+}
+
+function saveOffer() {
+  clearOfferErrors();
+  const btn = document.getElementById('offer-save-btn');
+  btn.disabled = true;
+
+  const data = new URLSearchParams({
+    csrfmiddlewaretoken: CSRF,
+    supplier: document.getElementById('offer-supplier').value,
+    supplier_ref: document.getElementById('offer-supplier-ref').value,
+    supplier_description: document.getElementById('offer-supplier-desc').value,
+    unit_price: document.getElementById('offer-unit-price').value,
+    package_qty: document.getElementById('offer-package-qty').value,
+    package_unit: document.getElementById('offer-package-unit').value,
+    minimum_order_qty: document.getElementById('offer-min-qty').value,
+    lead_time_days: document.getElementById('offer-lead-time').value,
+    valid_from: document.getElementById('offer-valid-from').value,
+    valid_until: document.getElementById('offer-valid-until').value,
+    is_preferred: document.getElementById('offer-preferred').checked ? 'on' : '',
+    is_active: document.getElementById('offer-active').checked ? 'on' : '',
+    price_note: document.getElementById('offer-note').value,
+  });
+
+  const url = editingOfferPk ? urlFromTemplate(URL_OFFER_UPD_TPL, editingOfferPk) : URL_OFFER_SAVE;
+  fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: data })
+    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      btn.disabled = false;
+      if (!ok || !j.ok) {
+        const errors = j.errors || {};
+        Object.keys(errors).forEach(field => {
+          const target = field === 'supplier' ? 'supplier' : field;
+          const el = document.getElementById('err-' + target);
+          if (el) el.textContent = (errors[field] && errors[field][0]) ? errors[field][0] : '';
+        });
+        document.getElementById('offer-error').textContent = '{% trans "Corrija os campos em vermelho." %}';
+        document.getElementById('offer-error').style.display = 'block';
+        return;
+      }
+      window.location.reload(); // simples e robusto (recalcula melhor preço e tabela)
+    })
+    .catch(() => {
+      btn.disabled = false;
+      document.getElementById('offer-error').textContent = '{% trans "Erro ao guardar. Tente novamente." %}';
+      document.getElementById('offer-error').style.display = 'block';
+    });
+}
+
+function deleteOffer(pk) {
+  if (!confirm('{% trans "Eliminar este preço?" %}')) return;
+  const url = urlFromTemplate(URL_OFFER_DEL_TPL, pk);
+  fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ csrfmiddlewaretoken: CSRF }),
+  }).then(() => window.location.reload());
+}
+
+function closeOfferHistory() {
+  document.getElementById('history-overlay').classList.remove('open');
+}
+
+function openOfferHistory(pk) {
+  const url = urlFromTemplate(URL_OFFER_HIS_TPL, pk);
+  document.getElementById('history-title').textContent = '{% trans "Histórico de preço" %}';
+  document.getElementById('history-error').style.display = 'none';
+  const tbody = document.getElementById('history-tbody');
+  tbody.innerHTML = `<tr><td colspan="4" class="muted">{% trans "Carregando…" %}</td></tr>`;
+  document.getElementById('history-overlay').classList.add('open');
+
+  fetch(url).then(r => r.json()).then(json => {
+    if (!json.ok) throw new Error('bad');
+    document.getElementById('history-title').textContent =
+      `{% trans "Histórico de preço" %} — ${json.offer.product} / ${json.offer.supplier}`;
+    if (!json.items.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="muted">{% trans "Sem histórico ainda." %}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = json.items.map(i => {
+      const d = new Date(i.effective_date);
+      const ds = isNaN(d.getTime()) ? '' : d.toLocaleString();
+      return `<tr>
+        <td class="muted">${ds}</td>
+        <td class="num"><strong>${i.price}</strong></td>
+        <td class="muted">${i.changed_by || '—'}</td>
+        <td class="muted">${(i.note || '—')}</td>
+      </tr>`;
+    }).join('');
+  }).catch(() => {
+    document.getElementById('history-error').textContent = '{% trans "Erro ao carregar histórico." %}';
+    document.getElementById('history-error').style.display = 'block';
+  });
+}
+</script>
+{% endblock %}

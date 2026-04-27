@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Fornecedores" %} — Construart{% endblock %}
+{% block tab_parent %}/suppliers/{% endblock %}
+{% block tab_icon %}🏭{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Fornecedores" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sup-grid { display: grid; gap: 12px; }
+  .sup-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px;
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 20px; box-shadow: var(--shadow); transition: all .15s;
+  }
+  .sup-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(200,98,42,.1); }
+  .sup-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .sup-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text3); font-family: sans-serif; }
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input {
+    flex: 1; min-width: 200px; padding: 8px 14px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: 'Georgia', serif;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus { outline: none; border-color: var(--accent); }
+  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  @media (max-width: 640px) {
+    .sup-card { grid-template-columns: 1fr; gap: 10px; }
+    .sup-card > span.badge { justify-self: start; }
+    .sup-card > div:last-child { display: flex; gap: 8px; }
+    .filter-bar input { min-width: 0; width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Fornecedores" %}</h1>
+    <p class="page-sub">{% trans "Empresas e prestadores de serviços" %}</p>
+  </div>
+  <a href="{% url 'suppliers:create' %}" class="btn btn-primary">+ {% trans "Novo fornecedor" %}</a>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search" placeholder="{% trans 'Pesquisar por nome, VAT...' %}" oninput="filterCards()">
+  <div style="display:flex;gap:6px;">
+    <button class="sf-btn active" onclick="setStatus('all', this)">{% trans "Todos" %}</button>
+    <button class="sf-btn" onclick="setStatus('active', this)">{% trans "Ativos" %}</button>
+    <button class="sf-btn" onclick="setStatus('inactive', this)">{% trans "Inativos" %}</button>
+  </div>
+</div>
+
+{% if suppliers %}
+<div class="sup-grid" id="sup-grid">
+  {% for s in suppliers %}
+  <div class="sup-card"
+       data-status="{% if s.is_active %}active{% else %}inactive{% endif %}"
+       data-search="{{ s.name|lower }} {{ s.vat_number|default:''|lower }} {{ s.responsible|default:''|lower }}">
+    <div>
+      <div class="sup-name">{{ s.name }}</div>
+      <div class="sup-meta">
+        {% if s.legal_form %}<span>{{ s.get_legal_form_display }}</span>{% endif %}
+        {% if s.vat_number %}<span>🔢 {{ s.vat_number }}</span>{% endif %}
+        {% if s.responsible %}<span>👤 {{ s.responsible }}</span>{% endif %}
+      </div>
+    </div>
+    <span class="badge {% if s.is_active %}badge-green{% else %}badge-gray{% endif %}">
+      {% if s.is_active %}{% trans "Ativo" %}{% else %}{% trans "Inativo" %}{% endif %}
+    </span>
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'suppliers:detail' s.pk %}" class="btn btn-ghost btn-sm">{% trans "Ver" %}</a>
+      <a href="{% url 'suppliers:update' s.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+      {% if s.product_offers_count == 0 and s.budget_material_usages_count == 0 %}
+        <form method="post" action="{% url 'suppliers:delete' s.pk %}" style="display:inline"
+              onsubmit="return confirm('{% trans "Excluir este fornecedor? Esta ação não pode ser desfeita." %}')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red)" title="{% trans "Excluir" %}">🗑</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card">
+  <div class="icon">🏭</div>
+  <h3>{% trans "Sem fornecedores" %}</h3>
+  <p>{% trans "Adicione o primeiro fornecedor para começar." %}</p>
+  <a href="{% url 'suppliers:create' %}" class="btn btn-primary" style="margin-top:16px">+ {% trans "Novo fornecedor" %}</a>
+</div>
+{% endif %}
+
+<script>
+let currentStatus = 'all';
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.sup-card').forEach(card => {
+    const ms  = !q || card.dataset.search.includes(q);
+    const mst = currentStatus === 'all' || card.dataset.status === currentStatus;
+    card.style.display = (ms && mst) ? '' : 'none';
+  });
+}
+function setStatus(s, btn) {
+  currentStatus = s;
+  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+</script>
+{% endblock %}

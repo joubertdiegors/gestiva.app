@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+
+{% block tab_parent %}{% url 'accounts:list' %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-layout { display:grid; grid-template-columns:340px 1fr; gap:24px; align-items:start; }
+  @media(max-width:900px){ .form-layout { grid-template-columns:1fr; } }
+
+  .form-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+  .form-card-header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+  .form-card-icon { width:36px; height:36px; background:var(--accent-light); color:var(--accent); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .form-card-body { padding:24px; }
+  .form-card-footer { padding:14px 24px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+  .section-label { font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); font-family:sans-serif; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .field-error { font-size:12px; color:var(--red); font-family:sans-serif; margin-top:4px; }
+
+  /* Color picker */
+  .color-picker { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+  .color-option { display:none; }
+  .color-label { width:28px; height:28px; border-radius:50%; cursor:pointer; border:3px solid transparent; transition:border-color .15s, transform .1s; }
+  .color-label:hover { transform:scale(1.15); }
+  .color-option:checked + .color-label { border-color: var(--text); }
+  .color-accent + .color-label { background:var(--accent); }
+  .color-green  + .color-label { background:var(--green); }
+  .color-amber  + .color-label { background:var(--amber); }
+  .color-red    + .color-label { background:var(--red); }
+  .color-gray   + .color-label { background:var(--text3); }
+
+  /* Permission matrix */
+  .perm-matrix-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .perm-matrix-header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .perm-matrix { width:100%; border-collapse:collapse; }
+  .perm-matrix th { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text3); font-family:sans-serif; font-weight:500; padding:10px 16px; border-bottom:1px solid var(--border); text-align:center; }
+  .perm-matrix th:first-child { text-align:left; }
+  .perm-matrix td { padding:11px 16px; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+  .perm-matrix td:first-child { text-align:left; }
+  .perm-matrix tr:last-child td { border-bottom:none; }
+  .perm-matrix tbody tr:hover { background:var(--surface2); }
+  .module-label { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .module-icon { font-size:15px; }
+
+  /* Checkbox styling */
+  .perm-cb { width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
+  .perm-na { color:var(--border2); font-size:12px; }
+
+  /* Select-all row */
+  .perm-matrix .select-all-row td { background:var(--surface2); font-size:11px; font-family:sans-serif; color:var(--text2); }
+  .select-all-btn { font-size:11px; font-family:sans-serif; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; text-decoration:underline; }
+
+  /* ── Responsivo ── */
+  .perm-matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 640px) {
+    .form-card-body { padding: 16px; }
+    .form-card-footer { flex-wrap: wrap; }
+    .form-card-footer .btn { flex: 1; justify-content: center; }
+    .color-label { width: 36px; height: 36px; }
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'accounts:list' %}">{% trans "Utilizadores" %}</a>
+  <span class="sep">›</span>
+  <a href="{% url 'accounts:profile_list' %}">{% trans "Perfis" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <h1 class="page-title">{{ title }}</h1>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}<div class="alert alert-{{ msg.tags }}">{{ msg }}</div>{% endfor %}
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="form-layout">
+
+    <!-- Left column: profile metadata -->
+    <div>
+      <div class="form-card">
+        <div class="form-card-header">
+          <div class="form-card-icon">🔐</div>
+          <div>
+            <div style="font-size:14px;font-weight:500">{% trans "Dados do perfil" %}</div>
+          </div>
+        </div>
+        <div class="form-card-body">
+
+          <div class="form-group">
+            <label class="form-label">{% trans "Nome do perfil" %} *</label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="field-error">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{% trans "Descrição" %}</label>
+            {{ form.description }}
+          </div>
+
+          <!-- Colour picker -->
+          <div class="form-group">
+            <label class="form-label">{% trans "Cor do perfil" %}</label>
+            <div class="color-picker">
+              {% for val, label in form.color.field.choices %}
+              <input type="radio" name="color" id="color_{{ val }}" value="{{ val }}"
+                     class="color-option color-{{ val }}"
+                     {% if form.color.value == val %}checked{% endif %}>
+              <label for="color_{{ val }}" class="color-label" title="{{ label }}"></label>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+        <div class="form-card-footer">
+          <a href="{% url 'accounts:profile_list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+          <button type="submit" class="btn btn-primary">
+            {% if is_create %}✓ {% trans "Criar perfil" %}{% else %}✓ {% trans "Guardar" %}{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: permission matrix -->
+    <div class="perm-matrix-card">
+      <div class="perm-matrix-header">
+        <div>
+          <div style="font-size:14px;font-weight:500">{% trans "Permissões" %}</div>
+          <div style="font-size:12px;color:var(--text3);font-family:sans-serif;margin-top:2px">
+            {% trans "Selecione o que este perfil pode fazer em cada módulo" %}
+          </div>
+        </div>
+        <button type="button" class="select-all-btn" id="selectAllBtn">
+          {% trans "Selecionar tudo" %}
+        </button>
+      </div>
+
+      <div class="perm-matrix-wrap">
+      <table class="perm-matrix">
+        <thead>
+          <tr>
+            <th style="min-width:160px">{% trans "Módulo" %}</th>
+          {% for action_item in matrix.0.actions %}
+            <th>{{ action_item.action_label }}</th>
+          {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for module in matrix %}
+          <tr>
+            <td>
+              <div class="module-label">
+                <span class="module-icon">{{ module.icon }}</span>
+                <span>{{ module.label }}</span>
+              </div>
+            </td>
+            {% for action in module.actions %}
+            <td>
+              {% if action.perm_id %}
+                <input
+                  type="checkbox"
+                  name="perm_ids"
+                  value="{{ action.perm_id }}"
+                  class="perm-cb"
+                  {% if action.checked %}checked{% endif %}
+                >
+              {% else %}
+                <span class="perm-na" title="{% trans "Não disponível" %}">—</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div><!-- /perm-matrix-wrap -->
+    </div>
+
+  </div>
+</form>
+
+<script>
+  // Select-all / deselect-all toggle
+  const btn   = document.getElementById('selectAllBtn');
+  const boxes = document.querySelectorAll('.perm-cb');
+  let allSelected = {{ matrix|length }}  > 0 && Array.from(boxes).every(b => b.checked);
+
+  function updateBtnLabel() {
+    allSelected = Array.from(boxes).every(b => b.checked);
+    btn.textContent = allSelected
+      ? '{% trans "Desmarcar tudo" %}'
+      : '{% trans "Selecionar tudo" %}';
+  }
+
+  btn.addEventListener('click', () => {
+    allSelected = !allSelected;
+    boxes.forEach(b => b.checked = allSelected);
+    updateBtnLabel();
+  });
+
+  boxes.forEach(b => b.addEventListener('change', updateBtnLabel));
+  updateBtnLabel();
+</script>
+
+{% endblock %}

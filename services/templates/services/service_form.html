@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block tab_parent %}/services/{% endblock %}
+{% block tab_icon %}🔧{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Serviços" %}</span>
+<span class="bc-sep">›</span>
+<a href="{% url 'services:service_list' %}">{% trans "Lista de Serviços" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden;margin-bottom:20px}
+.form-section{padding:22px 26px;border-bottom:1px solid var(--border)}
+.form-section:last-child{border-bottom:none}
+.section-heading{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid .span-2{grid-column:span 2}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-grid .span-2{grid-column:span 1}}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.form-label .req{color:var(--accent)}
+.form-hint{font-size:11px;color:var(--text3);margin-top:2px}
+.errorlist{list-style:none;padding:0;margin:4px 0 0;font-size:12px;color:var(--red)}
+.form-check-row{display:flex;align-items:center;gap:10px;padding:10px 0}
+.form-check-row label{font-size:13px;color:var(--text2);cursor:pointer}
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+
+/* Tabela de materiais */
+.mat-table{width:100%;border-collapse:collapse;font-size:13px}
+.mat-table thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.mat-table thead th.num{text-align:right}
+.mat-table tbody tr{border-bottom:1px solid var(--border)}
+.mat-table tbody tr:hover{background:var(--surface2)}
+.mat-table td{padding:9px 12px;vertical-align:middle;color:var(--text)}
+.mat-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.mat-table td.muted{color:var(--text3);font-size:12px}
+.mat-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px}
+
+/* Resumo de custos */
+.cost-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:18px 26px;background:var(--surface2);border-top:1px solid var(--border)}
+.cost-box{display:flex;flex-direction:column;gap:3px}
+.cost-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.cost-value{font-size:18px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.cost-value.secondary{font-size:14px;color:var(--text2);font-weight:600}
+
+/* Botão inline para adicionar material */
+.btn-add-mat{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:12px;font-weight:600;border:1px dashed var(--accent);border-radius:var(--radius);color:var(--accent);background:none;cursor:pointer;transition:all .15s}
+.btn-add-mat:hover{background:rgba(200,98,42,.08)}
+.btn-icon-sm{width:24px;height:24px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;transition:all .12s}
+.btn-icon-sm:hover{color:var(--red);border-color:var(--red)}
+.btn-icon-edit{color:var(--text2)}
+.btn-icon-edit:hover{color:var(--accent);border-color:var(--accent)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{% trans "Defina o serviço, o tempo de execução, o preço e os materiais necessários por unidade." %}</p>
+  </div>
+  {% if service %}
+  <a href="{% url 'services:service_detail' service.pk %}" class="btn btn-ghost">{% trans "← Cancelar" %}</a>
+  {% else %}
+  <a href="{% url 'services:service_list' %}" class="btn btn-ghost">{% trans "← Cancelar" %}</a>
+  {% endif %}
+</div>
+
+<form method="post" novalidate id="service-form">
+  {% csrf_token %}
+  <div class="form-card">
+
+    <!-- Identificação -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Identificação" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.code.id_for_label }}">{% trans "Código" %} <span class="req">*</span></label>
+          {{ form.code }}
+          <span class="form-hint">{% trans "Identificador único. Ex: CIM-001, PINT-002" %}</span>
+          {{ form.code.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.unit.id_for_label }}">{% trans "Unidade de medida" %} <span class="req">*</span></label>
+          {{ form.unit }}
+          <span class="form-hint">{% trans "Unidade em que o serviço é cobrado. Ex: m², ml, un." %}</span>
+          {{ form.unit.errors }}
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label" for="{{ form.name.id_for_label }}">{% trans "Nome do serviço" %} <span class="req">*</span></label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.category.id_for_label }}">{% trans "Categoria" %}</label>
+          {{ form.category }}
+          {{ form.category.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.time_per_unit.id_for_label }}">{% trans "Tempo de execução / unidade (min)" %}</label>
+          {{ form.time_per_unit }}
+          <span class="form-hint">{% trans "Minutos necessários para executar 1 unidade do serviço." %}</span>
+          {{ form.time_per_unit.errors }}
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label" for="{{ form.description.id_for_label }}">{% trans "Descrição técnica" %}</label>
+          {{ form.description }}
+          {{ form.description.errors }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Custos e Preço -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Custos e Preço" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.labor_cost_per_unit.id_for_label }}">{% trans "Custo de M.O. / unidade (€)" %}</label>
+          {{ form.labor_cost_per_unit }}
+          <span class="form-hint">{% trans "Custo de mão de obra por unidade do serviço." %}</span>
+          {{ form.labor_cost_per_unit.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.default_margin_percent.id_for_label }}">{% trans "Margem padrão (%)" %}</label>
+          {{ form.default_margin_percent }}
+          <span class="form-hint">{% trans "Margem aplicada ao custo total para calcular o preço sugerido." %}</span>
+          {{ form.default_margin_percent.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.sale_price_per_unit.id_for_label }}">{% trans "Preço de venda / unidade (€)" %}</label>
+          {{ form.sale_price_per_unit }}
+          <span class="form-hint">{% trans "Preço cobrado ao cliente. Deixe 0 para usar o preço sugerido automaticamente." %}</span>
+          {{ form.sale_price_per_unit.errors }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado -->
+    <div class="form-section">
+      <div class="section-heading">{% trans "Estado" %}</div>
+      <div class="form-check-row">
+        {{ form.is_active }}
+        <label for="{{ form.is_active.id_for_label }}">{% trans "Serviço activo" %}</label>
+      </div>
+    </div>
+
+    <!-- Acções -->
+    <div class="form-section" style="background:var(--surface2)">
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        {% if service %}
+        <a href="{% url 'services:service_detail' service.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+        {% else %}
+        <a href="{% url 'services:service_list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">
+          {% if service %}{% trans "Guardar alterações" %}{% else %}{% trans "Criar serviço" %}{% endif %}
+        </button>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+{% if service %}
+<!-- ═══════════════════════════════════════════════════════
+     MATERIAIS (só visível após o serviço ser criado)
+════════════════════════════════════════════════════════ -->
+<div class="form-card">
+  <div class="form-section" style="padding-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div class="section-heading" style="margin-bottom:0">
+        {% trans "Materiais por unidade de serviço" %}
+        <span style="font-weight:400;color:var(--text3);font-size:11px;margin-left:6px">
+          ({{ service.unit.symbol }})
+        </span>
+      </div>
+      <button type="button" class="btn-add-mat" onclick="openMaterialModal()">
+        + {% trans "Adicionar material" %}
+      </button>
+    </div>
+  </div>
+
+  <div id="materials-wrapper">
+    <table class="mat-table" id="mat-table" {% if not service.materials.all %}style="display:none"{% endif %}>
+      <thead>
+        <tr>
+          <th>{% trans "Produto" %}</th>
+          <th>{% trans "Unidade" %}</th>
+          <th class="num">{% trans "Qtd / unid." %}</th>
+          <th class="num">{% trans "Perda (%)" %}</th>
+          <th class="num">{% trans "Qtd efectiva" %}</th>
+          <th class="num">{% trans "Preço unit." %}</th>
+          <th class="num">{% trans "Custo" %}</th>
+          <th>{% trans "Obs." %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="mat-tbody">
+        {% for mat in service.materials.all %}
+        <tr id="mat-row-{{ mat.pk }}"
+            data-id="{{ mat.pk }}"
+            data-product-id="{{ mat.product_id }}"
+            data-product-name="{{ mat.product.name|escape }}"
+            data-product-unit="{{ mat.product.unit.symbol }}"
+            data-quantity="{{ mat.quantity_per_unit }}"
+            data-waste="{{ mat.waste_percent }}"
+            data-note="{{ mat.note|escape }}">
+          <td><strong>{{ mat.product.name }}</strong></td>
+          <td class="muted">{{ mat.product.unit.symbol }}</td>
+          <td class="num">{{ mat.quantity_per_unit|floatformat:4 }}</td>
+          <td class="num muted">{{ mat.waste_percent|floatformat:2 }}%</td>
+          <td class="num muted">{{ mat.effective_quantity|floatformat:4 }}</td>
+          <td class="num muted">
+            {% if mat.product.best_purchase_price %}{{ mat.product.best_purchase_price|floatformat:4 }} €{% else %}—{% endif %}
+          </td>
+          <td class="num"><strong>{{ mat.unit_cost|floatformat:4 }} €</strong></td>
+          <td class="muted">{{ mat.note|default:"" }}</td>
+          <td style="text-align:right;white-space:nowrap">
+            <button type="button" class="btn-icon-sm btn-icon-edit" onclick="openMaterialModal({{ mat.pk }})" title="{% trans "Editar" %}">✏️</button>
+            <button type="button" class="btn-icon-sm" onclick="deleteMaterial({{ mat.pk }})" title="{% trans "Eliminar" %}">🗑️</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="mat-empty" class="mat-empty" {% if service.materials.all %}style="display:none"{% endif %}>
+      {% trans "Nenhum material adicionado ainda." %}
+    </div>
+  </div>
+
+  <!-- Resumo de custos (calculado em JS) -->
+  <div class="cost-summary" id="cost-summary">
+    <div class="cost-box">
+      <span class="cost-label">{% trans "Custo materiais" %}</span>
+      <span class="cost-value secondary" id="cs-material">{{ service.material_cost_per_unit|floatformat:4 }} €</span>
+    </div>
+    <div class="cost-box">
+      <span class="cost-label">{% trans "Custo M.O." %}</span>
+      <span class="cost-value secondary" id="cs-labor">{{ service.labor_cost_per_unit|floatformat:4 }} €</span>
+    </div>
+    <div class="cost-box">
+      <span class="cost-label">{% trans "Custo total estimado" %}</span>
+      <span class="cost-value secondary" id="cs-total">{{ service.total_cost_per_unit|floatformat:4 }} €</span>
+    </div>
+    <div class="cost-box">
+      <span class="cost-label">{% trans "Preço sugerido" %}</span>
+      <span class="cost-value secondary" id="cs-suggested">{{ service.suggested_price_per_unit|floatformat:4 }} €</span>
+    </div>
+    <div class="cost-box">
+      <span class="cost-label">{% trans "Preço de venda" %}</span>
+      <span class="cost-value" id="cs-sale">{{ service.effective_sale_price|floatformat:4 }} €</span>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card" style="padding:18px 26px;color:var(--text3);font-size:13px;display:flex;align-items:center;gap:10px">
+  <span style="font-size:20px">💡</span>
+  <span>{% trans "Após criar o serviço, poderá adicionar os materiais necessários por unidade." %}</span>
+</div>
+{% endif %}
+
+<!-- ══ MODAL MATERIAL ══ -->
+{% if service %}
+<div class="modal-overlay" id="mat-overlay">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <div class="modal-header">
+      <div class="modal-title" id="mat-modal-title">{% trans "Adicionar material" %}</div>
+      <button class="modal-close" onclick="closeMaterialModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error" id="mat-error" style="display:none"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">{% trans "Produto" %} *</label>
+          <select id="mat-product" class="form-control">
+            <option value="">{% trans "— Selecione o produto —" %}</option>
+            {% for p in products %}
+            <option value="{{ p.pk }}" data-unit="{{ p.unit.symbol }}">{{ p.name }} ({{ p.unit.symbol }})</option>
+            {% endfor %}
+          </select>
+          <div id="err-product" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Quantidade / unidade serviço" %} *</label>
+          <input id="mat-qty" type="number" step="0.0001" min="0" class="form-control" placeholder="0.0000">
+          <div id="err-quantity_per_unit" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Perda técnica (%)" %}</label>
+          <input id="mat-waste" type="number" step="0.01" min="0" max="100" class="form-control" value="0">
+          <div id="err-waste_percent" style="color:var(--red);font-size:12px;margin-top:3px"></div>
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">{% trans "Observação" %}</label>
+          <input id="mat-note" type="text" class="form-control" placeholder="{% trans "Ex: incluir 10% de corte" %}">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="mat-save-btn" onclick="saveMaterial()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closeMaterialModal()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if service %}
+<span id="url-mat-list"   data-url="{% url 'services:material_list'   service.pk %}"     style="display:none"></span>
+<span id="url-mat-save"   data-url="{% url 'services:material_save'   service.pk %}"     style="display:none"></span>
+<span id="url-mat-update" data-url-tpl="{% url 'services:material_update' service.pk 999999 %}" style="display:none"></span>
+<span id="url-mat-delete" data-url-tpl="{% url 'services:material_delete' service.pk 999999 %}" style="display:none"></span>
+<script>
+const CSRF         = '{{ csrf_token }}';
+const URL_MAT_LIST = document.getElementById('url-mat-list').dataset.url;
+const URL_MAT_SAVE = document.getElementById('url-mat-save').dataset.url;
+const URL_MAT_UPD  = document.getElementById('url-mat-update').dataset.urlTpl;
+const URL_MAT_DEL  = document.getElementById('url-mat-delete').dataset.urlTpl;
+
+function tpl(url, pk) { return url.replace('999999', String(pk)); }
+
+let editingMatPk = null;
+
+function openMaterialModal(pk) {
+  editingMatPk = pk || null;
+  document.getElementById('mat-error').style.display = 'none';
+  document.getElementById('mat-modal-title').textContent =
+    pk ? '{% trans "Editar material" %}' : '{% trans "Adicionar material" %}';
+
+  // reset
+  document.getElementById('mat-product').value = '';
+  document.getElementById('mat-qty').value = '';
+  document.getElementById('mat-waste').value = '0';
+  document.getElementById('mat-note').value = '';
+  ['product','quantity_per_unit','waste_percent'].forEach(f => {
+    const el = document.getElementById('err-' + f);
+    if (el) el.textContent = '';
+  });
+
+  if (pk) {
+    const row = document.getElementById('mat-row-' + pk);
+    if (row) {
+      document.getElementById('mat-product').value = row.dataset.productId || '';
+      document.getElementById('mat-qty').value     = row.dataset.quantity || '';
+      document.getElementById('mat-waste').value   = row.dataset.waste || '0';
+      document.getElementById('mat-note').value    = row.dataset.note || '';
+    }
+  }
+  document.getElementById('mat-overlay').classList.add('open');
+}
+
+function closeMaterialModal() {
+  document.getElementById('mat-overlay').classList.remove('open');
+}
+
+function saveMaterial() {
+  document.getElementById('mat-error').style.display = 'none';
+  ['product','quantity_per_unit','waste_percent'].forEach(f => {
+    const el = document.getElementById('err-' + f);
+    if (el) el.textContent = '';
+  });
+
+  const btn = document.getElementById('mat-save-btn');
+  btn.disabled = true;
+
+  const data = new URLSearchParams({
+    csrfmiddlewaretoken: CSRF,
+    product:             document.getElementById('mat-product').value,
+    quantity_per_unit:   document.getElementById('mat-qty').value,
+    waste_percent:       document.getElementById('mat-waste').value,
+    note:                document.getElementById('mat-note').value,
+  });
+
+  const url = editingMatPk ? tpl(URL_MAT_UPD, editingMatPk) : URL_MAT_SAVE;
+  fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: data })
+    .then(r => r.json().then(j => ({ ok: r.ok, j })))
+    .then(({ ok, j }) => {
+      btn.disabled = false;
+      if (!ok || !j.ok) {
+        const errs = j.errors || {};
+        Object.keys(errs).forEach(f => {
+          const el = document.getElementById('err-' + f);
+          if (el) el.textContent = (errs[f] && errs[f][0]) ? errs[f][0] : '';
+        });
+        const msg = document.getElementById('mat-error');
+        msg.textContent = '{% trans "Corrija os campos em vermelho." %}';
+        msg.style.display = 'block';
+        return;
+      }
+      closeMaterialModal();
+      renderMaterial(j.material, editingMatPk);
+      updateTotals(j.totals);
+    })
+    .catch(() => {
+      btn.disabled = false;
+      const msg = document.getElementById('mat-error');
+      msg.textContent = '{% trans "Erro ao guardar. Tente novamente." %}';
+      msg.style.display = 'block';
+    });
+}
+
+function renderMaterial(m, editingPk) {
+  const tbody = document.getElementById('mat-tbody');
+  const unitPrice = parseFloat(m.unit_price) || 0;
+  const cost      = parseFloat(m.unit_cost)  || 0;
+
+  const html = `<tr id="mat-row-${m.id}"
+      data-id="${m.id}"
+      data-product-id="${m.product_id}"
+      data-product-name="${escHtml(m.product_name)}"
+      data-product-unit="${m.product_unit}"
+      data-quantity="${m.quantity_per_unit}"
+      data-waste="${m.waste_percent}"
+      data-note="${escHtml(m.note)}">
+    <td><strong>${escHtml(m.product_name)}</strong></td>
+    <td class="muted">${m.product_unit}</td>
+    <td class="num">${parseFloat(m.quantity_per_unit).toFixed(4)}</td>
+    <td class="num muted">${parseFloat(m.waste_percent).toFixed(2)}%</td>
+    <td class="num muted">${parseFloat(m.effective_quantity).toFixed(4)}</td>
+    <td class="num muted">${unitPrice > 0 ? unitPrice.toFixed(4) + ' €' : '—'}</td>
+    <td class="num"><strong>${cost.toFixed(4)} €</strong></td>
+    <td class="muted">${escHtml(m.note)}</td>
+    <td style="text-align:right;white-space:nowrap">
+      <button type="button" class="btn-icon-sm btn-icon-edit" onclick="openMaterialModal(${m.id})" title="{% trans "Editar" %}">✏️</button>
+      <button type="button" class="btn-icon-sm" onclick="deleteMaterial(${m.id})" title="{% trans "Eliminar" %}">🗑️</button>
+    </td>
+  </tr>`;
+
+  if (editingPk) {
+    const existing = document.getElementById('mat-row-' + editingPk);
+    if (existing) { existing.outerHTML = html; return; }
+  }
+  tbody.insertAdjacentHTML('beforeend', html);
+  document.getElementById('mat-table').style.display = '';
+  document.getElementById('mat-empty').style.display = 'none';
+}
+
+function deleteMaterial(pk) {
+  if (!confirm('{% trans "Eliminar este material?" %}')) return;
+  fetch(tpl(URL_MAT_DEL, pk), {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ csrfmiddlewaretoken: CSRF }),
+  })
+  .then(r => r.json())
+  .then(j => {
+    if (!j.ok) return;
+    const row = document.getElementById('mat-row-' + pk);
+    if (row) row.remove();
+    updateTotals(j.totals);
+    if (!document.querySelector('#mat-tbody tr')) {
+      document.getElementById('mat-table').style.display = 'none';
+      document.getElementById('mat-empty').style.display = '';
+    }
+  });
+}
+
+function updateTotals(t) {
+  function fmt(v) { return parseFloat(v).toFixed(4) + ' €'; }
+  document.getElementById('cs-material').textContent  = fmt(t.material_cost);
+  document.getElementById('cs-labor').textContent     = fmt(t.labor_cost);
+  document.getElementById('cs-total').textContent     = fmt(t.total_cost);
+  document.getElementById('cs-suggested').textContent = fmt(t.suggested);
+  document.getElementById('cs-sale').textContent      = fmt(t.sale_price);
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ service.name }}{% endblock %}
+{% block tab_parent %}/services/{% endblock %}
+{% block tab_icon %}🔧{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Serviços" %}</span>
+<span class="bc-sep">›</span>
+<a href="{% url 'services:service_list' %}">{% trans "Lista de Serviços" %}</a>
+<span class="bc-sep">›</span>
+<span>{{ service.name }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.detail-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+@media(max-width:768px){.detail-layout{grid-template-columns:1fr}}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden}
+.info-card-header{padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.info-row{display:flex;flex-direction:column;gap:2px;padding:12px 18px;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.info-value{font-size:14px;color:var(--text)}
+.info-value.big{font-size:18px;font-weight:700;color:var(--accent)}
+.right-col{display:flex;flex-direction:column;gap:20px}
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg,10px);overflow:hidden}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.section-title{font-weight:600;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.empty-mini{padding:24px;text-align:center;color:var(--text3);font-size:13px}
+.toggle-btn{padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid;cursor:pointer;font-weight:600;transition:all .15s}
+.toggle-active.yes{background:var(--green,#2d7a4f);color:#fff;border-color:var(--green,#2d7a4f)}
+.toggle-active.no{background:none;color:var(--text3);border-color:var(--border)}
+
+/* Resumo de custos */
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border)}
+.cost-cell{padding:12px 18px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.cost-cell:nth-child(even){border-right:none}
+.cost-cell:last-child,.cost-cell:nth-last-child(2):nth-child(odd){border-bottom:none}
+.cost-cell-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.cost-cell-value{font-size:16px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.cost-cell-value.secondary{color:var(--text2);font-size:14px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ service.name }}</h1>
+    <p class="page-sub">
+      {{ service.code }}
+      {% if service.unit %} · {{ service.unit.symbol }}{% endif %}
+      {% if service.category %} · {{ service.category.name }}{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'services:service_update' service.pk %}" class="btn btn-primary">✏️ {% trans "Editar" %}</a>
+    {% if can_delete %}
+      <form method="post" action="{% url 'services:service_delete' service.pk %}" style="display:inline"
+            onsubmit="return confirm('{% trans "Excluir este serviço? Esta ação não pode ser desfeita." %}')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">🗑️ {% trans "Excluir" %}</button>
+      </form>
+    {% else %}
+      <button type="button" class="btn btn-ghost" disabled
+              title="{% trans "Este serviço tem materiais associados e não pode ser excluído diretamente." %}">
+        🗑️ {% trans "Excluir" %}
+      </button>
+    {% endif %}
+    <a href="{% url 'services:service_list' %}" class="btn btn-ghost">{% trans "← Voltar" %}</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+  <!-- Coluna esquerda: info principal -->
+  <div>
+    <div class="info-card">
+      <div class="info-card-header">{% trans "Informações" %}</div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Estado" %}</span>
+        <div style="margin-top:4px">
+          <button class="toggle-btn toggle-active {% if service.is_active %}yes{% else %}no{% endif %}"
+                  onclick="toggleActive()" id="btn-active">
+            {% if service.is_active %}✓ {% trans "Activo" %}{% else %}✗ {% trans "Inactivo" %}{% endif %}
+          </button>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Código" %}</span>
+        <span class="info-value">{{ service.code }}</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Categoria" %}</span>
+        <span class="info-value">{{ service.category.name|default:"—" }}</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Unidade de medida" %}</span>
+        <span class="info-value">{{ service.unit.symbol }} — {{ service.unit.name }}</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Tempo de execução / unidade" %}</span>
+        <span class="info-value">
+          {% if service.time_per_unit %}
+            {{ service.time_per_unit|floatformat:0 }} {% trans "min" %}
+          {% else %}—{% endif %}
+        </span>
+      </div>
+
+      {% if service.description %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Descrição técnica" %}</span>
+        <span class="info-value" style="white-space:pre-wrap;font-size:13px">{{ service.description }}</span>
+      </div>
+      {% endif %}
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Margem padrão" %}</span>
+        <span class="info-value">{{ service.default_margin_percent|floatformat:2 }}%</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">{% trans "Criado em" %}</span>
+        <span class="info-value" style="font-size:12px;color:var(--text3)">
+          {{ service.created_at|date:"d/m/Y H:i" }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Resumo de custos -->
+    <div class="info-card" style="margin-top:16px">
+      <div class="info-card-header">{% trans "Custos e Preço" %}</div>
+      <div class="cost-grid">
+        <div class="cost-cell">
+          <div class="cost-cell-label">{% trans "Custo materiais" %}</div>
+          <div class="cost-cell-value secondary">{{ service.material_cost_per_unit|floatformat:4 }} €</div>
+        </div>
+        <div class="cost-cell">
+          <div class="cost-cell-label">{% trans "Custo M.O." %}</div>
+          <div class="cost-cell-value secondary">{{ service.labor_cost_per_unit|floatformat:4 }} €</div>
+        </div>
+        <div class="cost-cell">
+          <div class="cost-cell-label">{% trans "Custo total estimado" %}</div>
+          <div class="cost-cell-value secondary">{{ service.total_cost_per_unit|floatformat:4 }} €</div>
+        </div>
+        <div class="cost-cell">
+          <div class="cost-cell-label">{% trans "Preço sugerido" %}</div>
+          <div class="cost-cell-value secondary">{{ service.suggested_price_per_unit|floatformat:4 }} €</div>
+        </div>
+        <div class="cost-cell" style="grid-column:span 2;border-right:none;border-bottom:none">
+          <div class="cost-cell-label">{% trans "Preço de venda efectivo" %}</div>
+          <div class="cost-cell-value">{{ service.effective_sale_price|floatformat:4 }} €
+            {% if not service.sale_price_per_unit or service.sale_price_per_unit == 0 %}
+              <span style="font-size:11px;font-weight:400;color:var(--text3)"> ({% trans "automático" %})</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: materiais -->
+  <div class="right-col">
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">
+          {% trans "Materiais por unidade" %}
+          <span style="font-weight:400;color:var(--text3);font-size:11px;margin-left:4px">({{ service.unit.symbol }})</span>
+        </span>
+        <a href="{% url 'services:service_update' service.pk %}" class="btn btn-primary btn-sm">
+          ✏️ {% trans "Gerir materiais" %}
+        </a>
+      </div>
+
+      {% if service.materials.all %}
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>{% trans "Produto" %}</th>
+            <th>{% trans "Unidade" %}</th>
+            <th class="num">{% trans "Qtd / unid." %}</th>
+            <th class="num">{% trans "Perda" %}</th>
+            <th class="num">{% trans "Qtd efectiva" %}</th>
+            <th class="num">{% trans "Preço unit." %}</th>
+            <th class="num">{% trans "Custo" %}</th>
+            <th>{% trans "Obs." %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mat in service.materials.all %}
+          <tr>
+            <td><strong>{{ mat.product.name }}</strong></td>
+            <td class="muted">{{ mat.product.unit.symbol }}</td>
+            <td class="num">{{ mat.quantity_per_unit|floatformat:4 }}</td>
+            <td class="num muted">{{ mat.waste_percent|floatformat:2 }}%</td>
+            <td class="num muted">{{ mat.effective_quantity|floatformat:4 }}</td>
+            <td class="num muted">
+              {% if mat.product.best_purchase_price %}{{ mat.product.best_purchase_price|floatformat:4 }} €{% else %}—{% endif %}
+            </td>
+            <td class="num"><strong>{{ mat.unit_cost|floatformat:4 }} €</strong></td>
+            <td class="muted">{{ mat.note|default:"" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-mini">
+        {% trans "Nenhum material associado a este serviço." %}
+        <br>
+        <a href="{% url 'services:service_update' service.pk %}" style="color:var(--accent);font-size:12px;margin-top:6px;display:inline-block">
+          {% trans "Adicionar materiais →" %}
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<span id="url-toggle-active" data-url="{% url 'services:service_toggle_active' service.pk %}" style="display:none"></span>
+<script>
+const CSRF              = '{{ csrf_token }}';
+const URL_TOGGLE_ACTIVE = document.getElementById('url-toggle-active').dataset.url;
+
+function post(url) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ csrfmiddlewaretoken: CSRF }),
+  }).then(r => r.json());
+}
+
+function toggleActive() {
+  post(URL_TOGGLE_ACTIVE).then(json => {
+    if (!json.ok) return;
+    const btn = document.getElementById('btn-active');
+    if (json.is_active) {
+      btn.className = 'toggle-btn toggle-active yes';
+      btn.textContent = '✓ {% trans "Activo" %}';
+    } else {
+      btn.className = 'toggle-btn toggle-active no';
+      btn.textContent = '✗ {% trans "Inactivo" %}';
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ planning.date|date:"d M Y" }} — {{ planning.project.name }}{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'planning:list' %}">Planning</a>
+  <span class="sep">›</span>
+  <a href="{% url 'planning:list' %}?project={{ planning.project.pk }}">{{ planning.project.name }}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ planning.date|date:"d/m/Y" }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .detail-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Workers section */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header h2 { font-size: 15px; font-weight: 500; font-family: sans-serif; }
+
+  .worker-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  @media (max-width: 560px) {
+    .worker-row { grid-template-columns: 1fr auto auto; }
+    .worker-row .period-select { display: none; }
+    .summary-strip { flex-direction: column; }
+    .summary-item { border-right: none; border-bottom: 1px solid var(--border); }
+    .summary-item:last-child { border-bottom: none; }
+  }
+  .worker-row:last-child { border-bottom: none; }
+  .worker-row:hover { background: var(--surface2); }
+  .worker-row.absent { opacity: .55; }
+
+  .worker-name { font-size: 14px; font-weight: 500; }
+  .worker-meta { font-size: 12px; color: var(--text3); font-family: sans-serif; margin-top: 2px; }
+
+  .presence-toggle {
+    width: 38px; height: 22px;
+    background: var(--border2);
+    border-radius: 11px;
+    cursor: pointer;
+    border: none;
+    position: relative;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .presence-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .presence-toggle.on { background: var(--green); }
+  .presence-toggle.on::after { transform: translateX(16px); }
+
+  .period-select {
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: sans-serif;
+    color: var(--text);
+    background: var(--surface);
+    cursor: pointer;
+  }
+
+  /* Subcontractors */
+  .sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-row:last-child { border-bottom: none; }
+  .sub-name { font-size: 14px; font-weight: 500; }
+
+  /* Sidebar */
+  .sidebar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .sidebar-card + .sidebar-card { margin-top: 16px; }
+
+  /* Info card */
+  .info-row { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--text3); font-family: sans-serif; }
+  .info-value { font-weight: 500; }
+
+  /* Summary strip */
+  .summary-strip {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .summary-item {
+    flex: 1;
+    padding: 16px 20px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .summary-item:last-child { border-right: none; }
+  .summary-num { font-size: 28px; color: var(--accent); line-height: 1; }
+  .summary-lbl { font-size: 11px; color: var(--text3); font-family: sans-serif; text-transform: uppercase; letter-spacing: .8px; margin-top: 4px; }
+
+  /* notification */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--text);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: sans-serif;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all .25s;
+    z-index: 500;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="toast"></div>
+
+<!-- Header -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ planning.date|date:"l, d \d\e F \d\e Y" }}</h1>
+    <p class="page-sub">{{ planning.project.name }}</p>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <a href="{% url 'planning:list' %}?project={{ planning.project.pk }}" class="btn btn-ghost btn-sm">← Voltar</a>
+    <form method="post" action="{% url 'planning:delete' pk=planning.pk %}"
+          onsubmit="return confirm('Apagar este dia de planning?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-sm">🗑 Apagar dia</button>
+    </form>
+  </div>
+</div>
+
+<!-- Summary strip -->
+<div class="summary-strip">
+  <div class="summary-item">
+    <div class="summary-num" id="count-workers">{{ planning.planning_workers.count }}</div>
+    <div class="summary-lbl">Trabalhadores</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-num" id="count-present">{{ present_workers_count }}</div>
+    <div class="summary-lbl">Presentes</div>
+  </div>
+  <div class="summary-item">
+    <div class="summary-num" id="count-subs">{{ planning.planning_subcontractors.count }}</div>
+    <div class="summary-lbl">Subcontratados</div>
+  </div>
+</div>
+
+<div class="detail-layout">
+  <!-- LEFT: workers + subcontractors -->
+  <div>
+
+    <!-- Workers -->
+    <div class="card" style="margin-bottom:16px; overflow:hidden;">
+      <div class="section-header">
+        <h2>👷 Trabalhadores</h2>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-worker')">+ Adicionar</button>
+      </div>
+      <div id="workers-list">
+        {% for pw in planning.planning_workers.all %}
+        <div class="worker-row {% if not pw.is_present %}absent{% endif %}" id="pw-{{ pw.pk }}" data-id="{{ pw.pk }}">
+          <div>
+            <div class="worker-name">{{ pw.worker.name }}</div>
+            <div class="worker-meta">
+              {% if pw.subcontractor %}🏢 {{ pw.subcontractor.name }} · {% endif %}
+              {% if pw.role %}{{ pw.role }} · {% endif %}
+              <span class="badge badge-gray" id="pw-period-{{ pw.pk }}">{{ pw.get_period_display }}</span>
+            </div>
+          </div>
+          <select class="period-select" onchange="updateWorkerPeriod({{ pw.pk }}, this.value)">
+            {% for val, label in period_choices %}
+              <option value="{{ val }}" {% if pw.period == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button class="presence-toggle {% if pw.is_present %}on{% endif %}"
+                  id="toggle-{{ pw.pk }}"
+                  onclick="togglePresence({{ pw.pk }}, this)"
+                  title="{% if pw.is_present %}Presente{% else %}Ausente{% endif %}">
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="removeWorker({{ pw.pk }}, this)">✕</button>
+        </div>
+        {% empty %}
+        <div class="empty-state" id="workers-empty">
+          <div class="icon" style="font-size:32px;">👷</div>
+          <p>Nenhum trabalhador adicionado ainda.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Subcontractors -->
+    <div class="card" style="overflow:hidden;">
+      <div class="section-header">
+        <h2>🏢 Subcontratados</h2>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('modal-sub')">+ Adicionar</button>
+      </div>
+      <div id="subs-list">
+        {% for ps in planning.planning_subcontractors.all %}
+        <div class="sub-row" id="ps-{{ ps.pk }}" data-id="{{ ps.pk }}">
+          <div>
+            <div class="sub-name">{{ ps.subcontractor.name }}</div>
+            {% if ps.notes %}<div class="worker-meta">{{ ps.notes }}</div>{% endif %}
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="removeSub({{ ps.pk }}, this)">✕</button>
+        </div>
+        {% empty %}
+        <div class="empty-state" id="subs-empty">
+          <div class="icon" style="font-size:32px;">🏢</div>
+          <p>Nenhum subcontratado adicionado ainda.</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: sidebar -->
+  <div>
+
+    <div class="sidebar-card">
+      <div class="section-header"><h2>📋 Informações</h2></div>
+      <div class="info-row">
+        <span class="info-label">Projeto</span>
+        <span class="info-value">{{ planning.project.name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Data</span>
+        <span class="info-value">{{ planning.date|date:"d/m/Y" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Dia da semana</span>
+        <span class="info-value">{{ planning.date|date:"l" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Estado projeto</span>
+        <span class="info-value">
+          <span class="badge {% if planning.project.status == 'active' %}badge-green{% elif planning.project.status == 'paused' %}badge-amber{% else %}badge-gray{% endif %}">
+            {{ planning.project.get_status_display }}
+          </span>
+        </span>
+      </div>
+      {% if planning.notes %}
+      <div class="info-row" style="flex-direction:column; gap:4px;">
+        <span class="info-label">Notas</span>
+        <span style="font-size:13px;">{{ planning.notes }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sidebar-card" style="margin-top:16px; padding:16px;">
+      <a href="{% url 'planning:list' %}?project={{ planning.project.pk }}" class="btn btn-secondary" style="width:100%; justify-content:center; margin-bottom:8px;">
+        📅 Ver todos os dias
+      </a>
+      <a href="{% url 'planning:create' project_pk=planning.project.pk %}" class="btn btn-primary" style="width:100%; justify-content:center;">
+        + Novo dia
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── MODAL: Adicionar Worker ─── -->
+<div class="modal-overlay" id="modal-worker">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Adicionar trabalhador</span>
+      <button class="modal-close" onclick="closeModal('modal-worker')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Trabalhador</label>
+        <select class="form-control" id="w-worker">
+          <option value="">— Selecionar —</option>
+          {% for c in collaborators %}
+            <option value="{{ c.pk }}" data-sub="{{ c.company.pk }}">{{ c.name }} ({{ c.company.name }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Período</label>
+        <select class="form-control" id="w-period">
+          {% for val, label in period_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="w-times" style="display:none; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Hora início</label>
+          <input type="time" class="form-control" id="w-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora fim</label>
+          <input type="time" class="form-control" id="w-end">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Função / Role</label>
+        <input type="text" class="form-control" id="w-role" placeholder="ex: Electricista, Pedreiro...">
+      </div>
+      <div id="w-error" class="alert alert-error" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-worker')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addWorker()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: Adicionar Subcontratado ─── -->
+<div class="modal-overlay" id="modal-sub">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Adicionar subcontratado</span>
+      <button class="modal-close" onclick="closeModal('modal-sub')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Empresa subcontratada</label>
+        <select class="form-control" id="s-sub">
+          <option value="">— Selecionar —</option>
+          {% for s in subcontractors %}
+            <option value="{{ s.pk }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas (opcional)</label>
+        <textarea class="form-control" id="s-notes" rows="2" placeholder="Trabalhos a realizar..."></textarea>
+      </div>
+      <div id="s-error" class="alert alert-error" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sub')">Cancelar</button>
+      <button class="btn btn-primary" onclick="addSub()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLANNING_PK = {{ planning.pk }};
+const CSRF = '{{ csrf_token }}';
+
+// ─── Utils ───
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.querySelectorAll('#' + id + ' .alert-error').forEach(e => e.style.display='none');
+}
+
+function post(url, data) {
+  return fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify(data)
+  }).then(r => r.json());
+}
+
+function updateCount(id, delta) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = parseInt(el.textContent || 0) + delta;
+}
+
+// ─── Workers ───
+function addWorker() {
+  const worker_id = document.getElementById('w-worker').value;
+  const period = document.getElementById('w-period').value;
+  const role = document.getElementById('w-role').value;
+  const start_time = document.getElementById('w-start').value || null;
+  const end_time = document.getElementById('w-end').value || null;
+  const errEl = document.getElementById('w-error');
+
+  if (!worker_id) { errEl.textContent = 'Selecione um trabalhador.'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  post(`/planning/${PLANNING_PK}/workers/add/`, {worker_id, period, role, start_time, end_time})
+    .then(data => {
+      if (data.error) { errEl.textContent = data.error; errEl.style.display='block'; return; }
+
+      // Remove empty state
+      const empty = document.getElementById('workers-empty');
+      if (empty) empty.remove();
+
+      // Build row
+      const div = document.createElement('div');
+      div.className = 'worker-row';
+      div.id = 'pw-' + data.id;
+      div.dataset.id = data.id;
+      div.innerHTML = `
+        <div>
+          <div class="worker-name">${data.worker_name}</div>
+          <div class="worker-meta">
+            ${data.subcontractor ? '🏢 ' + data.subcontractor + ' · ' : ''}
+            ${data.role ? data.role + ' · ' : ''}
+            <span class="badge badge-gray" id="pw-period-${data.id}">${data.period}</span>
+          </div>
+        </div>
+        <select class="period-select" onchange="updateWorkerPeriod(${data.id}, this.value)">
+          {% for val, label in period_choices %}
+          <option value="{{ val }}" ${data.period_key === '{{ val }}' ? 'selected' : ''}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button class="presence-toggle on" id="toggle-${data.id}"
+                onclick="togglePresence(${data.id}, this)"></button>
+        <button class="btn btn-danger btn-sm" onclick="removeWorker(${data.id}, this)">✕</button>
+      `;
+      document.getElementById('workers-list').appendChild(div);
+      updateCount('count-workers', 1);
+      updateCount('count-present', 1);
+
+      closeModal('modal-worker');
+      document.getElementById('w-worker').value = '';
+      document.getElementById('w-role').value = '';
+      toast('Trabalhador adicionado ✓');
+    });
+}
+
+function togglePresence(pwPk, btn) {
+  const row = document.getElementById('pw-' + pwPk);
+  const isOn = btn.classList.contains('on');
+  post(`/planning/workers/${pwPk}/update/`, {is_present: !isOn})
+    .then(data => {
+      btn.classList.toggle('on', data.is_present);
+      row.classList.toggle('absent', !data.is_present);
+      updateCount('count-present', data.is_present ? 1 : -1);
+      toast(data.is_present ? 'Marcado como presente' : 'Marcado como ausente');
+    });
+}
+
+function updateWorkerPeriod(pwPk, period) {
+  post(`/planning/workers/${pwPk}/update/`, {period})
+    .then(data => {
+      const el = document.getElementById('pw-period-' + pwPk);
+      if (el) el.textContent = data.period;
+      toast('Período atualizado ✓');
+    });
+}
+
+function removeWorker(pwPk, btn) {
+  if (!confirm('Remover este trabalhador do planning?')) return;
+  post(`/planning/workers/${pwPk}/remove/`, {})
+    .then(data => {
+      const row = document.getElementById('pw-' + pwPk);
+      const wasPresent = document.getElementById('toggle-' + pwPk)?.classList.contains('on');
+      row.remove();
+      updateCount('count-workers', -1);
+      if (wasPresent) updateCount('count-present', -1);
+      if (!document.querySelector('#workers-list .worker-row')) {
+        document.getElementById('workers-list').innerHTML =
+          '<div class="empty-state" id="workers-empty"><div class="icon" style="font-size:32px;">👷</div><p>Nenhum trabalhador adicionado ainda.</p></div>';
+      }
+      toast('Trabalhador removido');
+    });
+}
+
+// ─── Subcontractors ───
+function addSub() {
+  const subcontractor_id = document.getElementById('s-sub').value;
+  const notes = document.getElementById('s-notes').value;
+  const errEl = document.getElementById('s-error');
+
+  if (!subcontractor_id) { errEl.textContent = 'Selecione um subcontratado.'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  post(`/planning/${PLANNING_PK}/subcontractors/add/`, {subcontractor_id, notes})
+    .then(data => {
+      if (data.error) { errEl.textContent = data.error; errEl.style.display='block'; return; }
+
+      const empty = document.getElementById('subs-empty');
+      if (empty) empty.remove();
+
+      const div = document.createElement('div');
+      div.className = 'sub-row';
+      div.id = 'ps-' + data.id;
+      div.dataset.id = data.id;
+      div.innerHTML = `
+        <div>
+          <div class="sub-name">${data.subcontractor_name}</div>
+          ${data.notes ? `<div class="worker-meta">${data.notes}</div>` : ''}
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeSub(${data.id}, this)">✕</button>
+      `;
+      document.getElementById('subs-list').appendChild(div);
+      updateCount('count-subs', 1);
+
+      closeModal('modal-sub');
+      document.getElementById('s-sub').value = '';
+      document.getElementById('s-notes').value = '';
+      toast('Subcontratado adicionado ✓');
+    });
+}
+
+function removeSub(psPk, btn) {
+  if (!confirm('Remover este subcontratado do planning?')) return;
+  post(`/planning/subcontractors/${psPk}/remove/`, {})
+    .then(() => {
+      document.getElementById('ps-' + psPk).remove();
+      updateCount('count-subs', -1);
+      if (!document.querySelector('#subs-list .sub-row')) {
+        document.getElementById('subs-list').innerHTML =
+          '<div class="empty-state" id="subs-empty"><div class="icon" style="font-size:32px;">🏢</div><p>Nenhum subcontratado adicionado ainda.</p></div>';
+      }
+      toast('Subcontratado removido');
+    });
+}
+
+// Fechar modal clicando fora
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// Mostrar/esconder horários custom
+document.getElementById('w-period').addEventListener('change', function() {
+  document.getElementById('w-times').style.display = this.value === 'custom' ? 'grid' : 'none';
+});
+
+// Fix: count presentes inicial
+document.addEventListener('DOMContentLoaded', () => {
+  const present = document.querySelectorAll('.presence-toggle.on').length;
+  document.getElementById('count-present').textContent = present;
+});
+</script>
+{% endblock %}

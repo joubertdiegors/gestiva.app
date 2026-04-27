@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Categorias de Produtos" %}{% endblock %}
+{% block tab_parent %}/catalog/{% endblock %}
+{% block tab_icon %}📂{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Catálogo" %}</span>
+<span class="bc-sep">›</span>
+<span>{% trans "Categorias" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
+/* Não usar display:flex no próprio <dialog>: em vários browsers isso quebra o top layer e o modal fica no fluxo da página ("congelado" na lista). */
+dialog.cat-dialog{
+  margin:0;
+  padding:0;
+  border:none;
+  width:100vw;
+  max-width:none;
+  height:100vh;
+  max-height:none;
+  background:transparent;
+  box-sizing:border-box;
+}
+dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
+.cat-dialog-flex{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  box-sizing:border-box;
+}
+.cat-dialog .popup-panel{
+  background:var(--surface);
+  border-radius:var(--radius-lg,10px);
+  width:460px;
+  max-width:min(460px,calc(100vw - 40px));
+  flex-shrink:0;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+}
+.popup-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.popup-title{font-weight:600;font-size:15px;color:var(--text)}
+.popup-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
+.popup-body{padding:22px;display:flex;flex-direction:column;gap:16px}
+.popup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-label .req{color:var(--accent)}
+.popup-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
+.check-row{display:flex;align-items:center;gap:10px}
+.check-row label{font-size:13px;color:var(--text2);cursor:pointer;margin:0}
+.cat-sub{color:var(--text3);font-size:12px;margin-right:4px}
+.row-new{animation:rowIn .3s ease}
+@keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% trans "Categorias de Produtos" %}</h1>
+    <p class="page-sub">{% trans "Hierarquia de categorias para organizar o catálogo." %}</p>
+  </div>
+  <button type="button" class="btn btn-primary" id="btn-nova-categoria">+ {% trans "Nova categoria" %}</button>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="dt">
+    <thead>
+      <tr>
+        <th>{% trans "Nome" %}</th>
+        <th>{% trans "Categoria pai" %}</th>
+        <th style="text-align:right">{% trans "Produtos" %}</th>
+        <th>{% trans "Estado" %}</th>
+        <th style="width:72px"></th>
+      </tr>
+    </thead>
+    <tbody id="cat-tbody">
+      {% for node in categories %}
+      {% with cat=node.cat %}
+      <tr data-id="{{ cat.pk }}"
+          data-name="{{ cat.name|escapejs }}"
+          data-parent-id="{{ cat.parent_id|default:'' }}"
+          data-parent-name="{{ cat.parent.name|default:''|escapejs }}"
+          data-is-active="{{ cat.is_active|lower }}"
+          data-count="{{ cat.product_count }}"
+          data-has-children="{% if cat.children_count %}true{% else %}false{% endif %}">
+        <td>
+          {% if node.level %}
+            <span class="cat-sub" style="margin-right:6px;">{{ node.indent }}</span>
+          {% endif %}
+          <strong>{{ cat.name }}</strong>
+        </td>
+        <td class="muted">{{ cat.parent.name|default:"—" }}</td>
+        <td style="text-align:right">
+          <span class="badge {% if cat.product_count %}badge-accent{% else %}badge-gray{% endif %}">
+            {{ cat.product_count }}
+          </span>
+        </td>
+        <td>
+          {% if cat.is_active %}
+            <span class="badge badge-green">{% trans "Activa" %}</span>
+          {% else %}
+            <span class="badge badge-gray">{% trans "Inactiva" %}</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>
+            {% if not cat.product_count and not cat.children_count %}
+            <button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="{{ cat.pk }}">🗑</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr id="empty-row">
+        <td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">
+          {% trans "Nenhuma categoria registada. Clique em «Nova categoria» para começar." %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<dialog id="cat-dialog" class="cat-dialog" aria-labelledby="cat-popup-title">
+  <div class="cat-dialog-flex">
+  <div class="popup-panel" role="document">
+    <div class="popup-header">
+      <span class="popup-title" id="cat-popup-title">{% trans "Nova categoria" %}</span>
+      <button type="button" class="popup-close" id="btn-cat-popup-close" aria-label="{% trans "Fechar" %}">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-error" id="cat-error"></div>
+      <div class="form-group">
+        <label class="form-label" for="c-name">{% trans "Nome" %} <span class="req">*</span></label>
+        <input type="text" id="c-name" class="form-control" maxlength="100" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="c-parent">{% trans "Categoria pai" %}</label>
+        <select id="c-parent" class="form-control">
+          <option value="">— {% trans "Sem categoria pai (raiz)" %} —</option>
+          {% for node in categories %}
+          {% with cat=node.cat %}
+          <option value="{{ cat.pk }}">{{ node.indent }}{{ cat.name }}</option>
+          {% endwith %}
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="check-row">
+          <input type="checkbox" id="c-active" class="form-check-input" checked>
+          <label for="c-active">{% trans "Categoria activa" %}</label>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button type="button" class="btn btn-ghost" id="btn-cat-popup-cancel">{% trans "Cancelar" %}</button>
+      <button type="button" class="btn btn-primary" id="btn-save-cat">{% trans "Guardar" %}</button>
+    </div>
+  </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  const CSRF = '{{ csrf_token }}';
+  const URL_SAVE = '{% url "catalog:category_save" %}';
+  const URL_TMPL_UPD = '{% url "catalog:category_update" pk=0 %}';
+  const URL_TMPL_DEL = '{% url "catalog:category_delete" pk=0 %}';
+
+  function urlUpd(pk) { return URL_TMPL_UPD.replace('/0/', '/' + pk + '/'); }
+  function urlDel(pk) { return URL_TMPL_DEL.replace('/0/', '/' + pk + '/'); }
+
+  let editingPk = null;
+  const dlg = document.getElementById('cat-dialog');
+  const titleEl = document.getElementById('cat-popup-title');
+  const nameInput = document.getElementById('c-name');
+  const parentSel = document.getElementById('c-parent');
+  const activeChk = document.getElementById('c-active');
+  const errorEl = document.getElementById('cat-error');
+  const btnSave = document.getElementById('btn-save-cat');
+  const tbody = document.getElementById('cat-tbody');
+
+  if (!dlg) return;
+
+  function showCatDialog() {
+    if (typeof dlg.showModal === 'function') {
+      try { if (!dlg.open) dlg.showModal(); } catch (e) {}
+    } else {
+      dlg.setAttribute('open', '');
+    }
+  }
+  function hideCatDialog() {
+    try { if (dlg.open) dlg.close(); } catch (e) {}
+    dlg.removeAttribute('open');
+  }
+
+  function openCategoryModal(row) {
+    editingPk = row ? parseInt(row.dataset.id, 10) : null;
+    titleEl.textContent = editingPk ? '{% trans "Editar categoria" %}' : '{% trans "Nova categoria" %}';
+    nameInput.value = row ? row.dataset.name : '';
+    activeChk.checked = row ? row.dataset.isActive === 'true' : true;
+    Array.from(parentSel.options).forEach(function (o) {
+      o.disabled = editingPk ? parseInt(o.value, 10) === editingPk : false;
+    });
+    parentSel.value = row ? (row.dataset.parentId || '') : '';
+    setError('');
+    showCatDialog();
+    setTimeout(function () { nameInput.focus(); }, 60);
+  }
+
+  function closeCategoryModal() {
+    hideCatDialog();
+    editingPk = null;
+  }
+
+  function setError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = msg ? 'block' : 'none';
+  }
+
+  function setBusy(busy) {
+    btnSave.disabled = busy;
+    btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}';
+  }
+
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+      body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }),
+    }).then(function (r) { return r.json(); });
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function buildRow(c) {
+    var canDel = c.product_count === 0 && !c.has_children;
+    var isSubcat = !!c.parent_id;
+    var activeBadge = c.is_active
+      ? '<span class="badge badge-green">{% trans "Activa" %}</span>'
+      : '<span class="badge badge-gray">{% trans "Inactiva" %}</span>';
+    var delBtn = canDel
+      ? '<button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="' + c.id + '">🗑</button>'
+      : '';
+    return (
+      '<tr data-id="' + c.id + '"' +
+      ' data-name="' + String(c.name).replace(/"/g, '&quot;') + '"' +
+      ' data-parent-id="' + (c.parent_id || '') + '"' +
+      ' data-parent-name="' + String(c.parent_name || '').replace(/"/g, '&quot;') + '"' +
+      ' data-is-active="' + c.is_active + '"' +
+      ' data-count="' + c.product_count + '"' +
+      ' data-has-children="' + c.has_children + '">' +
+      '<td>' + (isSubcat ? '<span class="cat-sub">↳</span>' : '') + '<strong>' + escapeHtml(c.name) + '</strong></td>' +
+      '<td class="muted">' + escapeHtml(c.parent_name || '—') + '</td>' +
+      '<td style="text-align:right"><span class="badge ' + (c.product_count ? 'badge-accent' : 'badge-gray') + '">' + c.product_count + '</span></td>' +
+      '<td>' + activeBadge + '</td>' +
+      '<td><div class="actions">' +
+      '<button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>' +
+      delBtn +
+      '</div></td></tr>'
+    );
+  }
+
+  function upsertSelectOption(c) {
+    var opt = parentSel.querySelector('option[value="' + c.id + '"]');
+    var label = c.parent_id ? '↳ ' + c.name : c.name;
+    if (opt) opt.textContent = label;
+    else parentSel.appendChild(new Option(label, c.id));
+  }
+
+  function saveCategory() {
+    var name = nameInput.value.trim();
+    if (!name) {
+      setError('{% trans "O nome é obrigatório." %}');
+      nameInput.focus();
+      return;
+    }
+    setBusy(true);
+    post(editingPk ? urlUpd(editingPk) : URL_SAVE, {
+      name: name,
+      parent: parentSel.value,
+      is_active: activeChk.checked ? 'on' : '',
+    }).then(function (json) {
+      setBusy(false);
+      if (!json.ok) {
+        setError(Object.values(json.errors).flat().join(' '));
+        return;
+      }
+      var c = json.category;
+      var emptyRow = document.getElementById('empty-row');
+      if (emptyRow) emptyRow.remove();
+      if (editingPk) {
+        var existing = tbody.querySelector('tr[data-id="' + c.id + '"]');
+        if (existing) existing.outerHTML = buildRow(c);
+        upsertSelectOption(c);
+      } else {
+        tbody.insertAdjacentHTML('beforeend', buildRow(c));
+        upsertSelectOption(c);
+        var nr = tbody.querySelector('tr[data-id="' + c.id + '"]');
+        if (nr) nr.classList.add('row-new');
+      }
+      closeCategoryModal();
+    }).catch(function () {
+      setBusy(false);
+      setError('{% trans "Erro de ligação. Tente novamente." %}');
+    });
+  }
+
+  function deleteCategory(pk) {
+    if (!confirm('{% trans "Eliminar esta categoria?" %}')) return;
+    post(urlDel(pk), {}).then(function (json) {
+      if (!json.ok) { alert(json.error); return; }
+      var row = tbody.querySelector('tr[data-id="' + pk + '"]');
+      if (row) row.remove();
+      var opt = parentSel.querySelector('option[value="' + pk + '"]');
+      if (opt) opt.remove();
+      if (!tbody.querySelector('tr')) {
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">' +
+          '{% trans "Nenhuma categoria registada." %}</td></tr>';
+      }
+    });
+  }
+
+  document.getElementById('btn-nova-categoria').addEventListener('click', function () { openCategoryModal(null); });
+  document.getElementById('btn-cat-popup-close').addEventListener('click', closeCategoryModal);
+  document.getElementById('btn-cat-popup-cancel').addEventListener('click', closeCategoryModal);
+  btnSave.addEventListener('click', saveCategory);
+
+  tbody.addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.btn-cat-edit');
+    var delBtn = e.target.closest('.btn-cat-del');
+    if (editBtn) openCategoryModal(editBtn.closest('tr'));
+    if (delBtn) deleteCategory(parseInt(delBtn.dataset.id, 10));
+  });
+
+  dlg.addEventListener('click', function (e) {
+    if (!e.target.closest('.popup-panel')) closeCategoryModal();
+  });
+  dlg.addEventListener('cancel', function (e) {
+    e.preventDefault();
+    closeCategoryModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!dlg.open) return;
+    if (e.key === 'Enter') { e.preventDefault(); saveCategory(); }
+  });
+}());
+</script>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+
+{% block tab_parent %}{% url 'accounts:list' %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); max-width:680px; }
+  .form-card-header { padding:20px 28px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .form-card-icon { width:40px; height:40px; background:var(--accent-light); color:var(--accent); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .form-card-body { padding:28px; }
+  .form-card-footer { padding:16px 28px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .section-label { font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); font-family:sans-serif; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .field-error { font-size:12px; color:var(--red); font-family:sans-serif; margin-top:4px; }
+  .toggle-group { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface2); cursor:pointer; }
+  .toggle-switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; inset:0; background:var(--border2); border-radius:22px; transition:background .2s; }
+  .toggle-slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .toggle-switch input:checked + .toggle-slider { background:var(--green); }
+  .toggle-switch input:checked + .toggle-slider::before { transform:translateX(18px); }
+
+  /* Profile selector */
+  .profile-select-wrap { position:relative; }
+  .profile-select-wrap select { appearance:none; padding-right:32px; }
+  .profile-select-wrap::after { content:'▾'; position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--text3); pointer-events:none; font-size:12px; }
+  .profile-hint { font-size:12px; color:var(--text3); font-family:sans-serif; margin-top:6px; }
+  .profile-hint a { color:var(--accent); text-decoration:none; }
+  .profile-hint a:hover { text-decoration:underline; }
+
+  /* ── Responsivo ── */
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-card { max-width: 100%; }
+    .form-card-body { padding: 16px; }
+    .form-card-footer { flex-direction: column-reverse; }
+    .form-card-footer .btn { width: 100%; justify-content: center; }
+  }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'accounts:list' %}">{% trans "Utilizadores" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    {% if not is_create %}<p class="page-sub">{% trans "A editar:" %} {{ user_obj }}</p>{% endif %}
+  </div>
+</div>
+
+{% if messages %}
+  {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="form-card">
+
+    <div class="form-card-header">
+      <div class="form-card-icon">👤</div>
+      <div>
+        <div style="font-size:15px;font-weight:500">{% trans "Dados pessoais" %}</div>
+        <div style="font-size:12px;color:var(--text3);font-family:sans-serif">
+          {% if is_create %}{% trans "Preencha os dados do novo utilizador" %}{% else %}{% trans "Atualize as informações do utilizador" %}{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card-body">
+
+      <!-- Identity -->
+      <div class="section-label">{% trans "Identidade" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{% trans "Primeiro nome" %}</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="field-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Apelido" %}</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<div class="field-error">{{ form.last_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Nome de utilizador" %} *</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div class="field-error">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Email" %}</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Telefone" %}</label>
+          {{ form.phone }}
+        </div>
+      </div>
+
+      <!-- Password (create only) -->
+      {% if is_create %}
+      <div class="section-label">{% trans "Senha" %}</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">{% trans "Senha" %} *</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<div class="field-error">{{ form.password1.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Confirmar senha" %} *</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<div class="field-error">{{ form.password2.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Access profile -->
+      <div class="section-label">{% trans "Perfil de acesso" %}</div>
+      <div class="form-group">
+        <label class="form-label">{% trans "Perfil" %}</label>
+        <div class="profile-select-wrap">
+          {{ form.access_profile }}
+        </div>
+        {% if form.access_profile.errors %}<div class="field-error">{{ form.access_profile.errors.0 }}</div>{% endif %}
+        <p class="profile-hint">
+          {% trans "O perfil define as permissões do utilizador." %}
+          {% if perms.accounts.add_user %}
+          <a href="{% url 'accounts:profile_create' %}" target="_blank">{% trans "Criar novo perfil" %} →</a>
+          {% endif %}
+        </p>
+      </div>
+
+      <!-- Account status -->
+      <div class="section-label" style="margin-top:8px">{% trans "Estado da conta" %}</div>
+      <label class="toggle-group">
+        <div style="flex:1">
+          <div style="font-size:14px">{% trans "Conta ativa" %}</div>
+          <div style="font-size:12px;color:var(--text3);font-family:sans-serif">
+            {% trans "Utilizadores inativos não conseguem entrar no sistema" %}
+          </div>
+        </div>
+        <label class="toggle-switch">
+          {{ form.is_active }}
+          <span class="toggle-slider"></span>
+        </label>
+      </label>
+
+    </div>
+
+    <div class="form-card-footer">
+      <a href="{% url 'accounts:list' %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+      <button type="submit" class="btn btn-primary">
+        {% if is_create %}✓ {% trans "Criar utilizador" %}{% else %}✓ {% trans "Guardar alterações" %}{% endif %}
+      </button>
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}

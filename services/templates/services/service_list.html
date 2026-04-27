@@ -1,0 +1,659 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Serviços" %}{% endblock %}
+{% block tab_parent %}/services/{% endblock %}
+{% block tab_icon %}🔧{% endblock %}
+
+{% block breadcrumb %}
+<span>{% trans "Serviços" %}</span>
+<span class="bc-sep">›</span>
+<span>{% trans "Lista de Serviços" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+/* page header */
+.ph { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+.ph-left { display:flex; flex-direction:column; gap:2px; }
+.ph-right { display:flex; align-items:center; gap:8px; }
+.ph-count { font-size:12px; color:var(--text3); }
+
+/* botão grupo ícones */
+.icon-group { display:inline-flex; border:1px solid var(--border); border-radius:var(--radius,8px); overflow:visible; background:var(--surface); position:relative; }
+.icon-group .icon-btn {
+  width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center;
+  border:none; border-right:1px solid var(--border); background:transparent; color:var(--text2);
+  cursor:pointer; font-size:14px; transition:all .12s; position:relative;
+}
+.icon-group .icon-btn:last-child { border-right:none; }
+.icon-group .icon-btn:hover { background:var(--surface2); color:var(--accent); }
+.icon-group .icon-btn:first-child { border-radius:var(--radius,8px) 0 0 var(--radius,8px); }
+.icon-group .icon-btn:last-child  { border-radius:0 var(--radius,8px) var(--radius,8px) 0; }
+.icon-group .icon-btn:only-child  { border-radius:var(--radius,8px); }
+
+/* painel de colunas */
+.col-panel {
+  display:none; position:absolute; top:calc(100% + 6px); right:0;
+  width:230px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg,10px); box-shadow:0 8px 24px rgba(0,0,0,.14);
+  z-index:500; overflow:hidden;
+}
+.col-panel.open { display:block; }
+.col-panel-title {
+  padding:10px 14px 8px; font-size:11px; font-weight:700; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border);
+}
+.col-list { list-style:none; padding:6px 0; max-height:360px; overflow-y:auto; margin:0; }
+.col-item { display:flex; align-items:center; gap:8px; padding:7px 14px; cursor:pointer; transition:background .1s; }
+.col-item:hover { background:var(--surface2); }
+.col-item label { display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; font-size:13px; color:var(--text); }
+.col-item input[type=checkbox] { cursor:pointer; accent-color:var(--accent); }
+.col-item-badge { font-size:10px; color:var(--text3); margin-left:auto; }
+
+/* tabela */
+.tbl-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg,10px);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.tbl-card table {
+  width:100%;
+  min-width:920px;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:13px;
+  font-family:sans-serif;
+}
+
+/* thead */
+.tbl-card thead th {
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  padding:0;
+  text-align:center;
+  white-space:nowrap;
+  vertical-align:top;
+}
+.tbl-card thead th:first-child .th-wrap { padding-left:4px; }
+
+.th-cell {
+  display:flex; flex-direction:column; gap:7px;
+  align-items:center;
+  min-width:118px;
+  padding:10px 12px 11px;
+}
+.th-label {
+  width:100%;
+  text-align:center;
+  font-size:11px; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:.55px; line-height:1.2;
+}
+.th-input {
+  display:flex; align-items:center; gap:4px;
+  width:100%;
+  border:1px solid transparent; border-radius:6px;
+  background:var(--surface); padding:4px 8px;
+  box-shadow:inset 0 0 0 1px rgba(227,226,234,.65);
+  transition:border-color .12s, box-shadow .12s, background .12s;
+}
+.th-input:hover { box-shadow:inset 0 0 0 1px var(--border2); }
+.th-input:focus-within {
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-light);
+  background:#fff;
+}
+.th-input svg { color:var(--text3); flex-shrink:0; }
+.th-input input, .th-input select {
+  flex:1; height:22px; min-width:0; width:100%;
+  border:none; background:transparent; outline:none;
+  font-size:12px; font-family:sans-serif; color:var(--text);
+  -webkit-appearance:none; appearance:none; padding:0;
+}
+.th-input input::placeholder { color:var(--text3); font-size:11px; }
+
+/* setas sort */
+.th-sort {
+  display:flex; flex-direction:column; justify-content:center;
+  align-items:center; gap:1px;
+  align-self:flex-end;
+  margin:0 10px 12px 0;
+  padding:2px; border:1px solid transparent;
+  flex-shrink:0; width:20px;
+  border-radius:6px;
+  opacity:.62;
+  transition:opacity .12s, background .12s, border-color .12s;
+}
+.th-wrap:hover .th-sort {
+  opacity:1;
+  background:rgba(255,255,255,.7);
+  border-color:var(--border);
+}
+.sort-btn {
+  width:14px; height:11px; background:none; border:none; padding:0;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:var(--text3); border-radius:3px; transition:color .1s, background .1s;
+}
+.sort-btn:hover { color:var(--accent); background:var(--accent-light,#f5ece5); }
+.sort-btn.on { color:var(--accent); }
+
+.th-wrap { display:flex; align-items:stretch; min-height:76px; }
+
+/* tbody */
+.tbl-card tbody tr { cursor:pointer; transition:background .08s, box-shadow .08s; }
+.tbl-card tbody tr:last-child { border-bottom:none; }
+.tbl-card tbody tr:hover { background:#fbfafc; box-shadow:inset 3px 0 0 var(--accent); }
+.tbl-card tbody td {
+  padding:12px 14px;
+  color:var(--text);
+  vertical-align:middle;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+.tbl-card tbody td:first-child { text-align:left; }
+.tbl-card tbody tr:last-child td { border-bottom:none; }
+.tbl-card tbody td.m { color:var(--text3); font-size:12px; }
+.tbl-card tbody td.r { text-align:center; font-variant-numeric:tabular-nums; }
+.tbl-card tbody td .sv { display:none; }
+
+/* service name+code */
+.svc-name { font-weight:600; color:var(--text); }
+.svc-code { font-size:11px; color:var(--text3); margin-top:1px; }
+
+/* status pill */
+.pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px 3px 7px; border-radius:999px; font-size:12px; font-weight:500; white-space:nowrap; }
+.pill .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.pill-green { background:#ecfdf5; color:#047857; }
+.pill-green .dot { background:#10b981; }
+.pill-gray  { background:#f3f4f6; color:#6b7280; }
+.pill-gray  .dot { background:#9ca3af; }
+
+/* acções */
+.row-act { display:flex; gap:5px; justify-content:flex-end; }
+.btn-icon { width:27px; height:27px; border:1px solid var(--border); border-radius:6px; background:none; color:var(--text2); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; text-decoration:none; transition:all .12s; }
+.btn-icon:hover { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
+
+/* col oculta */
+.col-hidden { display:none !important; }
+
+/* paginação */
+.tbl-pag { display:flex; align-items:center; gap:6px; padding:12px 16px; border-top:1px solid var(--border); justify-content:flex-end; flex-wrap:wrap; }
+.tbl-pag a, .tbl-pag span { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 8px; border-radius:var(--radius,8px); font-size:13px; text-decoration:none; border:1px solid var(--border); color:var(--text2); transition:all .12s; }
+.tbl-pag a:hover { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
+.tbl-pag .cur { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }
+.tbl-pag .off { opacity:.35; pointer-events:none; }
+.tbl-pag-info { font-size:12px; color:var(--text3); margin-right:auto; }
+
+/* empty */
+.tbl-empty { text-align:center; padding:52px 24px; color:var(--text3); }
+.tbl-empty .ico { font-size:44px; margin-bottom:10px; }
+.tbl-empty p { font-size:13px; margin:4px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Cabeçalho da página -->
+<div class="ph">
+  <div class="ph-left">
+    <h1 class="page-title">{% trans "Serviços" %}</h1>
+    <span class="ph-count" id="svc-count">{{ total }} {% trans "resultado" %}{{ total|pluralize:"s" }}</span>
+  </div>
+  <div class="ph-right">
+    <div class="icon-group">
+      <button class="icon-btn" id="svc-col-btn" title="{% trans 'Configurar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </button>
+      <div class="col-panel" id="svc-col-panel">
+        <div class="col-panel-title">{% trans "Colunas visíveis" %}</div>
+        <ul class="col-list" id="svc-col-list"></ul>
+      </div>
+    </div>
+    <a href="{% url 'services:service_create' %}" class="btn btn-primary">+ {% trans "Novo serviço" %}</a>
+  </div>
+</div>
+
+{% if page.object_list %}
+<div class="tbl-card">
+  <div style="overflow-x:auto">
+  <table id="svc-table">
+
+    <thead>
+      <tr>
+        <!-- Serviço (fixo) -->
+        <th data-key="servico">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Serviço" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="servico" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="servico" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="servico" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Categoria -->
+        <th data-key="categoria">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Categoria" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="categoria" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="categoria" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="categoria" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Unidade -->
+        <th data-key="unidade">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Unidade" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="unidade" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="unidade" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="unidade" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Custo M.O. (oculto por padrão) -->
+        <th data-key="custo_mo" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Custo M.O." %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="custo_mo" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="custo_mo" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="custo_mo" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Custo Mat. (oculto por padrão) -->
+        <th data-key="custo_mat" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Custo Mat." %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="custo_mat" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="custo_mat" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="custo_mat" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Custo Total -->
+        <th data-key="custo_total">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Custo Total" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="custo_total" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="custo_total" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="custo_total" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Margem % (oculto por padrão) -->
+        <th data-key="margem" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Margem %" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="margem" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="margem" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="margem" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Preço Venda -->
+        <th data-key="preco_venda">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Preço Venda" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="preco_venda" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="preco_venda" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="preco_venda" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Tempo/un (oculto por padrão) -->
+        <th data-key="tempo" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Tempo/un (min)" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="tempo" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="tempo" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="tempo" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Nº Materiais (oculto por padrão) -->
+        <th data-key="materiais" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Materiais" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="materiais" placeholder="…">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="materiais" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="materiais" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Estado -->
+        <th data-key="estado">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Estado" %}</span>
+              <div class="th-input">
+                <select data-col="estado">
+                  <option value="">{% trans "Todos" %}</option>
+                  <option value="Activo">{% trans "Activo" %}</option>
+                  <option value="Inactivo">{% trans "Inactivo" %}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </th>
+        <!-- Criado em (oculto por padrão) -->
+        <th data-key="criado_em" class="col-hidden">
+          <div class="th-wrap">
+            <div class="th-cell">
+              <span class="th-label">{% trans "Criado em" %}</span>
+              <div class="th-input">
+                <svg viewBox="0 0 12 12" width="11" height="11" fill="none"><circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/><line x1="7.8" y1="7.8" x2="11" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <input type="text" data-col="criado_em" placeholder="dd/mm/aaaa">
+              </div>
+            </div>
+            <div class="th-sort">
+              <button class="sort-btn" data-col="criado_em" data-dir="asc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 5L5 1L9 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+              <button class="sort-btn" data-col="criado_em" data-dir="desc"><svg viewBox="0 0 10 6" width="9" height="6"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></button>
+            </div>
+          </div>
+        </th>
+        <!-- Ações -->
+        <th data-key="_acoes" style="width:52px"></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for service in page.object_list %}
+      <tr onclick="window.location='{% url "services:service_detail" service.pk %}'">
+        <td data-key="servico">
+          <div class="svc-name">{{ service.name }}</div>
+          <div class="svc-code">{{ service.code }}</div>
+        </td>
+        <td data-key="categoria" class="m">{{ service.category.name|default:"—" }}</td>
+        <td data-key="unidade" class="m">{{ service.unit.symbol }}</td>
+        <td data-key="custo_mo" class="r m col-hidden">
+          <span class="sv">{{ service.labor_cost_per_unit }}</span>
+          {% if service.labor_cost_per_unit %}{{ service.labor_cost_per_unit|floatformat:2 }} €{% else %}—{% endif %}
+        </td>
+        <td data-key="custo_mat" class="r m col-hidden">
+          <span class="sv">{{ service.material_cost_per_unit }}</span>
+          {% if service.material_cost_per_unit %}{{ service.material_cost_per_unit|floatformat:2 }} €{% else %}—{% endif %}
+        </td>
+        <td data-key="custo_total" class="r m">
+          <span class="sv">{{ service.total_cost_per_unit }}</span>
+          {% if service.total_cost_per_unit %}{{ service.total_cost_per_unit|floatformat:2 }} €{% else %}—{% endif %}
+        </td>
+        <td data-key="margem" class="r m col-hidden">
+          <span class="sv">{{ service.default_margin_percent }}</span>
+          {{ service.default_margin_percent|floatformat:1 }}%
+        </td>
+        <td data-key="preco_venda" class="r">
+          <span class="sv">{{ service.effective_sale_price }}</span>
+          {% if service.effective_sale_price %}<strong>{{ service.effective_sale_price|floatformat:2 }} €</strong>{% else %}—{% endif %}
+        </td>
+        <td data-key="tempo" class="r m col-hidden">
+          <span class="sv">{{ service.time_per_unit }}</span>
+          {{ service.time_per_unit|floatformat:0 }} min
+        </td>
+        <td data-key="materiais" class="r m col-hidden">
+          <span class="sv">{{ service.material_count }}</span>
+          {{ service.material_count }}
+        </td>
+        <td data-key="estado" onclick="event.stopPropagation()">
+          {% if service.is_active %}
+            <span class="pill pill-green"><span class="dot"></span>{% trans "Activo" %}</span>
+          {% else %}
+            <span class="pill pill-gray"><span class="dot"></span>{% trans "Inactivo" %}</span>
+          {% endif %}
+        </td>
+        <td data-key="criado_em" class="m col-hidden">
+          <span class="sv">{{ service.created_at|date:"Ymd" }}</span>
+          {{ service.created_at|date:"d/m/Y" }}
+        </td>
+        <td data-key="_acoes" onclick="event.stopPropagation()">
+          <div class="row-act">
+            <a href="{% url 'services:service_update' service.pk %}" class="btn-icon" title="{% trans 'Editar' %}">✏️</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+  </div>
+
+  {% if page.paginator.num_pages > 1 %}
+  <div class="tbl-pag">
+    <span class="tbl-pag-info">
+      {% blocktrans with start=page.start_index end=page.end_index count=total %}
+      {{ start }}–{{ end }} de {{ count }} serviços
+      {% endblocktrans %}
+    </span>
+    {% if page.has_previous %}
+      <a href="?page={{ page.previous_page_number }}">‹</a>
+    {% else %}<span class="off">‹</span>{% endif %}
+    {% for num in page.paginator.page_range %}
+      {% if num == page.number %}<span class="cur">{{ num }}</span>
+      {% elif num >= page.number|add:"-3" and num <= page.number|add:"3" %}
+        <a href="?page={{ num }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page.has_next %}
+      <a href="?page={{ page.next_page_number }}">›</a>
+    {% else %}<span class="off">›</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="tbl-card">
+  <div class="tbl-empty">
+    <div class="ico">🔧</div>
+    <p>{% trans "Ainda não há serviços cadastrados." %}</p>
+    <p><a href="{% url 'services:service_create' %}" class="btn btn-primary btn-sm" style="margin-top:10px">{% trans "Criar primeiro serviço" %}</a></p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const table = document.getElementById('svc-table');
+  if (!table) return;
+  const tbody = table.tBodies[0];
+  const rows  = Array.from(tbody.rows);
+  const count = document.getElementById('svc-count');
+
+  /* ── definição de colunas ── */
+  const COLS = [
+    { key:'servico',     label:'Serviço',         fixed:true,  defaultVisible:true  },
+    { key:'categoria',   label:'Categoria',        fixed:false, defaultVisible:true  },
+    { key:'unidade',     label:'Unidade',          fixed:false, defaultVisible:true  },
+    { key:'custo_mo',    label:'Custo M.O.',       fixed:false, defaultVisible:false },
+    { key:'custo_mat',   label:'Custo Mat.',       fixed:false, defaultVisible:false },
+    { key:'custo_total', label:'Custo Total',      fixed:false, defaultVisible:true  },
+    { key:'margem',      label:'Margem %',         fixed:false, defaultVisible:false },
+    { key:'preco_venda', label:'Preço Venda',      fixed:false, defaultVisible:true  },
+    { key:'tempo',       label:'Tempo/un (min)',   fixed:false, defaultVisible:false },
+    { key:'materiais',   label:'Nº Materiais',     fixed:false, defaultVisible:false },
+    { key:'estado',      label:'Estado',           fixed:false, defaultVisible:true  },
+    { key:'criado_em',   label:'Criado em',        fixed:false, defaultVisible:false },
+  ];
+  const LS_KEY = 'svc_cols_v2';
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e) { return {}; }
+  }
+  function saveState(state) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+  function isVisible(col) {
+    if (col.fixed) return true;
+    const s = loadState();
+    return s[col.key] === undefined ? col.defaultVisible : s[col.key] !== false;
+  }
+
+  function applyVisibility() {
+    COLS.forEach(col => {
+      const vis = isVisible(col);
+      const th  = table.querySelector(`thead th[data-key="${col.key}"]`);
+      const tds = table.querySelectorAll(`tbody td[data-key="${col.key}"]`);
+      if (th) th.classList.toggle('col-hidden', !vis);
+      tds.forEach(td => td.classList.toggle('col-hidden', !vis));
+    });
+  }
+
+  function buildPanel() {
+    const list = document.getElementById('svc-col-list');
+    if (!list) return;
+    list.innerHTML = '';
+    COLS.forEach(col => {
+      if (col.fixed) return;
+      const vis = isVisible(col);
+      const li  = document.createElement('li');
+      li.className = 'col-item';
+      li.innerHTML = `<label><input type="checkbox" ${vis ? 'checked' : ''}> ${col.label}</label>`;
+      li.querySelector('input').addEventListener('change', function() {
+        const s = loadState();
+        s[col.key] = this.checked;
+        saveState(s);
+        applyVisibility();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  /* painel toggle */
+  const colBtn   = document.getElementById('svc-col-btn');
+  const colPanel = document.getElementById('svc-col-panel');
+  if (colBtn && colPanel) {
+    colBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = colPanel.classList.toggle('open');
+      if (open) buildPanel();
+    });
+    document.addEventListener('click', e => {
+      if (!colPanel.contains(e.target) && e.target !== colBtn) colPanel.classList.remove('open');
+    });
+  }
+
+  /* inicializar visibilidade */
+  applyVisibility();
+
+  /* ── filtros ── */
+  const filters = {};
+  let   sortCol = null, sortDir = null;
+
+  table.querySelectorAll('thead [data-col]').forEach(el => {
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      filters[el.dataset.col] = el.value.trim().toLowerCase();
+      apply();
+    });
+  });
+
+  /* ── sort ── */
+  table.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const col = btn.dataset.col, dir = btn.dataset.dir;
+      if (sortCol === col && sortDir === dir) { sortCol = sortDir = null; }
+      else { sortCol = col; sortDir = dir; }
+      table.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('on'));
+      if (sortCol) btn.classList.add('on');
+      apply();
+    });
+  });
+
+  function apply() {
+    rows.forEach(row => {
+      let vis = true;
+      Object.entries(filters).forEach(([col, val]) => {
+        if (!val) return;
+        const td = row.querySelector(`td[data-key="${col}"]`);
+        if (!td || !td.textContent.toLowerCase().includes(val)) vis = false;
+      });
+      row.style.display = vis ? '' : 'none';
+    });
+
+    if (sortCol) {
+      [...rows].sort((a, b) => {
+        const ta  = a.querySelector(`td[data-key="${sortCol}"]`);
+        const tb  = b.querySelector(`td[data-key="${sortCol}"]`);
+        const sva = ta?.querySelector('.sv')?.textContent.trim() ?? ta?.textContent.trim() ?? '';
+        const svb = tb?.querySelector('.sv')?.textContent.trim() ?? tb?.textContent.trim() ?? '';
+        const na  = parseFloat(sva.replace(/[^\d.,-]/g,'').replace(',','.'));
+        const nb  = parseFloat(svb.replace(/[^\d.,-]/g,'').replace(',','.'));
+        const cmp = (!isNaN(na) && !isNaN(nb)) ? na - nb : sva.localeCompare(svb);
+        return sortDir === 'asc' ? cmp : -cmp;
+      }).forEach(r => tbody.appendChild(r));
+    }
+
+    if (count) {
+      const vis = rows.filter(r => r.style.display !== 'none').length;
+      count.textContent = vis + ' resultado' + (vis !== 1 ? 's' : '');
+    }
+  }
+})();
+</script>
+{% endblock %}
