@@ -85,6 +85,10 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('workforce', '0004_add_legalform_model'),
+        # Tabelas alvo do RunSQL precisam existir antes (ordem de apps não garante isso)
+        ('clients', '0001_initial'),
+        ('suppliers', '0001_initial'),
+        ('subcontractors', '0001_initial'),
     ]
 
     operations = [
