@@ -12,10 +12,9 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                # Remove a coluna antiga (já temos legal_form_id do RunSQL)
+                # Após workforce.0005 a coluna CharField chama-se legal_form_old
                 migrations.RunSQL(
-                    # SQLite 3.35+ suporta DROP COLUMN — se falhar, ignora (coluna obsoleta)
-                    "ALTER TABLE clients_client DROP COLUMN legal_form;",
+                    "ALTER TABLE clients_client DROP COLUMN legal_form_old;",
                     reverse_sql="SELECT 1;",
                 ),
             ],

@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
-                    "ALTER TABLE suppliers_supplier DROP COLUMN legal_form;",
+                    "ALTER TABLE suppliers_supplier DROP COLUMN legal_form_old;",
                     reverse_sql="SELECT 1;",
                 ),
             ],
