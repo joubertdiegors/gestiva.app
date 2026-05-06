@@ -8,6 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
+from accounts.decorators import perm_required
 from .models import Collaborator, CollaboratorAddress, CollaboratorInsuranceNote, InsuranceFund, InsuranceFundContact, Nationality, Language, LegalForm, DriverLicense, ParkingPermit
 from .forms import (
     CollaboratorForm, CollaboratorHourlyRateCreateForm,
@@ -56,7 +57,7 @@ def _protected_workforce_upload_response(file_field):
 
 # ── Lista ──────────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def collaborator_list(request):
     qs = Collaborator.objects.select_related('company', 'insurance_fund').order_by('name')
     responsible = request.GET.get('responsible', '').strip()
@@ -70,7 +71,7 @@ def collaborator_list(request):
 
 # ── Criar ──────────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.add_collaborator')
 def collaborator_create(request):
     next_path  = _safe_next_path(request, (request.GET.get('next') or request.POST.get('next') or '').strip() or None)
     company_id = (request.GET.get('company') or request.POST.get('company') or '').strip()
@@ -92,7 +93,7 @@ def collaborator_create(request):
 
 # ── Detalhe ────────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def collaborator_detail(request, pk):
     collaborator = get_object_or_404(
         Collaborator.objects.select_related('company', 'insurance_fund')
@@ -118,11 +119,31 @@ def collaborator_detail(request, pk):
 
 # ── Editar ─────────────────────────────────────────────────────────────────────
 
-@login_required
+def _collaborator_has_links(collaborator):
+    """Retorna True se o colaborador tiver ligações em qualquer outro app."""
+    relations = [
+        'planning_assignments',
+        'planning_day_offs',
+        'driven_plannings',
+        'vehicle_planning_assignments',
+        'ciaw_nodes',
+        'project_labour_entries',
+        'default_vehicles',
+        'fuelings',
+        'fines',
+        'vehicle_expenses',
+    ]
+    if hasattr(collaborator, 'timesheets'):
+        relations.append('timesheets')
+    return any(getattr(collaborator, rel).exists() for rel in relations)
+
+
+@perm_required('workforce.change_collaborator')
 def collaborator_update(request, pk):
-    collaborator = get_object_or_404(Collaborator, pk=pk)
-    next_path    = _safe_next_path(request, (request.GET.get('next') or request.POST.get('next') or '').strip() or None)
-    form = CollaboratorForm(request.POST or None, request.FILES or None, instance=collaborator)
+    collaborator   = get_object_or_404(Collaborator, pk=pk)
+    next_path      = _safe_next_path(request, (request.GET.get('next') or request.POST.get('next') or '').strip() or None)
+    company_locked = _collaborator_has_links(collaborator)
+    form = CollaboratorForm(request.POST or None, request.FILES or None, instance=collaborator, company_locked=company_locked)
     if form.is_valid():
         obj = form.save(commit=False)
         if request.POST.get('photo-clear') and not request.FILES.get('photo'):
@@ -147,12 +168,36 @@ def collaborator_update(request, pk):
         'dl_form': dl_form,
         'parking_permits': parking_permits,
         'redirect_next': next_path,
+        'company_locked': company_locked,
+    })
+
+
+# ── Duplicar colaborador ───────────────────────────────────────────────────────
+
+@perm_required('workforce.add_collaborator')
+@require_POST
+def collaborator_duplicate(request, pk):
+    source = get_object_or_404(Collaborator, pk=pk)
+    initial = {
+        'name':       source.name,
+        'birth_date': source.birth_date,
+        'id_number':  source.id_number,
+        'id_expiry':  source.id_expiry,
+    }
+    form = CollaboratorForm(initial=initial)
+    # Pré-selecionar as M2M (nationalities e languages) via queryset inicial
+    form.fields['nationalities'].initial = source.nationalities.values_list('pk', flat=True)
+    form.fields['languages'].initial     = source.languages.values_list('pk', flat=True)
+    return render(request, 'workforce/collaborator_form.html', {
+        'form': form,
+        'title': _('Novo colaborador (cópia de %(name)s)') % {'name': source.name},
+        'duplicate_source': source,
     })
 
 
 # ── Toggle de status (AJAX) ────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def collaborator_status_toggle(request, pk):
     collaborator = get_object_or_404(Collaborator, pk=pk)
@@ -163,7 +208,7 @@ def collaborator_status_toggle(request, pk):
 
 # ── Autocomplete Nacionalidade ─────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def nationality_autocomplete(request):
     q      = request.GET.get('q', '').strip()
     limit  = 15
@@ -173,7 +218,7 @@ def nationality_autocomplete(request):
 
 # ── Autocomplete Idioma ────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def language_autocomplete(request):
     q     = request.GET.get('q', '').strip()
     limit = 15
@@ -183,7 +228,7 @@ def language_autocomplete(request):
 
 # ── Notas de seguro (AJAX) ─────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def insurance_note_create(request, pk):
     collaborator = get_object_or_404(Collaborator, pk=pk)
@@ -198,7 +243,7 @@ def insurance_note_create(request, pk):
     return JsonResponse({'ok': True, 'note': _insurance_note_to_dict(note)})
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def insurance_note_resolve(request, pk, note_pk):
     from django.utils.timezone import now
@@ -223,7 +268,7 @@ def _insurance_note_to_dict(note):
 
 # ── Valor/hora ─────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def collaborator_hourly_rate_edit(request, pk, rate_pk):
     from .models import CollaboratorHourlyRate
@@ -244,7 +289,7 @@ def collaborator_hourly_rate_edit(request, pk, rate_pk):
     }})
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def collaborator_hourly_rate_create(request, pk):
     collaborator = get_object_or_404(Collaborator, pk=pk)
@@ -268,7 +313,7 @@ def collaborator_hourly_rate_create(request, pk):
 
 # ── Endereços do colaborador (AJAX) ────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def collaborator_address_save(request, pk, addr_pk=None):
     collaborator = get_object_or_404(Collaborator, pk=pk)
@@ -286,7 +331,7 @@ def collaborator_address_save(request, pk, addr_pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def collaborator_address_delete(request, pk, addr_pk):
     addr = get_object_or_404(CollaboratorAddress, pk=addr_pk, collaborator_id=pk)
@@ -310,36 +355,27 @@ def _address_to_dict(addr):
 
 # ── Nacionalidades ─────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def nationality_list(request):
     qs = Nationality.objects.order_by('name')
     return render(request, 'workforce/nationality_list.html', {'nationalities': qs})
 
 
-@login_required
-def nationality_create(request):
-    form = NationalityForm(request.POST or None)
+@perm_required('workforce.change_collaborator')
+@require_POST
+def nationality_save(request, pk=None):
+    instance = get_object_or_404(Nationality, pk=pk) if pk else None
+    form = NationalityForm(request.POST, instance=instance)
     if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Nacionalidade criada com sucesso.'))
-        return redirect('workforce:nationality_list')
-    return render(request, 'workforce/nationality_form.html', {'form': form, 'title': _('Nova Nacionalidade')})
+        obj = form.save()
+        return JsonResponse({'ok': True, 'item': {
+            'id': obj.pk, 'name': obj.name,
+            'worker_count': obj.collaborators.count(),
+        }})
+    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
-def nationality_edit(request, pk):
-    obj = get_object_or_404(Nationality, pk=pk)
-    form = NationalityForm(request.POST or None, instance=obj)
-    if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Nacionalidade actualizada.'))
-        return redirect('workforce:nationality_list')
-    return render(request, 'workforce/nationality_form.html', {'form': form, 'title': obj.name, 'obj': obj})
-
-
-@login_required
+@perm_required('workforce.delete_collaborator')
 @require_POST
 def nationality_delete(request, pk):
     obj = get_object_or_404(Nationality, pk=pk)
@@ -351,36 +387,27 @@ def nationality_delete(request, pk):
 
 # ── Idiomas ────────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def language_list(request):
     qs = Language.objects.order_by('name')
     return render(request, 'workforce/language_list.html', {'languages': qs})
 
 
-@login_required
-def language_create(request):
-    form = LanguageForm(request.POST or None)
+@perm_required('workforce.change_collaborator')
+@require_POST
+def language_save(request, pk=None):
+    instance = get_object_or_404(Language, pk=pk) if pk else None
+    form = LanguageForm(request.POST, instance=instance)
     if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Idioma criado com sucesso.'))
-        return redirect('workforce:language_list')
-    return render(request, 'workforce/language_form.html', {'form': form, 'title': _('Novo Idioma')})
+        obj = form.save()
+        return JsonResponse({'ok': True, 'item': {
+            'id': obj.pk, 'name': obj.name,
+            'worker_count': obj.collaborators.count(),
+        }})
+    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
-def language_edit(request, pk):
-    obj = get_object_or_404(Language, pk=pk)
-    form = LanguageForm(request.POST or None, instance=obj)
-    if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Idioma actualizado.'))
-        return redirect('workforce:language_list')
-    return render(request, 'workforce/language_form.html', {'form': form, 'title': obj.name, 'obj': obj})
-
-
-@login_required
+@perm_required('workforce.delete_collaborator')
 @require_POST
 def language_delete(request, pk):
     obj = get_object_or_404(Language, pk=pk)
@@ -392,39 +419,30 @@ def language_delete(request, pk):
 
 # ── Caixas de Seguro ───────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def insurance_fund_list(request):
     qs = InsuranceFund.objects.prefetch_related('contacts').order_by('name')
     return render(request, 'workforce/insurance_fund_list.html', {'funds': qs})
 
 
-@login_required
-def insurance_fund_create(request):
-    form = InsuranceFundForm(request.POST or None)
+@perm_required('workforce.change_collaborator')
+@require_POST
+def insurance_fund_save(request, pk=None):
+    instance = get_object_or_404(InsuranceFund, pk=pk) if pk else None
+    form = InsuranceFundForm(request.POST, instance=instance)
     if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Caixa de seguro criada com sucesso.'))
-        return redirect('workforce:insurance_fund_list')
-    return render(request, 'workforce/insurance_fund_form.html', {'form': form, 'title': _('Nova Caixa de Seguro')})
+        obj = form.save()
+        return JsonResponse({'ok': True, 'item': {
+            'id': obj.pk, 'name': obj.name,
+            'phone': obj.phone or '',
+            'email': obj.email or '',
+            'contact_count': obj.contacts.count(),
+            'worker_count': obj.collaborators.count(),
+        }})
+    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
-def insurance_fund_edit(request, pk):
-    fund = get_object_or_404(InsuranceFund, pk=pk)
-    form = InsuranceFundForm(request.POST or None, instance=fund)
-    if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Caixa de seguro actualizada.'))
-        return redirect('workforce:insurance_fund_detail', pk=fund.pk)
-    contacts = fund.contacts.order_by('name')
-    return render(request, 'workforce/insurance_fund_form.html', {
-        'form': form, 'title': fund.name, 'fund': fund, 'contacts': contacts,
-    })
-
-
-@login_required
+@perm_required('workforce.view_collaborator')
 def insurance_fund_detail(request, pk):
     fund = get_object_or_404(InsuranceFund, pk=pk)
     contacts = fund.contacts.order_by('name')
@@ -434,7 +452,7 @@ def insurance_fund_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('workforce.delete_collaborator')
 @require_POST
 def insurance_fund_delete(request, pk):
     fund = get_object_or_404(InsuranceFund, pk=pk)
@@ -444,7 +462,7 @@ def insurance_fund_delete(request, pk):
     return redirect('workforce:insurance_fund_list')
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def insurance_fund_contact_save(request, fund_pk, contact_pk=None):
     fund = get_object_or_404(InsuranceFund, pk=fund_pk)
@@ -461,7 +479,7 @@ def insurance_fund_contact_save(request, fund_pk, contact_pk=None):
     }})
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def insurance_fund_contact_delete(request, fund_pk, contact_pk):
     contact = get_object_or_404(InsuranceFundContact, pk=contact_pk, fund_id=fund_pk)
@@ -471,36 +489,31 @@ def insurance_fund_contact_delete(request, fund_pk, contact_pk):
 
 # ── Formas Jurídicas ───────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def legal_form_list(request):
     qs = LegalForm.objects.prefetch_related('clients', 'suppliers', 'subcontractors').order_by('name')
     return render(request, 'workforce/legal_form_list.html', {'legal_forms': qs})
 
 
-@login_required
-def legal_form_create(request):
-    form = LegalFormForm(request.POST or None)
+@perm_required('workforce.change_collaborator')
+@require_POST
+def legal_form_save(request, pk=None):
+    instance = get_object_or_404(LegalForm, pk=pk) if pk else None
+    form = LegalFormForm(request.POST, instance=instance)
     if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Forma jurídica criada com sucesso.'))
-        return redirect('workforce:legal_form_list')
-    return render(request, 'workforce/legal_form_form.html', {'form': form, 'title': _('Nova Forma Jurídica')})
+        obj = form.save()
+        return JsonResponse({'ok': True, 'item': {
+            'id': obj.pk, 'name': obj.name,
+            'abbreviation': obj.abbreviation or '',
+            'notes': obj.notes or '',
+            'client_count': obj.clients.count(),
+            'supplier_count': obj.suppliers.count(),
+            'subcontractor_count': obj.subcontractors.count(),
+        }})
+    return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
-def legal_form_edit(request, pk):
-    obj = get_object_or_404(LegalForm, pk=pk)
-    form = LegalFormForm(request.POST or None, instance=obj)
-    if form.is_valid():
-        form.save()
-        from django.contrib import messages
-        messages.success(request, _('Forma jurídica actualizada.'))
-        return redirect('workforce:legal_form_list')
-    return render(request, 'workforce/legal_form_form.html', {'form': form, 'title': obj.display_name, 'obj': obj})
-
-
-@login_required
+@perm_required('workforce.delete_collaborator')
 @require_POST
 def legal_form_delete(request, pk):
     obj = get_object_or_404(LegalForm, pk=pk)
@@ -512,13 +525,13 @@ def legal_form_delete(request, pk):
 
 # ── Ficheiros sensíveis (só utilizador autenticado) ────────────────────────────
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def collaborator_photo_serve(request, pk):
     collaborator = get_object_or_404(Collaborator, pk=pk)
     return _protected_workforce_upload_response(collaborator.photo)
 
 
-@login_required
+@perm_required('workforce.view_collaborator')
 def driver_license_scan_serve(request, pk):
     get_object_or_404(Collaborator, pk=pk)
     dl = DriverLicense.objects.filter(collaborator_id=pk).first()
@@ -528,7 +541,7 @@ def driver_license_scan_serve(request, pk):
 
 
 # ── CARTA DE CONDUÇÃO ──────────────────────────────────────────────────────────
-@login_required
+@perm_required('workforce.change_collaborator')
 def driver_license_save(request, pk):
     """Cria ou actualiza a carta de condução do colaborador (POST via modal)."""
     collaborator = get_object_or_404(Collaborator, pk=pk)
@@ -542,7 +555,7 @@ def driver_license_save(request, pk):
     return JsonResponse({'ok': False, 'errors': form.errors})
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def parking_permit_create(request, pk):
     """Regista uma nova inscrição/renovação de estacionamento (POST via modal)."""
@@ -566,7 +579,7 @@ def parking_permit_create(request, pk):
     return JsonResponse({'ok': False, 'errors': form.errors})
 
 
-@login_required
+@perm_required('workforce.change_collaborator')
 @require_POST
 def parking_permit_delete(request, pk, permit_pk):
     """Remove um registo de estacionamento."""

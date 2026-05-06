@@ -1,0 +1,728 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ invoice.number }} — Construart{% endblock %}
+{% block tab_parent %}/invoicing/{% endblock %}
+{% block tab_icon %}🧾{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'invoicing:list' %}">Faturas</a>
+  <span class="sep">›</span>
+  <span class="current">{{ invoice.number }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .detail-layout { display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:start; }
+  @media(max-width:900px) { .detail-layout { grid-template-columns:1fr; } }
+
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-bottom:1px solid var(--border); font-size:14px; }
+  .info-row:last-child { border-bottom:none; }
+  .info-row.col { flex-direction:column; align-items:flex-start; gap:4px; }
+  .info-label { color:var(--text3); font-family:sans-serif; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+  .section-header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--border); }
+  .section-header h2 { font-size:12px; font-family:sans-serif; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; margin:0; }
+
+  /* Line table */
+  .dt-wrap { overflow-x:auto; }
+  .dt { width:100%; border-collapse:collapse; font-size:13px; font-family:sans-serif; table-layout:fixed; }
+  .dt colgroup .col-num  { width:54px; }
+  .dt colgroup .col-desc { width:auto; }
+  .dt colgroup .col-qty  { width:70px; }
+  .dt colgroup .col-unit { width:60px; }
+  .dt colgroup .col-price{ width:90px; }
+  .dt colgroup .col-total{ width:90px; }
+  .dt colgroup .col-act  { width:80px; }
+  .dt thead th { padding:8px 10px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+  .dt thead th.num { text-align:right; }
+  .dt tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+  .dt tbody tr:last-child { border-bottom:none; }
+  .dt tbody tr:hover { background:var(--surface2); }
+  .dt td { padding:8px 10px; color:var(--text); vertical-align:middle; word-break:break-word; }
+  .dt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dt td.muted { color:var(--text3); }
+  .dt-empty { padding:20px; text-align:center; font-size:13px; color:var(--text3); }
+
+  /* Line types */
+  tr.lt-title td { background:color-mix(in srgb, var(--accent) 6%, transparent); }
+  tr.lt-title td.desc-cell { font-weight:700; font-size:14px; color:var(--text); }
+  tr.lt-title td.num-cell { font-weight:700; font-size:14px; color:var(--accent); }
+  tr.lt-h2 td.desc-cell { font-weight:600; font-size:13px; color:var(--text); padding-left:22px; }
+  tr.lt-h2 td.num-cell { font-weight:600; color:var(--text2); }
+  tr.lt-h3 td.desc-cell { font-weight:500; color:var(--text2); padding-left:34px; font-style:italic; }
+  tr.lt-h3 td.num-cell { color:var(--text3); }
+  tr.lt-h4 td.desc-cell { color:var(--text3); padding-left:46px; font-style:italic; font-size:12px; }
+  tr.lt-h4 td.num-cell { color:var(--text3); font-size:12px; }
+  tr.lt-comment td { color:var(--text3); font-style:italic; background:color-mix(in srgb, var(--surface2) 60%, transparent); }
+  tr.lt-page-break td { padding:4px 10px; }
+  .page-break-line { border:none; border-top:2px dashed var(--border); margin:0; }
+
+  /* Toolbar */
+  .lines-toolbar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; padding:10px 18px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .lines-search { flex:1; min-width:160px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:12px; background:var(--surface); color:var(--text); }
+  .lines-search::placeholder { color:var(--text3); }
+
+  /* Totals */
+  .totals-block { padding:16px 18px; display:flex; flex-direction:column; gap:6px; }
+  .total-row { display:flex; justify-content:space-between; font-size:13px; font-family:sans-serif; }
+  .total-row.grand { font-size:16px; font-weight:700; padding-top:8px; border-top:2px solid var(--border); }
+  .total-row .tl { color:var(--text2); }
+  .total-row .tv { font-variant-numeric:tabular-nums; }
+
+  /* Row actions */
+  .row-acts { display:flex; gap:2px; justify-content:flex-end; }
+  .btn-icon { width:26px; height:26px; border:1px solid var(--border); border-radius:5px; background:none; color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px; padding:0; }
+  .btn-icon:hover { background:var(--surface2); color:var(--accent); border-color:var(--accent); }
+  .btn-icon.danger:hover { background:var(--red-light,#fee2e2); color:var(--red); border-color:var(--red); }
+
+  /* Popup */
+  .popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:600; align-items:center; justify-content:center; }
+  .popup-overlay.open { display:flex; }
+  .popup { background:var(--surface); border-radius:var(--radius-lg,10px); width:560px; max-width:96vw; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-md,0 8px 32px rgba(0,0,0,.2)); }
+  .popup-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--surface); z-index:1; }
+  .popup-title { font-size:15px; font-weight:600; }
+  .popup-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text3); line-height:1; }
+  .popup-body { padding:22px; }
+  .popup-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+  .popup-alert { padding:9px 12px; border-radius:6px; font-size:13px; display:none; margin-bottom:12px; }
+  .popup-alert.show { display:block; }
+  .popup-alert.error { background:var(--red-light,#fee2e2); color:var(--red); }
+  .form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-grid2 .span-2 { grid-column:span 2; }
+  .field-error { color:var(--red); font-size:12px; margin-top:3px; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns:1fr; } .form-grid2 .span-2 { grid-column:span 1; } }
+
+  /* Drag handle */
+  .drag-handle { cursor:grab; color:var(--text3); font-size:14px; padding:0 4px; user-select:none; }
+  tr.dragging { opacity:.4; }
+  tr.drag-over { border-top:2px solid var(--accent); }
+  .tfoot-total td { font-weight:600; border-top:2px solid var(--border); background:var(--surface2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ invoice.number }}
+      <span style="font-size:13px;font-weight:400;color:var(--text3);margin-left:8px;">{{ invoice.get_invoice_type_display }}</span>
+    </h1>
+    <p class="page-sub">{{ invoice.client.name }}{% if invoice.title %} · {{ invoice.title }}{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% if can_send %}
+    <form method="post" action="{% url 'invoicing:send' invoice.pk %}" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary" onclick="return confirm('Marcar como enviada e criar conta a receber?')">
+        📤 Marcar enviada
+      </button>
+    </form>
+    {% endif %}
+    {% if invoice.status == 'draft' %}
+    <a href="{% url 'invoicing:update' invoice.pk %}" class="btn btn-secondary">✏️ Editar cabeçalho</a>
+    {% endif %}
+    {% if can_cancel %}
+    <form method="post" action="{% url 'invoicing:cancel' invoice.pk %}" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Cancelar esta fatura?')">
+        ✖ Cancelar
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'invoicing:print' invoice.pk %}" target="_blank" class="btn btn-ghost btn-sm">🖨️ Imprimir</a>
+    <a href="{% url 'invoicing:list' %}" class="btn btn-ghost btn-sm">← Voltar</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+
+  <!-- Coluna esquerda -->
+  <div>
+    <div class="card" style="overflow:hidden; margin-bottom:16px;">
+      <div class="section-header"><h2>Informações</h2></div>
+      <div class="info-row">
+        <span class="info-label">Estado</span>
+        <span>
+          {% if invoice.status == 'draft' %}     <span class="badge badge-gray">Rascunho</span>
+          {% elif invoice.status == 'sent' %}    <span class="badge badge-blue">Enviada</span>
+          {% elif invoice.status == 'partial' %} <span class="badge badge-amber">Parcialmente paga</span>
+          {% elif invoice.status == 'paid' %}    <span class="badge badge-green">Paga</span>
+          {% else %}                             <span class="badge badge-red">Cancelada</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="info-row"><span class="info-label">Tipo</span><span>{{ invoice.get_invoice_type_display }}</span></div>
+      <div class="info-row"><span class="info-label">Cliente</span><span>{{ invoice.client.name }}</span></div>
+      {% if invoice.project %}
+      <div class="info-row">
+        <span class="info-label">Projeto</span>
+        <span><a href="{% url 'project_detail' invoice.project.pk %}" style="color:var(--accent);">{{ invoice.project.name }}</a></span>
+      </div>
+      {% endif %}
+      <div class="info-row"><span class="info-label">Emissão</span><span>{{ invoice.issue_date|date:"d/m/Y" }}</span></div>
+      {% if invoice.due_date %}
+      <div class="info-row">
+        <span class="info-label">Vencimento</span>
+        <span {% if invoice.is_overdue %}style="color:var(--red);font-weight:600;"{% endif %}>
+          {{ invoice.due_date|date:"d/m/Y" }}{% if invoice.is_overdue %} ⚠{% endif %}
+        </span>
+      </div>
+      {% endif %}
+      {% if invoice.payment_terms %}<div class="info-row col"><span class="info-label">Condições</span><span style="font-size:13px;">{{ invoice.payment_terms }}</span></div>{% endif %}
+      {% if invoice.bon_de_facturation %}<div class="info-row col"><span class="info-label">N° autorização</span><span>{{ invoice.bon_de_facturation }}</span></div>{% endif %}
+      {% if invoice.authorization_date %}<div class="info-row"><span class="info-label">Data autorização</span><span>{{ invoice.authorization_date|date:"d/m/Y" }}</span></div>{% endif %}
+      {% if invoice.authorization_contact %}<div class="info-row col"><span class="info-label">Contato autorização</span><span>{{ invoice.authorization_contact }}</span></div>{% endif %}
+      {% if invoice.work_start_date %}<div class="info-row"><span class="info-label">Início trabalhos</span><span>{{ invoice.work_start_date|date:"d/m/Y" }}</span></div>{% endif %}
+      {% if invoice.work_end_date %}<div class="info-row"><span class="info-label">Fim trabalhos</span><span>{{ invoice.work_end_date|date:"d/m/Y" }}</span></div>{% endif %}
+      {% if invoice.execution_notes %}<div class="info-row col"><span class="info-label">Notas de execução</span><span style="font-size:13px;">{{ invoice.execution_notes }}</span></div>{% endif %}
+      {% if invoice.billing_name %}
+      <div class="info-row col">
+        <span class="info-label">Faturado a</span>
+        <span>{{ invoice.billing_name }}{% if invoice.billing_vat %} · {{ invoice.billing_vat }}{% endif %}</span>
+        {% if invoice.billing_address %}<span style="font-size:12px;color:var(--text3);">{{ invoice.billing_address }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="overflow:hidden;">
+      <div class="section-header"><h2>Totais</h2></div>
+      <div class="totals-block">
+        <div class="total-row"><span class="tl">Subtotal HT</span><span class="tv" id="tot-subtotal">€{{ invoice.subtotal_ht|floatformat:2 }}</span></div>
+        {% if invoice.discount_percent %}
+        <div class="total-row"><span class="tl">Desconto ({{ invoice.discount_percent }}%)</span><span class="tv" id="tot-discount" style="color:var(--red);">-€{{ invoice.discount_amount|floatformat:2 }}</span></div>
+        {% endif %}
+        <div class="total-row"><span class="tl">Total HT</span><span class="tv" id="tot-ht">€{{ invoice.total_ht|floatformat:2 }}</span></div>
+        <div class="total-row"><span class="tl">IVA</span><span class="tv" id="tot-vat">€{{ invoice.total_vat|floatformat:2 }}</span></div>
+        <div class="total-row grand"><span class="tl">Total TTC</span><span class="tv" id="tot-ttc">€{{ invoice.total_ttc|floatformat:2 }}</span></div>
+        {% if receivable %}
+        <div class="total-row" style="margin-top:8px;"><span class="tl" style="color:var(--green);">Recebido</span><span class="tv" style="color:var(--green);">€{{ receivable.amount_paid|floatformat:2 }}</span></div>
+        <div class="total-row"><span class="tl" style="font-weight:600;">Em aberto</span><span class="tv" style="font-weight:600;">€{{ receivable.amount_remaining|floatformat:2 }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: tabela de linhas -->
+  <div>
+    <div class="card" style="overflow:hidden;">
+
+      {% if invoice.status == 'draft' %}
+      <div class="lines-toolbar">
+        <input type="text" class="lines-search" id="lines-search" placeholder="🔍 Pesquisar na fatura…">
+        <button class="btn btn-ghost btn-sm" onclick="openLinePopup(null,'title')">+ Título</button>
+        <button class="btn btn-ghost btn-sm" onclick="openLinePopup(null,'h2')">+ Subtítulo</button>
+        <button class="btn btn-ghost btn-sm" onclick="openLinePopup(null,'line')">+ Linha</button>
+        <button class="btn btn-ghost btn-sm" onclick="openLinePopup(null,'comment')">+ Comentário</button>
+        <button class="btn btn-ghost btn-sm" onclick="addPageBreak()">+ Quebra</button>
+      </div>
+      {% else %}
+      <div class="section-header">
+        <h2>Linhas da fatura</h2>
+        <input type="text" class="lines-search" id="lines-search" placeholder="🔍 Pesquisar…" style="max-width:200px;">
+      </div>
+      {% endif %}
+
+      <div class="dt-wrap">
+        <table class="dt" id="lines-table">
+          <colgroup>
+            <col class="col-num">
+            <col class="col-desc">
+            <col class="col-qty">
+            <col class="col-unit">
+            <col class="col-price">
+            <col class="col-total">
+            {% if invoice.status == 'draft' %}<col class="col-act">{% endif %}
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Descrição</th>
+              <th class="num">Qtd</th>
+              <th>Unidade</th>
+              <th class="num">Preço un. HT</th>
+              <th class="num">Total HT</th>
+              {% if invoice.status == 'draft' %}<th></th>{% endif %}
+            </tr>
+          </thead>
+          <tbody id="lines-tbody">
+            {% for line in lines %}
+            <tr data-id="{{ line.pk }}"
+                data-order="{{ line.order }}"
+                data-type="{{ line.line_type }}"
+                data-qty="{{ line.quantity }}"
+                data-unit="{{ line.unit }}"
+                data-unit-price="{{ line.unit_price }}"
+                data-total-ht="{{ line.total_ht }}"
+                class="lt-{{ line.line_type }}">
+              {% if line.line_type == 'page_break' %}
+                <td colspan="{% if invoice.status == 'draft' %}7{% else %}6{% endif %}" style="padding:4px 0;">
+                  <hr class="page-break-line">
+                </td>
+              {% elif line.line_type == 'comment' %}
+                <td class="num-cell muted" style="font-size:11px;">✎</td>
+                <td class="desc-cell" colspan="{% if invoice.status == 'draft' %}4{% else %}3{% endif %}" style="color:var(--text3);font-style:italic;">{{ line.description }}</td>
+                <td class="num muted">—</td>
+                {% if invoice.status == 'draft' %}
+                <td>
+                  <div class="row-acts">
+                    {% if invoice.status == 'draft' %}<span class="drag-handle" draggable="false">⠿</span>{% endif %}
+                    <button class="btn-icon" title="Mover para cima" onclick="moveLine({{ line.pk }},'up')">↑</button>
+                    <button class="btn-icon" title="Mover para baixo" onclick="moveLine({{ line.pk }},'down')">↓</button>
+                    <button class="btn-icon" title="Editar" onclick="openLinePopup({{ line.pk }})">✏</button>
+                    <button class="btn-icon danger" title="Apagar" onclick="deleteLine({{ line.pk }})">✕</button>
+                  </div>
+                </td>
+                {% endif %}
+              {% elif line.is_section %}
+                <td class="num-cell">{% if line.display_number %}<b>{{ line.display_number }}</b>{% endif %}</td>
+                <td class="desc-cell" colspan="{% if invoice.status == 'draft' %}4{% else %}3{% endif %}">{{ line.description }}</td>
+                <td class="num muted">—</td>
+                {% if invoice.status == 'draft' %}
+                <td>
+                  <div class="row-acts">
+                    <button class="btn-icon" title="Mover para cima" onclick="moveLine({{ line.pk }},'up')">↑</button>
+                    <button class="btn-icon" title="Mover para baixo" onclick="moveLine({{ line.pk }},'down')">↓</button>
+                    <button class="btn-icon" title="Editar" onclick="openLinePopup({{ line.pk }})">✏</button>
+                    <button class="btn-icon" title="Duplicar" onclick="dupLine({{ line.pk }})">⧉</button>
+                    <button class="btn-icon danger" title="Apagar" onclick="deleteLine({{ line.pk }})">✕</button>
+                  </div>
+                </td>
+                {% endif %}
+              {% else %}
+                <td class="num-cell muted" style="font-size:11px;"></td>
+                <td class="desc-cell">
+                  <div>{{ line.description }}</div>
+                  {% if line.detail %}<div style="font-size:11px;color:var(--text3);margin-top:2px;">{{ line.detail }}</div>{% endif %}
+                </td>
+                <td class="num">{{ line.quantity|floatformat:"-4" }}</td>
+                <td class="muted">{{ line.unit|default:"—" }}</td>
+                <td class="num">€{{ line.unit_price|floatformat:2 }}</td>
+                <td class="num" style="font-weight:500;">€{{ line.total_ht|floatformat:2 }}</td>
+                {% if invoice.status == 'draft' %}
+                <td>
+                  <div class="row-acts">
+                    <button class="btn-icon" title="Mover para cima" onclick="moveLine({{ line.pk }},'up')">↑</button>
+                    <button class="btn-icon" title="Mover para baixo" onclick="moveLine({{ line.pk }},'down')">↓</button>
+                    <button class="btn-icon" title="Editar" onclick="openLinePopup({{ line.pk }})">✏</button>
+                    <button class="btn-icon" title="Duplicar" onclick="dupLine({{ line.pk }})">⧉</button>
+                    <button class="btn-icon danger" title="Apagar" onclick="deleteLine({{ line.pk }})">✕</button>
+                  </div>
+                </td>
+                {% endif %}
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr id="lines-empty"><td colspan="{% if invoice.status == 'draft' %}7{% else %}6{% endif %}" class="dt-empty">Nenhuma linha adicionada.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="tfoot-total">
+              <td colspan="{% if invoice.status == 'draft' %}5{% else %}4{% endif %}" style="padding:10px;font-family:sans-serif;">Total HT</td>
+              <td class="num" id="foot-ht" style="padding:10px;">€{{ invoice.subtotal_ht|floatformat:2 }}</td>
+              {% if invoice.status == 'draft' %}<td></td>{% endif %}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {% if invoice.notes_client %}
+      <div style="padding:14px 18px; border-top:1px solid var(--border); font-size:13px; color:var(--text2);">
+        <span style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);display:block;margin-bottom:4px;">Notas para o cliente</span>
+        {{ invoice.notes_client }}
+      </div>
+      {% endif %}
+
+      {% if receivable %}
+      <div style="border-top:1px solid var(--border);">
+        <div class="section-header"><h2>Pagamentos recebidos</h2></div>
+        <div class="dt-wrap">
+          <table class="dt">
+            <thead><tr><th>Data</th><th>Método</th><th>Referência</th><th class="num">Valor</th></tr></thead>
+            <tbody>
+              {% for pmt in receivable.payments.all %}
+              <tr>
+                <td class="muted">{{ pmt.date|date:"d/m/Y" }}</td>
+                <td>{{ pmt.get_method_display }}</td>
+                <td class="muted">{{ pmt.reference|default:"—" }}</td>
+                <td class="num" style="font-weight:500;">€{{ pmt.amount|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="dt-empty">Nenhum pagamento registado.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 18px; text-align:right; font-size:12px; color:var(--text3);">
+          Para registar pagamentos, acesse <a href="{% url 'finance:receivables' %}" style="color:var(--accent);">Contas a receber</a>.
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+{% if invoice.status == 'draft' %}
+<!-- ══ POPUP DE LINHA ══ -->
+<div class="popup-overlay" id="line-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="line-popup-title">Linha da fatura</span>
+      <button class="popup-close" onclick="closePopup()">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="line-error"></div>
+      <input type="hidden" id="line-pk">
+      <input type="hidden" id="line-type-input" value="line">
+
+      <!-- Campos de descrição (sempre visíveis exceto page_break) -->
+      <div id="desc-fields">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Descrição *</label>
+          <input type="text" id="line-description" class="form-control">
+          <div class="field-error" id="err-description"></div>
+        </div>
+        <div class="form-group" id="detail-field" style="margin-bottom:14px;">
+          <label class="form-label">Detalhe / complemento</label>
+          <textarea id="line-detail" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+
+      <!-- Campos numéricos (apenas para linha normal) -->
+      <div id="num-fields">
+        <div class="form-grid2">
+          <div class="form-group">
+            <label class="form-label">Quantidade</label>
+            <input type="number" step="0.0001" id="line-qty" class="form-control" value="1">
+            <div class="field-error" id="err-quantity"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidade</label>
+            <select id="line-unit" class="form-control">
+              <option value="">— Selecionar —</option>
+              {% for u in units %}
+              <option value="{{ u.symbol }}">{{ u.symbol }} — {{ u.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preço unitário HT (€)</label>
+            <input type="number" step="0.01" id="line-price" class="form-control" value="0">
+            <div class="field-error" id="err-unit_price"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">IVA (%)</label>
+            <input type="number" step="0.01" id="line-vat" class="form-control" value="{{ invoice.vat_rate }}">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="line-save-btn" onclick="saveLine()">Guardar</button>
+      <button class="btn btn-ghost" onclick="closePopup()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CSRF     = '{{ csrf_token }}';
+  const INV_PK   = {{ invoice.pk }};
+  const INV_VAT  = '{{ invoice.vat_rate }}';
+  const URL_SAVE = "{% url 'invoicing:line_save' invoice.pk %}";
+  const URL_DEL  = (id) => `/invoicing/${INV_PK}/lines/${id}/delete/`;
+  const URL_DUP  = (id) => `/invoicing/${INV_PK}/lines/${id}/duplicate/`;
+  const URL_REORDER = `/invoicing/${INV_PK}/lines/reorder/`;
+  const DRAFT_COLS = 7;
+
+  function post(url, data, asJson) {
+    if (asJson) {
+      return fetch(url, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body: JSON.stringify(data) });
+    }
+    const fd = new URLSearchParams({ csrfmiddlewaretoken: CSRF });
+    Object.entries(data).forEach(([k,v]) => fd.append(k, v));
+    return fetch(url, { method:'POST', body: fd });
+  }
+
+  function fmt(v) { return '€' + parseFloat(v || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+  function updateTotals(t) {
+    const el = id => document.getElementById(id);
+    if (el('tot-subtotal')) el('tot-subtotal').textContent = fmt(t.subtotal_ht);
+    if (el('tot-ht'))       el('tot-ht').textContent       = fmt(t.total_ht);
+    if (el('tot-vat'))      el('tot-vat').textContent      = fmt(t.total_vat);
+    if (el('tot-ttc'))      el('tot-ttc').textContent      = fmt(t.total_ttc);
+    if (el('foot-ht'))      el('foot-ht').textContent      = fmt(t.subtotal_ht);
+    if (el('tot-discount')) el('tot-discount').textContent = '-' + fmt(t.discount_amt);
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('[id^="err-"]').forEach(e => e.textContent = '');
+    const a = document.getElementById('line-error');
+    a.textContent = ''; a.classList.remove('show');
+  }
+
+  // ── Build a table row HTML from a line object ──
+  function buildRow(l) {
+    const isLine = l.line_type === 'line';
+    const isSection = ['title','h2','h3','h4'].includes(l.line_type);
+    const isComment = l.line_type === 'comment';
+    const isBreak   = l.line_type === 'page_break';
+    let inner = '';
+
+    if (isBreak) {
+      inner = `<td colspan="${DRAFT_COLS}" style="padding:4px 0;"><hr class="page-break-line"></td>`;
+    } else if (isComment) {
+      inner = `
+        <td class="num-cell muted" style="font-size:11px;">✎</td>
+        <td class="desc-cell" colspan="4" style="color:var(--text3);font-style:italic;">${esc(l.description)}</td>
+        <td class="num muted">—</td>
+        <td>${rowActs(l.id, false)}</td>`;
+    } else if (isSection) {
+      const numBadge = l.display_number ? `<b>${esc(l.display_number)}</b>` : '';
+      inner = `
+        <td class="num-cell">${numBadge}</td>
+        <td class="desc-cell" colspan="4">${esc(l.description)}</td>
+        <td class="num muted">—</td>
+        <td>${rowActs(l.id, true)}</td>`;
+    } else {
+      const detail = l.detail ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${esc(l.detail)}</div>` : '';
+      inner = `
+        <td class="num-cell muted" style="font-size:11px;"></td>
+        <td class="desc-cell"><div>${esc(l.description)}</div>${detail}</td>
+        <td class="num">${parseFloat(l.quantity||0).toFixed(2).replace(/\.?0+$/,'')}</td>
+        <td class="muted">${esc(l.unit||'—')}</td>
+        <td class="num">${fmt(l.unit_price)}</td>
+        <td class="num" style="font-weight:500;">${fmt(l.total_ht)}</td>
+        <td>${rowActs(l.id, true)}</td>`;
+    }
+    const tr = document.createElement('tr');
+    tr.className = `lt-${l.line_type}`;
+    tr.dataset.id = l.id;
+    tr.dataset.order = l.order;
+    tr.dataset.type  = l.line_type;
+    tr.dataset.qty   = l.quantity || '0';
+    tr.dataset.unit  = l.unit || '';
+    tr.dataset.unitPrice = l.unit_price || '0';
+    tr.dataset.totalHt   = l.total_ht || '0';
+    tr.innerHTML = inner;
+    return tr;
+  }
+
+  function rowActs(id, canDup) {
+    let d = canDup ? `<button class="btn-icon" title="Duplicar" onclick="dupLine(${id})">⧉</button>` : '';
+    return `<div class="row-acts">
+      <button class="btn-icon" title="Mover para cima" onclick="moveLine(${id},'up')">↑</button>
+      <button class="btn-icon" title="Mover para baixo" onclick="moveLine(${id},'down')">↓</button>
+      <button class="btn-icon" title="Editar" onclick="openLinePopup(${id})">✏</button>
+      ${d}
+      <button class="btn-icon danger" title="Apagar" onclick="deleteLine(${id})">✕</button>
+    </div>`;
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Renumber display after any change ──
+  function renumberRows() {
+    const rows = Array.from(document.querySelectorAll('#lines-tbody tr[data-id]'));
+    const c = [0,0,0,0];
+    rows.forEach(tr => {
+      const lt = tr.dataset.type;
+      let num = '';
+      if (lt==='title')  { c[0]++; c[1]=c[2]=c[3]=0; num=String(c[0]); }
+      else if (lt==='h2'){ c[1]++; c[2]=c[3]=0; num=(c[0]?c[0]+'.':'')+c[1]; }
+      else if (lt==='h3'){ c[2]++; c[3]=0; const p=[]; if(c[0])p.push(c[0]); p.push(c[1],c[2]); num=p.join('.'); }
+      else if (lt==='h4'){ c[3]++; const p=[]; if(c[0])p.push(c[0]); p.push(c[1],c[2],c[3]); num=p.join('.'); }
+      const nc = tr.querySelector('.num-cell');
+      if (nc && ['title','h2','h3','h4'].includes(lt)) nc.innerHTML = num ? `<b>${num}</b>` : '';
+    });
+  }
+
+  // ── Popup ──
+  window.openLinePopup = function(pk, forceType) {
+    clearErrors();
+    const typeInput = document.getElementById('line-type-input');
+    const lt = forceType || (pk ? document.querySelector(`#lines-tbody tr[data-id="${pk}"]`)?.dataset.type : 'line') || 'line';
+    typeInput.value = lt;
+    document.getElementById('line-pk').value = pk || '';
+
+    const titles = {
+      line:'Linha normal', title:'Título (H1)', h2:'Subtítulo H2', h3:'Subtítulo H3',
+      h4:'Subtítulo H4', comment:'Comentário', page_break:'Quebra de página'
+    };
+    document.getElementById('line-popup-title').textContent = (pk ? 'Editar: ' : 'Nova: ') + (titles[lt]||lt);
+
+    const numFields  = document.getElementById('num-fields');
+    const descFields = document.getElementById('desc-fields');
+    const detailField = document.getElementById('detail-field');
+    numFields.style.display  = lt==='line' ? '' : 'none';
+    descFields.style.display = lt==='page_break' ? 'none' : '';
+    detailField.style.display = lt==='line' ? '' : 'none';
+
+    if (pk) {
+      const row = document.querySelector(`#lines-tbody tr[data-id="${pk}"]`);
+      const descEl = row?.querySelector('.desc-cell div') || row?.querySelector('.desc-cell');
+      document.getElementById('line-description').value = descEl ? descEl.textContent.trim() : '';
+      const detailEl = row?.querySelectorAll('.desc-cell div')[1];
+      document.getElementById('line-detail').value = detailEl ? detailEl.textContent.trim() : '';
+      if (lt==='line') {
+        document.getElementById('line-qty').value   = row?.dataset.qty || '1';
+        document.getElementById('line-unit').value  = row?.dataset.unit || '';
+        document.getElementById('line-price').value = row?.dataset.unitPrice || '0';
+        document.getElementById('line-vat').value   = INV_VAT;
+      }
+    } else {
+      ['line-description','line-detail'].forEach(i => document.getElementById(i).value = '');
+      document.getElementById('line-qty').value   = '1';
+      document.getElementById('line-unit').value  = '';
+      document.getElementById('line-price').value = '0';
+      document.getElementById('line-vat').value   = INV_VAT;
+    }
+    document.getElementById('line-overlay').classList.add('open');
+    setTimeout(() => (document.getElementById('line-description') || document.getElementById('line-qty'))?.focus(), 50);
+  };
+
+  window.closePopup = function() {
+    document.getElementById('line-overlay').classList.remove('open');
+  };
+  document.getElementById('line-overlay').addEventListener('click', e => { if (e.target === document.getElementById('line-overlay')) closePopup(); });
+
+  window.saveLine = function() {
+    clearErrors();
+    const lt = document.getElementById('line-type-input').value;
+    const data = {
+      entry_pk:    document.getElementById('line-pk').value,
+      line_type:   lt,
+      description: lt==='page_break' ? '' : document.getElementById('line-description').value,
+      detail:      lt==='line' ? document.getElementById('line-detail').value : '',
+      quantity:    lt==='line' ? document.getElementById('line-qty').value : '0',
+      unit:        lt==='line' ? document.getElementById('line-unit').value : '',
+      unit_price:  lt==='line' ? document.getElementById('line-price').value : '0',
+      discount_percent: '0',
+      vat_rate:    lt==='line' ? document.getElementById('line-vat').value : '0',
+    };
+    const btn = document.getElementById('line-save-btn');
+    btn.disabled = true;
+    post(URL_SAVE, data).then(r=>r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) {
+        Object.entries(json.errors||{}).forEach(([f,msgs]) => {
+          const el = document.getElementById(`err-${f}`);
+          if (el) el.textContent = msgs[0];
+        });
+        return;
+      }
+      const l = json.line;
+      const existing = document.querySelector(`#lines-tbody tr[data-id="${l.id}"]`);
+      const emptyRow = document.getElementById('lines-empty');
+      if (emptyRow) emptyRow.remove();
+      const newRow = buildRow(l);
+      if (existing) {
+        existing.replaceWith(newRow);
+      } else {
+        document.getElementById('lines-tbody').appendChild(newRow);
+      }
+      renumberRows();
+      updateTotals(json.totals);
+      closePopup();
+      applySearch();
+    }).catch(() => { btn.disabled = false; });
+  };
+
+  window.addPageBreak = function() {
+    post(URL_SAVE, { line_type:'page_break', description:'', quantity:'0', unit_price:'0', vat_rate:'0', discount_percent:'0' })
+      .then(r=>r.json()).then(json => {
+        if (!json.ok) return;
+        const emptyRow = document.getElementById('lines-empty');
+        if (emptyRow) emptyRow.remove();
+        document.getElementById('lines-tbody').appendChild(buildRow(json.line));
+        updateTotals(json.totals);
+        applySearch();
+      });
+  };
+
+  window.deleteLine = function(pk) {
+    if (!confirm('Eliminar esta linha?')) return;
+    post(URL_DEL(pk), {}).then(r=>r.json()).then(json => {
+      if (!json.ok) return;
+      document.querySelector(`#lines-tbody tr[data-id="${pk}"]`)?.remove();
+      if (!document.querySelector('#lines-tbody tr[data-id]')) {
+        const tbody = document.getElementById('lines-tbody');
+        const tr = document.createElement('tr');
+        tr.id = 'lines-empty';
+        tr.innerHTML = `<td colspan="${DRAFT_COLS}" class="dt-empty">Nenhuma linha adicionada.</td>`;
+        tbody.appendChild(tr);
+      }
+      renumberRows();
+      updateTotals(json.totals);
+    });
+  };
+
+  window.dupLine = function(pk) {
+    post(URL_DUP(pk), {}).then(r=>r.json()).then(json => {
+      if (!json.ok) return;
+      const emptyRow = document.getElementById('lines-empty');
+      if (emptyRow) emptyRow.remove();
+      document.getElementById('lines-tbody').appendChild(buildRow(json.line));
+      renumberRows();
+      updateTotals(json.totals);
+      applySearch();
+    });
+  };
+
+  window.moveLine = function(pk, dir) {
+    const tbody = document.getElementById('lines-tbody');
+    const rows  = Array.from(tbody.querySelectorAll('tr[data-id]'));
+    const idx   = rows.findIndex(r => r.dataset.id == pk);
+    if (idx < 0) return;
+    if (dir==='up' && idx === 0) return;
+    if (dir==='down' && idx === rows.length-1) return;
+    const swapIdx = dir==='up' ? idx-1 : idx+1;
+    const a = rows[idx], b = rows[swapIdx];
+    if (dir==='up') tbody.insertBefore(a, b);
+    else tbody.insertBefore(b, a);
+    // Persist new order
+    const reorderData = Array.from(tbody.querySelectorAll('tr[data-id]')).map((r,i) => ({id:parseInt(r.dataset.id), order:(i+1)*10}));
+    post(URL_REORDER, reorderData, true);
+    renumberRows();
+    applySearch();
+  };
+
+  // ── Search / filter ──
+  function applySearch() {
+    const q = (document.getElementById('lines-search')?.value||'').toLowerCase().trim();
+    document.querySelectorAll('#lines-tbody tr[data-id]').forEach(tr => {
+      if (!q) { tr.style.display = ''; return; }
+      const lt = tr.dataset.type;
+      if (['title','h2','h3','h4','page_break'].includes(lt)) { tr.style.display = ''; return; }
+      const text = (tr.querySelector('.desc-cell')?.textContent||'').toLowerCase();
+      tr.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  const searchInput = document.getElementById('lines-search');
+  if (searchInput) searchInput.addEventListener('input', applySearch);
+
+})();
+</script>
+{% else %}
+<script>
+// Search for non-draft view
+(function() {
+  const searchInput = document.getElementById('lines-search');
+  if (!searchInput) return;
+  searchInput.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('#lines-tbody tr[data-id]').forEach(tr => {
+      if (!q) { tr.style.display = ''; return; }
+      const lt = tr.dataset.type || '';
+      if (['title','h2','h3','h4','page_break'].includes(lt)) { tr.style.display=''; return; }
+      const text = (tr.querySelector('.desc-cell')?.textContent||'').toLowerCase();
+      tr.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endif %}
+
+{% endblock %}

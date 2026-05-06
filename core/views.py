@@ -1,7 +1,8 @@
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
@@ -77,3 +78,68 @@ def setup_view(request):
             return redirect('login')
 
     return render(request, 'setup.html', {'error': error})
+
+
+@login_required(login_url='login')
+def global_search(request):
+    q = request.GET.get('q', '').strip()
+    results = []
+
+    if len(q) >= 2:
+        from clients.models import Client
+        from projects.models import Project
+        from workforce.models import Collaborator
+        from subcontractors.models import Subcontractor
+        from suppliers.models import Supplier
+
+        for obj in Client.objects.filter(
+            Q(name__icontains=q) | Q(trade_name__icontains=q) | Q(vat_number__icontains=q)
+        )[:5]:
+            results.append({
+                'label': obj.trade_name or obj.name,
+                'sublabel': obj.vat_number or '',
+                'url': reverse('clients:detail', args=[obj.pk]),
+                'type': 'client',
+            })
+
+        for obj in Project.objects.filter(
+            Q(name__icontains=q)
+        ).select_related('client')[:5]:
+            results.append({
+                'label': obj.name,
+                'sublabel': obj.client.trade_name if obj.client else '',
+                'url': reverse('projects:project_detail', args=[obj.pk]),
+                'type': 'project',
+            })
+
+        for obj in Collaborator.objects.filter(
+            Q(name__icontains=q) | Q(id_number__icontains=q)
+        )[:5]:
+            results.append({
+                'label': obj.name,
+                'sublabel': obj.role or '',
+                'url': reverse('workforce:detail', args=[obj.pk]),
+                'type': 'collaborator',
+            })
+
+        for obj in Subcontractor.objects.filter(
+            Q(name__icontains=q) | Q(trade_name__icontains=q) | Q(vat_number__icontains=q)
+        )[:5]:
+            results.append({
+                'label': obj.trade_name or obj.name,
+                'sublabel': obj.vat_number or '',
+                'url': reverse('subcontractors:detail', args=[obj.pk]),
+                'type': 'subcontractor',
+            })
+
+        for obj in Supplier.objects.filter(
+            Q(name__icontains=q) | Q(trade_name__icontains=q) | Q(vat_number__icontains=q)
+        )[:5]:
+            results.append({
+                'label': obj.trade_name or obj.name,
+                'sublabel': obj.vat_number or '',
+                'url': reverse('suppliers:detail', args=[obj.pk]),
+                'type': 'supplier',
+            })
+
+    return JsonResponse({'results': results})

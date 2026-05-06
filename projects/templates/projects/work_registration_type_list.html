@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Tipos de Registo de Obra — Construart{% endblock %}
+{% block breadcrumb %}
+  <span class="current">Tipos de Registo de Obra</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:last-child{border-bottom:none}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.dt td.muted{color:var(--text3);font-size:12px}
+.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
+dialog.aux-dialog{margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box}
+dialog.aux-dialog::backdrop{background:rgba(0,0,0,.5)}
+.aux-flex{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.popup-panel{background:var(--surface);border-radius:var(--radius-lg,10px);width:420px;max-width:min(420px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.popup-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.popup-title{font-weight:600;font-size:15px;color:var(--text)}
+.popup-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
+.popup-body{padding:22px;display:flex;flex-direction:column;gap:14px}
+.popup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
+.popup-fg{display:flex;flex-direction:column;gap:6px}
+.popup-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.popup-label .req{color:var(--accent)}
+.popup-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
+.row-new{animation:rowIn .3s ease}
+@keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Tipos de Registo de Obra</h1>
+    <p class="page-sub">Ex: CIAW (Bélgica), SICOM (Portugal), etc.</p>
+  </div>
+  <button type="button" class="btn btn-primary" id="btn-novo">+ Novo Tipo</button>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="dt">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th style="text-align:right">Projetos</th>
+        <th style="width:72px"></th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      {% for t in types %}
+      <tr data-id="{{ t.pk }}" data-name="{{ t.name|escapejs }}">
+        <td style="font-weight:500">{{ t.name }}</td>
+        <td class="muted" style="text-align:right">{{ t.project_count }}</td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn-icon btn-edit" title="Editar">✏️</button>
+            {% if not t.project_count %}
+            <button type="button" class="btn-icon danger btn-del" data-id="{{ t.pk }}" title="Eliminar">🗑</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="empty-row">
+        <td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">
+          Nenhum tipo registado. Clique em «Novo Tipo» para começar.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<dialog id="aux-dialog" class="aux-dialog">
+  <div class="aux-flex">
+    <div class="popup-panel">
+      <div class="popup-header">
+        <span class="popup-title" id="popup-title">Novo Tipo de Registo</span>
+        <button type="button" class="popup-close" id="btn-close">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="popup-error"></div>
+        <div class="popup-fg">
+          <label class="popup-label" for="f-name">Nome <span class="req">*</span></label>
+          <input type="text" id="f-name" class="form-control" maxlength="100" placeholder="ex: CIAW, SICOM…" autocomplete="off">
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" id="btn-cancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  const CSRF     = '{{ csrf_token }}';
+  const URL_SAVE = '{% url "work_registration_type_save" %}';
+  const URL_UPD  = '{% url "work_registration_type_update" pk=0 %}';
+  const URL_DEL  = '{% url "work_registration_type_delete" pk=0 %}';
+
+  let editPk = null;
+  const dlg     = document.getElementById('aux-dialog');
+  const titleEl = document.getElementById('popup-title');
+  const nameIn  = document.getElementById('f-name');
+  const errEl   = document.getElementById('popup-error');
+  const btnSave = document.getElementById('btn-save');
+  const tbody   = document.getElementById('tbody');
+
+  const showDlg = () => { try { dlg.showModal(); } catch(e) { dlg.setAttribute('open',''); } };
+  const hideDlg = () => { try { dlg.close(); } catch(e) {} dlg.removeAttribute('open'); };
+
+  function open(row) {
+    editPk = row ? +row.dataset.id : null;
+    titleEl.textContent = editPk ? 'Editar Tipo de Registo' : 'Novo Tipo de Registo';
+    nameIn.value = row ? row.dataset.name : '';
+    setErr(''); showDlg(); setTimeout(() => nameIn.focus(), 60);
+  }
+  function close() { hideDlg(); editPk = null; }
+  function setErr(m) { errEl.textContent = m; errEl.style.display = m ? 'block' : 'none'; }
+  function setBusy(b) { btnSave.disabled = b; btnSave.textContent = b ? 'A guardar…' : 'Guardar'; }
+
+  function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+  function buildRow(item) {
+    const del = item.project_count === 0
+      ? `<button type="button" class="btn-icon danger btn-del" data-id="${item.id}" title="Eliminar">🗑</button>` : '';
+    return `<tr data-id="${item.id}" data-name="${String(item.name).replace(/"/g,'&quot;')}">
+      <td style="font-weight:500">${esc(item.name)}</td>
+      <td class="muted" style="text-align:right">${item.project_count ?? 0}</td>
+      <td><div class="actions"><button type="button" class="btn-icon btn-edit" title="Editar">✏️</button>${del}</div></td>
+    </tr>`;
+  }
+
+  function save() {
+    const name = nameIn.value.trim();
+    if (!name) { setErr('O nome é obrigatório.'); nameIn.focus(); return; }
+    setBusy(true);
+    const url = editPk ? URL_UPD.replace('/0/', `/${editPk}/`) : URL_SAVE;
+    fetch(url, { method:'POST', headers:{'X-CSRFToken':CSRF},
+      body: new URLSearchParams({csrfmiddlewaretoken:CSRF, name}) })
+    .then(r => r.json())
+    .then(json => {
+      setBusy(false);
+      if (!json.ok) { setErr(Object.values(json.errors).flat().join(' ')); return; }
+      const c = json.item;
+      document.getElementById('empty-row')?.remove();
+      const ex = tbody.querySelector(`tr[data-id="${c.id}"]`);
+      if (ex) ex.outerHTML = buildRow(c);
+      else { tbody.insertAdjacentHTML('beforeend', buildRow(c)); tbody.querySelector(`tr[data-id="${c.id}"]`)?.classList.add('row-new'); }
+      close();
+    }).catch(() => { setBusy(false); setErr('Erro de ligação. Tente novamente.'); });
+  }
+
+  function del(pk) {
+    if (!confirm('Eliminar este tipo de registo?')) return;
+    fetch(URL_DEL.replace('/0/', `/${pk}/`), { method:'POST', headers:{'X-CSRFToken':CSRF},
+      body: new URLSearchParams({csrfmiddlewaretoken:CSRF}) })
+    .then(r => r.json())
+    .then(json => {
+      if (!json.ok) { alert(json.error || 'Erro ao eliminar.'); return; }
+      tbody.querySelector(`tr[data-id="${pk}"]`)?.remove();
+      if (!tbody.querySelector('tr[data-id]'))
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">Nenhum tipo registado.</td></tr>';
+    });
+  }
+
+  document.getElementById('btn-novo').addEventListener('click', () => open(null));
+  document.getElementById('btn-close').addEventListener('click', close);
+  document.getElementById('btn-cancel').addEventListener('click', close);
+  btnSave.addEventListener('click', save);
+  tbody.addEventListener('click', e => {
+    const eb = e.target.closest('.btn-edit'), db = e.target.closest('.btn-del');
+    if (eb) open(eb.closest('tr'));
+    if (db) del(+db.dataset.id);
+  });
+  dlg.addEventListener('cancel', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    if (dlg.open && e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); save(); }
+  });
+}());
+</script>
+{% endblock %}

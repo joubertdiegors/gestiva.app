@@ -1,0 +1,398 @@
+{% load i18n %}
+{# Renderiza a árvore CIAW a partir de uma lista plana de nós,
+   construindo a hierarquia em JavaScript no cliente.
+   O template apenas emite o JSON dos nós; o JS constrói a árvore DOM. #}
+<div id="ciaw-tree-root"></div>
+
+<script>
+(function () {
+  const NODES = {{ ciaw_nodes_json|safe }};
+  const PROJECT_PK = {{ project.pk }};
+  const URL_ADD    = "{% url 'project_ciaw_add'    project.pk %}";
+  const URL_SEARCH = "{% url 'project_ciaw_search' project.pk %}";
+  const URL_REMOVE = "{% url 'project_ciaw_remove' project.pk 0 %}";
+  const CSRF       = "{{ csrf_token }}";
+
+  /* ── Construir mapa id → nó ── */
+  const map = {};
+  NODES.forEach(n => { map[n.id] = { ...n, children: [] }; });
+  const roots = [];
+  NODES.forEach(n => {
+    if (n.parent_id && map[n.parent_id]) map[n.parent_id].children.push(map[n.id]);
+    else roots.push(map[n.id]);
+  });
+
+  /* ── Ícone por tipo ── */
+  function icon(type) {
+    return { client:'👑', construart:'🏗️', subcontractor:'🏢', worker:'👷' }[type] || '•';
+  }
+
+  /* ── Cor do badge por tipo ── */
+  function badgeClass(type) {
+    return { client:'badge-accent', construart:'badge-green', subcontractor:'badge-amber', worker:'badge-gray' }[type] || 'badge-gray';
+  }
+
+  /* ── Label do tipo ── */
+  function typeLabel(type) {
+    return {
+      client:        '{% trans "Dono da obra" %}',
+      construart:    '{% trans "Construart" %}',
+      subcontractor: '{% trans "Subempreiteiro" %}',
+      worker:        '{% trans "Trabalhador" %}',
+    }[type] || type;
+  }
+
+  /* ── Render recursivo ── */
+  function renderNode(node, depth) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ciaw-node';
+    wrap.dataset.id = node.id;
+    wrap.style.cssText = `margin-left:${depth * 24}px; margin-bottom:4px;`;
+
+    const isFixed = node.node_type === 'client' || node.node_type === 'construart';
+
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display:flex; align-items:center; gap:10px;
+      padding:9px 14px; border-radius:8px;
+      border:1px solid var(--border); background:var(--surface);
+      transition:border-color .15s;
+    `;
+    row.onmouseenter = () => { if (!isFixed) row.style.borderColor = 'var(--border2)'; };
+    row.onmouseleave = () => { row.style.borderColor = 'var(--border)'; };
+
+    /* Linha de conexão vertical */
+    if (depth > 0) {
+      const connector = document.createElement('span');
+      connector.textContent = '└─';
+      connector.style.cssText = 'position:absolute;left:' + ((depth * 24) - 18) + 'px;color:var(--border2);';
+    }
+
+    /* Ícone */
+    const ic = document.createElement('span');
+    ic.textContent = icon(node.node_type);
+    ic.style.fontSize = '18px';
+    row.appendChild(ic);
+
+    /* Label + subtítulo */
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-weight:500; font-size:13px;';
+    if (node.url) {
+      const a = document.createElement('a');
+      a.href = node.url; a.textContent = node.label;
+      a.style.cssText = 'color:var(--text);text-decoration:none;';
+      a.onmouseenter = () => a.style.color = 'var(--accent)';
+      a.onmouseleave = () => a.style.color = 'var(--text)';
+      lbl.appendChild(a);
+    } else {
+      lbl.textContent = node.label;
+    }
+    info.appendChild(lbl);
+
+    /* Badge tipo */
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + badgeClass(node.node_type);
+    badge.textContent = typeLabel(node.node_type);
+    badge.style.cssText = 'font-size:10px;margin-top:3px;display:inline-block;';
+    info.appendChild(badge);
+
+    row.appendChild(info);
+
+    /* Botão adicionar filho — trabalhadores não podem ter filhos */
+    const canHaveChildren = node.node_type !== 'worker';
+    if (canHaveChildren) {
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn btn-ghost btn-sm';
+      addBtn.title = '{% trans "Adicionar sob este nó" %}';
+      addBtn.textContent = '+ {% trans "Adicionar" %}';
+      addBtn.style.fontSize = '12px';
+      addBtn.onclick = () => ciawOpenAdd(node.id, node.node_type);
+      row.appendChild(addBtn);
+    }
+
+    /* Botão remover */
+    if (!isFixed) {
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'btn-icon danger';
+      rmBtn.title = '{% trans "Remover" %}';
+      rmBtn.innerHTML = '🗑';
+      rmBtn.onclick = () => ciawRemove(node.id, node.label);
+      row.appendChild(rmBtn);
+    }
+
+    wrap.appendChild(row);
+
+    /* Filhos */
+    if (node.children.length) {
+      const childWrap = document.createElement('div');
+      childWrap.style.cssText = 'position:relative; margin-top:4px;';
+      node.children.forEach(child => childWrap.appendChild(renderNode(child, depth + 1)));
+      wrap.appendChild(childWrap);
+    }
+
+    return wrap;
+  }
+
+  function renderTree() {
+    const container = document.getElementById('ciaw-tree-root');
+    container.innerHTML = '';
+    if (!roots.length) {
+      container.innerHTML = '<p style="color:var(--text3);font-size:13px;text-align:center;padding:24px;">{% trans "Nenhum participante registado." %}</p>';
+      return;
+    }
+    roots.forEach(r => container.appendChild(renderNode(r, 0)));
+  }
+
+  renderTree();
+
+  /* ── Expor funções globais para os botões do template ── */
+
+  let _selectedEntityIds = new Set(); /* multi-select para workers */
+  let _selectedEntityId  = null;      /* single-select para subcontractors */
+  let _selectedKind      = null;
+  let _selectedParentId  = null;
+
+  /* parentId: id do nó pai pré-selecionado (ou null para raiz)
+     parentNodeType: tipo do nó de onde o botão foi clicado — usado para
+     pré-filtrar o tipo de adição ('subcontractor' se vier de client/construart/subcontractor) */
+  window.ciawOpenAdd = function (parentId, parentNodeType) {
+    _selectedEntityId = null;
+    _selectedKind     = null;
+    _selectedParentId = parentId || null;
+
+    /* Preenche o select de pai — apenas nós que podem receber filhos */
+    const sel = document.getElementById('ciaw-parent-select');
+    if (sel) {
+      sel.innerHTML = '';
+      NODES.forEach(n => {
+        if (n.node_type === 'worker') return;
+        const opt = document.createElement('option');
+        opt.value = n.id;
+        opt.textContent = typeLabel(n.node_type) + ': ' + n.label;
+        if (n.id === parentId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    document.getElementById('ciaw-step-type').style.display = '';
+    document.getElementById('ciaw-step-select').style.display = 'none';
+    document.getElementById('ciaw-popup-footer').style.display = 'none';
+    document.getElementById('ciaw-results').innerHTML = '';
+    document.getElementById('ciaw-selected-preview').style.display = 'none';
+    document.getElementById('ciaw-add-error').style.display = 'none';
+    document.getElementById('ciaw-search-input').value = '';
+
+    document.getElementById('ciaw-overlay').classList.add('open');
+  };
+
+  window.ciawSelectKind = function (kind) {
+    _selectedKind      = kind;
+    _selectedEntityId  = null;
+    _selectedEntityIds = new Set();
+    document.getElementById('ciaw-kind-title').textContent =
+      kind === 'subcontractor' ? '🏢 {% trans "Adicionar Subempreiteiro" %}' : '👷 {% trans "Adicionar Trabalhador" %}';
+    /* Para workers, o pai é determinado automaticamente pela empresa — ocultar o select */
+    const parentGroup = document.getElementById('ciaw-parent-group');
+    if (parentGroup) parentGroup.style.display = kind === 'worker' ? 'none' : '';
+
+    document.getElementById('ciaw-step-type').style.display = 'none';
+    document.getElementById('ciaw-step-select').style.display = '';
+    document.getElementById('ciaw-popup-footer').style.display = 'flex';
+    document.getElementById('ciaw-confirm-btn').disabled = true;
+    document.getElementById('ciaw-selected-preview').style.display = 'none';
+    document.getElementById('ciaw-search-input').value = '';
+    ciawSearch();
+  };
+
+  window.ciawBackToType = function () {
+    document.getElementById('ciaw-step-type').style.display = '';
+    document.getElementById('ciaw-step-select').style.display = 'none';
+    document.getElementById('ciaw-popup-footer').style.display = 'none';
+  };
+
+  let _searchTimer = null;
+
+  function _updateConfirmBtn() {
+    const hasSelection = _selectedKind === 'worker'
+      ? _selectedEntityIds.size > 0
+      : _selectedEntityId !== null;
+    document.getElementById('ciaw-confirm-btn').disabled = !hasSelection;
+  }
+
+  function _updatePreview() {
+    const el = document.getElementById('ciaw-selected-preview');
+    if (_selectedKind !== 'worker') return;
+    if (_selectedEntityIds.size === 0) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = '✅ <strong>' + _selectedEntityIds.size + ' {% trans "trabalhador(es) selecionado(s)" %}</strong>';
+  }
+
+  function _doSearch() {
+    const q = document.getElementById('ciaw-search-input').value.trim();
+    const box = document.getElementById('ciaw-results');
+    box.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;">…</div>';
+    fetch(`${URL_SEARCH}?kind=${_selectedKind}&q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.results.length) {
+          box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">{% trans "Nenhum resultado." %}</div>';
+          return;
+        }
+        box.innerHTML = '';
+        const isWorker = _selectedKind === 'worker';
+        data.results.forEach(item => {
+          const row = document.createElement('div');
+          row.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;display:flex;align-items:center;gap:10px;';
+          row.onmouseenter = () => { if (!row.dataset.checked) row.style.background = 'var(--surface2)'; };
+          row.onmouseleave = () => { if (!row.dataset.checked) row.style.background = ''; };
+
+          if (isWorker) {
+            /* Checkbox visível */
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:var(--accent);';
+            cb.checked = _selectedEntityIds.has(item.id);
+            if (cb.checked) { row.dataset.checked = '1'; row.style.background = 'var(--accent-light)'; }
+            row.appendChild(cb);
+          }
+
+          const txt = document.createElement('div');
+          txt.style.flex = '1';
+          txt.innerHTML = `<strong style="font-size:13px;">${item.label}</strong>`
+            + (item.sub  ? `<br><span style="font-size:12px;color:var(--text3);">${item.sub}</span>` : '')
+            + (item.role ? `<span style="font-size:12px;color:var(--text3);"> · ${item.role}</span>` : '');
+          row.appendChild(txt);
+
+          row.onclick = () => {
+            document.getElementById('ciaw-add-error').style.display = 'none';
+            if (isWorker) {
+              const cb = row.querySelector('input[type=checkbox]');
+              const checked = !cb.checked;
+              cb.checked = checked;
+              if (checked) { _selectedEntityIds.add(item.id); row.dataset.checked = '1'; row.style.background = 'var(--accent-light)'; }
+              else          { _selectedEntityIds.delete(item.id); delete row.dataset.checked; row.style.background = ''; }
+            } else {
+              _selectedEntityId = item.id;
+              box.querySelectorAll('div[data-checked]').forEach(r => { delete r.dataset.checked; r.style.background = ''; });
+              row.dataset.checked = '1';
+              row.style.background = 'var(--accent-light)';
+              document.getElementById('ciaw-selected-preview').style.display = '';
+              document.getElementById('ciaw-selected-preview').innerHTML =
+                '✅ <strong>' + item.label + '</strong>' + (item.sub ? ' <span style="color:var(--text3);">(' + item.sub + ')</span>' : '');
+            }
+            _updateConfirmBtn();
+            if (isWorker) _updatePreview();
+          };
+          box.appendChild(row);
+        });
+      });
+  }
+
+  window.ciawSearch = function () {
+    clearTimeout(_searchTimer);
+    const q = document.getElementById('ciaw-search-input').value.trim();
+    _searchTimer = setTimeout(_doSearch, q ? 280 : 0);
+  };
+
+  function _postAdd(entityId, parentId) {
+    const fd = new FormData();
+    fd.append('kind', _selectedKind);
+    fd.append('entity_id', entityId);
+    /* Workers: o servidor determina o pai automaticamente */
+    if (_selectedKind !== 'worker' && parentId) fd.append('parent_id', parentId);
+    return fetch(URL_ADD, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd })
+      .then(r => r.json());
+  }
+
+  function _applyNode(n) {
+    if (map[n.id]) return; /* já existe (pai auto-criado por request anterior) */
+    map[n.id] = { ...n, children: [] };
+    NODES.push(n);
+    if (n.parent_id && map[n.parent_id]) map[n.parent_id].children.push(map[n.id]);
+    else roots.push(map[n.id]);
+  }
+
+  window.ciawConfirmAdd = function () {
+    const isWorker = _selectedKind === 'worker';
+    const ids = isWorker ? [..._selectedEntityIds] : (_selectedEntityId ? [_selectedEntityId] : []);
+    if (!ids.length) return;
+
+    const parentId = document.getElementById('ciaw-parent-select')?.value || null;
+    const btn = document.getElementById('ciaw-confirm-btn');
+    btn.disabled = true;
+    btn.textContent = isWorker && ids.length > 1 ? `0 / ${ids.length}` : '…';
+
+    /* Enviar em série para preservar a ordem e dar feedback de progresso */
+    let done = 0;
+    let firstError = null;
+
+    const next = (idx) => {
+      if (idx >= ids.length) {
+        /* Todos concluídos */
+        renderTree();
+        const cnt = document.getElementById('ciaw-count');
+        if (cnt) cnt.textContent = NODES.length;
+        btn.disabled = false;
+        btn.textContent = '{% trans "Adicionar" %}';
+        if (firstError) {
+          document.getElementById('ciaw-add-error').style.display = '';
+          document.getElementById('ciaw-add-error').textContent = firstError;
+        } else {
+          document.getElementById('ciaw-overlay').classList.remove('open');
+        }
+        return;
+      }
+      _postAdd(ids[idx], parentId).then(data => {
+        if (data.ok) {
+          if (data.parent_node) _applyNode(data.parent_node); /* subcontratado auto-criado */
+          _applyNode(data.node);
+          done++;
+          if (isWorker && ids.length > 1) btn.textContent = `${done} / ${ids.length}`;
+        } else if (!firstError) {
+          firstError = data.error || '{% trans "Erro ao adicionar." %}';
+        }
+        next(idx + 1);
+      }).catch(() => {
+        if (!firstError) firstError = '{% trans "Erro de ligação." %}';
+        next(idx + 1);
+      });
+    };
+    next(0);
+  };
+
+  window.ciawRemove = function (nodeId, label) {
+    if (!confirm('{% trans "Remover" %} ' + label + '?\n{% trans "Os nós filhos também serão removidos." %}')) return;
+    fetch(URL_REMOVE.replace('/0/', `/${nodeId}/`), {
+      method: 'POST', headers: { 'X-CSRFToken': CSRF }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        /* Remover do mapa local recursivamente */
+        function removeFromMap(id) {
+          const n = map[id]; if (!n) return;
+          n.children.forEach(c => removeFromMap(c.id));
+          delete map[id];
+          const idx = NODES.findIndex(x => x.id === id);
+          if (idx > -1) NODES.splice(idx, 1);
+        }
+        /* Desligar do pai */
+        const node = map[nodeId];
+        if (node && node.parent_id && map[node.parent_id]) {
+          map[node.parent_id].children = map[node.parent_id].children.filter(c => c.id !== nodeId);
+        } else {
+          const ri = roots.findIndex(r => r.id === nodeId);
+          if (ri > -1) roots.splice(ri, 1);
+        }
+        removeFromMap(nodeId);
+        renderTree();
+        const cnt = document.getElementById('ciaw-count');
+        if (cnt) cnt.textContent = NODES.length;
+      }
+    });
+  };
+
+})();
+</script>

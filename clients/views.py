@@ -1,23 +1,40 @@
 import json
-from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.views.decorators.http import require_POST
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST
+from accounts.decorators import perm_required
 from .models import Client, ClientAddress, ClientContact
 from .forms import ClientForm, ClientAddressForm, ClientContactForm
 
 
 # ── List / Create / Update / Detail ─────────────────────────────────────────
 
-@login_required
+@perm_required('clients.view_client')
 def client_list(request):
-    clients = Client.objects.prefetch_related('addresses', 'contacts').order_by('name')
-    return render(request, 'clients/client_list.html', {'clients': clients})
+    qs = Client.objects.prefetch_related('addresses', 'contacts').order_by('name')
+    q = request.GET.get('q', '').strip()
+    is_active = request.GET.get('is_active', '')
+    if q:
+        qs = qs.filter(name__icontains=q)
+    if is_active == 'active':
+        qs = qs.filter(is_active=True)
+    elif is_active == 'inactive':
+        qs = qs.filter(is_active=False)
+    paginator = Paginator(qs, 25)
+    page = paginator.get_page(request.GET.get('page'))
+    return render(request, 'clients/client_list.html', {
+        'clients': page,
+        'page_obj': page,
+        'q': q,
+        'is_active': is_active,
+    })
 
 
-@login_required
+@perm_required('clients.add_client')
 def client_create(request):
     form = ClientForm(request.POST or None)
     if form.is_valid():
@@ -29,7 +46,7 @@ def client_create(request):
     })
 
 
-@login_required
+@perm_required('clients.change_client')
 def client_update(request, pk):
     client = get_object_or_404(Client, pk=pk)
     form = ClientForm(request.POST or None, instance=client)
@@ -43,7 +60,7 @@ def client_update(request, pk):
     })
 
 
-@login_required
+@perm_required('clients.view_client')
 def client_detail(request, pk):
     client = get_object_or_404(
         Client.objects.prefetch_related('addresses', 'contacts', 'projects'), pk=pk
@@ -53,7 +70,7 @@ def client_detail(request, pk):
 
 # ── Address AJAX endpoints ───────────────────────────────────────────────────
 
-@login_required
+@perm_required('clients.change_client')
 @require_POST
 def address_save(request, client_pk, pk=None):
     client = get_object_or_404(Client, pk=client_pk)
@@ -78,7 +95,7 @@ def address_save(request, client_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('clients.change_client')
 @require_POST
 def address_delete(request, client_pk, pk):
     addr = get_object_or_404(ClientAddress, pk=pk, client_id=client_pk)
@@ -88,7 +105,7 @@ def address_delete(request, client_pk, pk):
 
 # ── Contact AJAX endpoints ───────────────────────────────────────────────────
 
-@login_required
+@perm_required('clients.change_client')
 @require_POST
 def contact_save(request, client_pk, pk=None):
     client = get_object_or_404(Client, pk=client_pk)
@@ -113,7 +130,7 @@ def contact_save(request, client_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('clients.change_client')
 @require_POST
 def contact_delete(request, client_pk, pk):
     contact = get_object_or_404(ClientContact, pk=pk, client_id=client_pk)

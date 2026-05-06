@@ -1,0 +1,59 @@
+{% comment %}
+Partial: renders a contract/addendum lines table.
+Variables expected:
+  lines      — queryset of ContractLine or AddendumLine
+  total_ht   — Decimal
+  show_vat   — bool (optional, default False)
+{% endcomment %}
+{% load i18n %}
+<table class="lines-table">
+  <thead>
+    <tr>
+      <th style="width:40%">Descrição</th>
+      <th class="num">Qtd.</th>
+      <th>Un.</th>
+      <th class="num">Preço Unit.</th>
+      <th class="num">Desc.%</th>
+      <th class="num">Total HT</th>
+      <th style="width:36px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+    <tr class="lt-{{ line.line_type }}">
+      {% if line.line_type == 'page_break' %}
+        <td colspan="7" style="text-align:center;color:var(--text3);font-size:11px;padding:4px 0;">— Quebra de Página —</td>
+      {% elif line.is_section %}
+        <td colspan="6" class="section-cell section-{{ line.line_type }}">{{ line.description }}</td>
+        <td>{{ delete_cell }}</td>
+      {% elif line.line_type == 'comment' %}
+        <td colspan="6" style="color:var(--text3);font-style:italic;font-size:12px;">{{ line.description }}</td>
+        <td>{{ delete_cell }}</td>
+      {% else %}
+        <td>
+          {{ line.description }}
+          {% if line.detail %}<div style="font-size:11px;color:var(--text3);margin-top:2px;">{{ line.detail }}</div>{% endif %}
+        </td>
+        <td class="num">{{ line.quantity|floatformat:"-4" }}</td>
+        <td>{{ line.unit }}</td>
+        <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+        <td class="num">{% if line.discount_percent %}{{ line.discount_percent|floatformat:2 }}%{% else %}—{% endif %}</td>
+        <td class="num"><strong>{{ line.total_ht|floatformat:2 }} €</strong></td>
+      {% endif %}
+      <td style="text-align:center;padding:4px;">
+        <form method="post" action="{{ line_delete_url_prefix }}{{ line.pk }}/delete/" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn-del" title="Remover">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="5" style="text-align:right;color:var(--text3);font-size:12px;font-weight:600;">TOTAL HT</td>
+      <td class="num" style="font-weight:700;">{{ total_ht|floatformat:2 }} €</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>

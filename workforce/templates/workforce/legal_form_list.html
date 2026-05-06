@@ -8,82 +8,250 @@
 
 {% block extra_head %}
 <style>
-  .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; font-family: sans-serif; }
-  .ref-table thead th {
-    padding: 10px 18px; text-align: left;
-    font-size: 11px; font-weight: 600; color: var(--text3);
-    text-transform: uppercase; letter-spacing: .5px;
-    border-bottom: 1px solid var(--border); background: var(--surface2);
-  }
-  .ref-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
-  .ref-table tbody tr:last-child { border-bottom: none; }
-  .ref-table tbody tr:hover { background: var(--surface2); }
-  .ref-table td { padding: 11px 18px; color: var(--text); vertical-align: middle; }
-  .ref-table td.muted { color: var(--text3); font-size: 13px; }
-  .ref-table .actions { display: flex; gap: 6px; justify-content: flex-end; }
-  .btn-icon { width: 30px; height: 30px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; text-decoration: none; transition: background .12s; }
-  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
-  .btn-icon.danger:hover { color: var(--red); border-color: var(--red); }
-  .abbr-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: var(--accent-light); color: var(--accent); font-family: sans-serif; }
-  .empty-state { padding: 48px 24px; text-align: center; color: var(--text3); font-family: sans-serif; }
+.abbr-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;background:var(--accent-light);color:var(--accent);font-family:sans-serif}
+dialog.aux-dialog{margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box}
+dialog.aux-dialog::backdrop{background:rgba(0,0,0,.5)}
+.aux-flex{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.popup-panel{background:var(--surface);border-radius:var(--radius-lg,10px);width:480px;max-width:min(480px,calc(100vw - 40px));box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.popup-fg{display:flex;flex-direction:column;gap:6px}
+.popup-fg-row{display:grid;grid-template-columns:120px 1fr;gap:12px}
+.popup-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.popup-label .req{color:var(--accent)}
+.row-new{animation:rowIn .3s ease}
+@keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">Formas Jurídicas</h1>
-    <p class="page-sub">Usadas em Clientes, Fornecedores e Subcontratados</p>
+
+<div class="ca-table-wrap" data-ca-table="legal-forms">
+
+  <div class="ca-table-actions">
+    <div class="ca-table-actions-title">
+      <h1>Formas Jurídicas</h1>
+      <span><strong data-ca-row-count>{{ legal_forms|length }}</strong> {% trans "resultados" %}</span>
+    </div>
+    <div class="ca-table-actions-btns">
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters" data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="refresh" data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="columns" data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      </button>
+      <span class="ca-tbl-sep"></span>
+      <button type="button" class="ca-tbl-btn-primary" id="btn-novo" data-tip="Nova Forma Jurídica">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Forma Jurídica
+      </button>
+    </div>
   </div>
-  <a href="{% url 'workforce:legal_form_create' %}" class="btn btn-primary">+ Nova Forma Jurídica</a>
+
+  <div class="ca-table-scroll">
+  <table class="ca-table">
+    <thead>
+      <tr>
+        <th data-col="abreviatura" data-col-label="Abreviatura" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">Abreviatura</span>
+            <div class="ca-th-search"><input data-col="abreviatura" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="nome" data-col-label="Nome completo" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">Nome completo</span>
+            <div class="ca-th-search"><input data-col="nome" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="clientes" data-col-label="Clientes" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">Clientes</span>
+            <div class="ca-th-search"><input data-col="clientes" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="fornecedores" data-col-label="Fornecedores" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">Fornecedores</span>
+            <div class="ca-th-search"><input data-col="fornecedores" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="subcontratados" data-col-label="Subcontratados" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">Subcontratados</span>
+            <div class="ca-th-search"><input data-col="subcontratados" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      {% for lf in legal_forms %}
+      <tr data-id="{{ lf.pk }}"
+          data-name="{{ lf.name|escapejs }}"
+          data-abbr="{{ lf.abbreviation|escapejs }}"
+          data-notes="{{ lf.notes|escapejs }}"
+          data-clients="{{ lf.clients.count }}"
+          data-suppliers="{{ lf.suppliers.count }}"
+          data-subs="{{ lf.subcontractors.count }}">
+        <td data-col="abreviatura">
+          {% if lf.abbreviation %}<span class="abbr-badge">{{ lf.abbreviation }}</span>{% else %}<span style="color:var(--text3)">—</span>{% endif %}
+        </td>
+        <td data-col="nome" style="font-weight:500">{{ lf.name }}</td>
+        <td data-col="clientes" style="color:var(--text2);font-size:13px;text-align:right;">{{ lf.clients.count }}</td>
+        <td data-col="fornecedores" style="color:var(--text2);font-size:13px;text-align:right;">{{ lf.suppliers.count }}</td>
+        <td data-col="subcontratados" style="color:var(--text2);font-size:13px;text-align:right;">{{ lf.subcontractors.count }}</td>
+        <td style="text-align:right;">
+          <div class="ca-row-actions">
+            <button type="button" class="btn-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="Editar">✏️</button>
+            {% if not lf.clients.count and not lf.suppliers.count and not lf.subcontractors.count %}
+            <button type="button" class="btn-del" data-id="{{ lf.pk }}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="Eliminar">🗑</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="empty-row">
+        <td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">
+          Nenhuma forma jurídica registada. Clique em «Nova Forma Jurídica» para começar.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
 </div>
 
-<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;">
-  {% if legal_forms %}
-    <table class="ref-table">
-      <thead>
-        <tr>
-          <th>Abreviatura</th>
-          <th>Nome completo</th>
-          <th>Clientes</th>
-          <th>Fornecedores</th>
-          <th>Subcontratados</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for lf in legal_forms %}
-        <tr>
-          <td>
-            {% if lf.abbreviation %}
-              <span class="abbr-badge">{{ lf.abbreviation }}</span>
-            {% else %}
-              <span class="muted">—</span>
-            {% endif %}
-          </td>
-          <td><strong>{{ lf.name }}</strong></td>
-          <td class="muted">{{ lf.clients.count }}</td>
-          <td class="muted">{{ lf.suppliers.count }}</td>
-          <td class="muted">{{ lf.subcontractors.count }}</td>
-          <td>
-            <div class="actions">
-              <a href="{% url 'workforce:legal_form_edit' lf.pk %}" class="btn-icon" title="Editar">✏️</a>
-              <form method="post" action="{% url 'workforce:legal_form_delete' lf.pk %}" style="display:inline;"
-                    onsubmit="return confirm('Eliminar «{{ lf.display_name }}»? Os registos que usam esta forma ficam sem forma jurídica.')">
-                {% csrf_token %}
-                <button type="submit" class="btn-icon danger" title="Eliminar">🗑</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div class="empty-state">
-      Nenhuma forma jurídica cadastrada.<br>
-      <a href="{% url 'workforce:legal_form_create' %}" class="btn btn-primary" style="margin-top:14px;display:inline-block;">+ Adicionar primeira</a>
+<dialog id="aux-dialog" class="aux-dialog">
+  <div class="aux-flex">
+    <div class="popup-panel">
+      <div class="popup-header">
+        <span class="popup-title" id="popup-title">Nova Forma Jurídica</span>
+        <button type="button" class="popup-close" id="btn-close">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="popup-error"></div>
+        <div class="popup-fg-row">
+          <div class="popup-fg">
+            <label class="popup-label" for="f-abbr">Abreviatura</label>
+            <input type="text" id="f-abbr" class="form-control" maxlength="20" placeholder="ex: SRL, SA…" autocomplete="off">
+          </div>
+          <div class="popup-fg">
+            <label class="popup-label" for="f-name">Nome completo <span class="req">*</span></label>
+            <input type="text" id="f-name" class="form-control" maxlength="100" autocomplete="off">
+          </div>
+        </div>
+        <div class="popup-fg">
+          <label class="popup-label" for="f-notes">Observações</label>
+          <textarea id="f-notes" class="form-control" rows="3" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" id="btn-cancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-save">Guardar</button>
+      </div>
     </div>
-  {% endif %}
-</div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  const CSRF     = '{{ csrf_token }}';
+  const URL_SAVE = '{% url "workforce:legal_form_save" %}';
+  const URL_UPD  = '{% url "workforce:legal_form_update" pk=0 %}';
+  const URL_DEL  = '{% url "workforce:legal_form_delete" pk=0 %}';
+
+  let editPk = null;
+  const dlg     = document.getElementById('aux-dialog');
+  const titleEl = document.getElementById('popup-title');
+  const nameIn  = document.getElementById('f-name');
+  const abbrIn  = document.getElementById('f-abbr');
+  const notesIn = document.getElementById('f-notes');
+  const errEl   = document.getElementById('popup-error');
+  const btnSave = document.getElementById('btn-save');
+  const tbody   = document.getElementById('tbody');
+
+  const showDlg = () => { try { dlg.showModal(); } catch(e) { dlg.setAttribute('open',''); } };
+  const hideDlg = () => { try { dlg.close(); } catch(e) {} dlg.removeAttribute('open'); };
+
+  function open(row) {
+    editPk = row ? +row.dataset.id : null;
+    titleEl.textContent = editPk ? 'Editar Forma Jurídica' : 'Nova Forma Jurídica';
+    nameIn.value  = row ? row.dataset.name  : '';
+    abbrIn.value  = row ? row.dataset.abbr  : '';
+    notesIn.value = row ? row.dataset.notes : '';
+    setErr(''); showDlg(); setTimeout(() => (abbrIn.value ? nameIn : abbrIn).focus(), 60);
+  }
+  function close() { hideDlg(); editPk = null; }
+  function setErr(m) { errEl.textContent = m; errEl.style.display = m ? 'block' : 'none'; }
+  function setBusy(b) { btnSave.disabled = b; btnSave.textContent = b ? 'A guardar…' : 'Guardar'; }
+
+  function post(url, data) {
+    return fetch(url, { method:'POST', headers:{'X-CSRFToken':CSRF},
+      body: new URLSearchParams({csrfmiddlewaretoken:CSRF,...data}) }).then(r=>r.json());
+  }
+  function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+  function buildRow(c) {
+    const total = c.client_count + c.supplier_count + c.subcontractor_count;
+    const del = total === 0
+      ? `<button type="button" class="btn-del" data-id="${c.id}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="Eliminar">🗑</button>` : '';
+    const abbr = c.abbreviation
+      ? `<span class="abbr-badge">${esc(c.abbreviation)}</span>` : '<span style="color:var(--text3)">—</span>';
+    return `<tr data-id="${c.id}"
+        data-name="${String(c.name).replace(/"/g,'&quot;')}"
+        data-abbr="${String(c.abbreviation||'').replace(/"/g,'&quot;')}"
+        data-notes="${String(c.notes||'').replace(/"/g,'&quot;')}"
+        data-clients="${c.client_count}" data-suppliers="${c.supplier_count}" data-subs="${c.subcontractor_count}">
+      <td data-col="abreviatura">${abbr}</td>
+      <td data-col="nome" style="font-weight:500">${esc(c.name)}</td>
+      <td data-col="clientes" style="color:var(--text2);font-size:13px;text-align:right;">${c.client_count}</td>
+      <td data-col="fornecedores" style="color:var(--text2);font-size:13px;text-align:right;">${c.supplier_count}</td>
+      <td data-col="subcontratados" style="color:var(--text2);font-size:13px;text-align:right;">${c.subcontractor_count}</td>
+      <td style="text-align:right;"><div class="ca-row-actions">
+        <button type="button" class="btn-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="Editar">✏️</button>
+        ${del}
+      </div></td>
+    </tr>`;
+  }
+
+  function save() {
+    const name = nameIn.value.trim();
+    if (!name) { setErr('O nome completo é obrigatório.'); nameIn.focus(); return; }
+    setBusy(true);
+    const url = editPk ? URL_UPD.replace('/0/', `/${editPk}/`) : URL_SAVE;
+    post(url, {name, abbreviation: abbrIn.value.trim(), notes: notesIn.value.trim()}).then(json => {
+      setBusy(false);
+      if (!json.ok) { setErr(Object.values(json.errors).flat().join(' ')); return; }
+      const c = json.item;
+      document.getElementById('empty-row')?.remove();
+      const ex = tbody.querySelector(`tr[data-id="${c.id}"]`);
+      if (ex) ex.outerHTML = buildRow(c);
+      else { tbody.insertAdjacentHTML('beforeend', buildRow(c)); tbody.querySelector(`tr[data-id="${c.id}"]`)?.classList.add('row-new'); }
+      close();
+    }).catch(() => { setBusy(false); setErr('Erro de ligação. Tente novamente.'); });
+  }
+
+  function del(pk) {
+    if (!confirm('Eliminar esta forma jurídica?')) return;
+    post(URL_DEL.replace('/0/', `/${pk}/`), {}).then(json => {
+      if (!json.ok && json.error) { alert(json.error); return; }
+      tbody.querySelector(`tr[data-id="${pk}"]`)?.remove();
+      if (!tbody.querySelector('tr[data-id]'))
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Nenhuma forma jurídica registada.</td></tr>';
+    });
+  }
+
+  document.getElementById('btn-novo').addEventListener('click', () => open(null));
+  document.getElementById('btn-close').addEventListener('click', close);
+  document.getElementById('btn-cancel').addEventListener('click', close);
+  btnSave.addEventListener('click', save);
+  tbody.addEventListener('click', e => {
+    const eb = e.target.closest('.btn-edit'), db = e.target.closest('.btn-del');
+    if (eb) open(eb.closest('tr'));
+    if (db) del(+db.dataset.id);
+  });
+  dlg.addEventListener('cancel', e => e.preventDefault());
+  document.addEventListener('keydown', e => { if (dlg.open && e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); save(); } });
+}());
+</script>
 {% endblock %}

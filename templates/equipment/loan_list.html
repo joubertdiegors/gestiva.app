@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Empréstimos ativos — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'equipment:list' %}">Equipamentos</a>
+  <span class="sep">›</span>
+  <span class="current">Empréstimos ativos</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📋 Empréstimos ativos</h1>
+    <p class="page-sub">
+      {{ loans|length }} item(s) em posse de colaboradores
+      {% if overdue %} · <span style="color:var(--danger);">{{ overdue|length }} em atraso</span>{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'equipment:list' %}" class="btn btn-ghost">← Equipamentos</a>
+</div>
+
+{% if loans %}
+<div class="card">
+  <table class="table dt">
+    <thead>
+      <tr>
+        <th>Equipamento</th>
+        <th>Categoria</th>
+        <th>Colaborador</th>
+        <th>Saída</th>
+        <th>Devolução prevista</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for loan in loans %}
+      <tr {% if loan.is_overdue %}style="background:var(--danger-bg,#fff3f3);"{% endif %}>
+        <td>
+          <a href="{% url 'equipment:detail' loan.equipment.pk %}" style="color:var(--text);text-decoration:none;font-weight:600;">
+            {{ loan.equipment.display_name }}
+          </a>
+          {% if loan.equipment.serial_number %}<br><small style="color:var(--text3);">S/N: {{ loan.equipment.serial_number }}</small>{% endif %}
+        </td>
+        <td>{{ loan.equipment.category }}</td>
+        <td>{{ loan.collaborator }}</td>
+        <td>{{ loan.loaned_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          {% if loan.expected_return %}
+            {{ loan.expected_return|date:"d/m/Y" }}
+            {% if loan.is_overdue %}<span class="badge badge-red">Atrasado</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td style="white-space:nowrap;">
+          <a href="{% url 'equipment:loan_ticket' loan.pk %}" class="btn btn-ghost btn-sm" target="_blank">🖨️</a>
+          <a href="{% url 'equipment:loan_return' loan.pk %}" class="btn btn-ghost btn-sm">📥 Devolver</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
+  <p style="font-size:32px;margin-bottom:12px;">📋</p>
+  <p>Nenhum empréstimo ativo no momento.</p>
+</div>
+{% endif %}
+{% endblock %}

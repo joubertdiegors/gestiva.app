@@ -10,16 +10,7 @@ class Planning(models.Model):
         related_name='plannings'
     )
 
-    # Veículo designado para esta obra neste dia (opcional)
-    vehicle = models.ForeignKey(
-        'fleet.Vehicle',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='planning_assignments',
-    )
-
-    # Motorista do veículo neste dia (pode diferir do motorista padrão do veículo)
+    # Motorista do veículo neste dia (legado — mantido para compatibilidade)
     vehicle_driver = models.ForeignKey(
         'workforce.Collaborator',
         on_delete=models.SET_NULL,
@@ -28,17 +19,27 @@ class Planning(models.Model):
         related_name='vehicle_planning_assignments',
     )
 
+    # Extensão de outro Planning (mesma obra, mesmo dia, mais funcionários)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='extensions',
+    )
+    is_extension = models.BooleanField(default=False)
+
     notes = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('date', 'project')
-        ordering = ['-date']
+        ordering = ['-date', 'pk']
 
     def __str__(self):
-        return f"{self.project} - {self.date}"
+        suffix = ' [ext]' if self.is_extension else ''
+        return f"{self.project} - {self.date}{suffix}"
 
 
 class PlanningSubcontractor(models.Model):
@@ -154,6 +155,36 @@ class PlanningDayOff(models.Model):
 
     def __str__(self):
         return f"{self.worker} — {self.date} (off)"
+
+
+class PlanningVehicle(models.Model):
+    """Veículo atribuído a uma obra num dia (M2M — permite múltiplos veículos)."""
+
+    planning = models.ForeignKey(
+        Planning,
+        on_delete=models.CASCADE,
+        related_name='planning_vehicles',
+    )
+    vehicle = models.ForeignKey(
+        'fleet.Vehicle',
+        on_delete=models.PROTECT,
+        related_name='planning_assignments',
+    )
+    driver = models.ForeignKey(
+        'workforce.Collaborator',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='driven_plannings',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('planning', 'vehicle')
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.vehicle.license_plate} → {self.planning}"
 
 
 class PlanningBlankLine(models.Model):

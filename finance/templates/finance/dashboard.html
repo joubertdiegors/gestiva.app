@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Financeiro — Construart{% endblock %}
+{% block tab_parent %}/finance/{% endblock %}
+{% block tab_icon %}💵{% endblock %}
+{% block breadcrumb %}<span class="current">{% trans "Financeiro" %}</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:24px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; }
+  .kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text3); font-family:sans-serif; margin-bottom:6px; }
+  .kpi-value { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .kpi.danger .kpi-value  { color:var(--red); }
+  .kpi.warning .kpi-value { color:var(--amber); }
+  .kpi.success .kpi-value { color:var(--green); }
+  .kpi.accent .kpi-value  { color:var(--accent); }
+
+  .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:860px) { .dash-grid { grid-template-columns:1fr; } }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--border); }
+  .section-header h2 { font-size:13px; font-family:sans-serif; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; margin:0; }
+
+  .mini-list { list-style:none; padding:0; margin:0; }
+  .mini-item { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-bottom:1px solid var(--border); font-size:13px; font-family:sans-serif; gap:8px; }
+  .mini-item:last-child { border-bottom:none; }
+  .mini-left { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .mini-name { font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini-sub  { font-size:11px; color:var(--text3); }
+  .mini-right { display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex-shrink:0; }
+  .mini-amount { font-weight:600; font-variant-numeric:tabular-nums; }
+  .mini-date   { font-size:11px; color:var(--text3); }
+  .overdue     { color:var(--red) !important; }
+  .empty-msg   { padding:16px 18px; font-size:13px; color:var(--text3); text-align:center; font-family:sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% trans "Painel financeiro" %}</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'finance:payables' %}" class="btn btn-ghost btn-sm">{% trans "Contas a pagar" %}</a>
+    <a href="{% url 'finance:receivables' %}" class="btn btn-ghost btn-sm">{% trans "Contas a receber" %}</a>
+    <a href="{% url 'invoicing:list' %}" class="btn btn-ghost btn-sm">{% trans "Faturas" %}</a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi danger">
+    <div class="kpi-label">{% trans "A pagar — vencido" %}</div>
+    <div class="kpi-value">€{{ total_overdue_pay|floatformat:2 }}</div>
+  </div>
+  <div class="kpi warning">
+    <div class="kpi-label">{% trans "A pagar — próx. 30 dias" %}</div>
+    <div class="kpi-value">€{{ total_due30_pay|floatformat:2 }}</div>
+  </div>
+  <div class="kpi danger">
+    <div class="kpi-label">{% trans "A receber — vencido" %}</div>
+    <div class="kpi-value">€{{ total_overdue_rec|floatformat:2 }}</div>
+  </div>
+  <div class="kpi warning">
+    <div class="kpi-label">{% trans "A receber — próx. 30 dias" %}</div>
+    <div class="kpi-value">€{{ total_due30_rec|floatformat:2 }}</div>
+  </div>
+  <div class="kpi {% if balance_30 >= 0 %}success{% else %}danger{% endif %}">
+    <div class="kpi-label">{% trans "Saldo líquido 30 dias" %}</div>
+    <div class="kpi-value">€{{ balance_30|floatformat:2 }}</div>
+  </div>
+  <div class="kpi accent">
+    <div class="kpi-label">{% trans "Total em aberto (a receber)" %}</div>
+    <div class="kpi-value">€{{ total_pending_rec|floatformat:2 }}</div>
+  </div>
+</div>
+
+<div class="dash-grid">
+
+  <!-- Contas a pagar vencidas -->
+  <div class="card" style="overflow:hidden;">
+    <div class="section-header">
+      <h2>🔴 {% trans "A pagar — vencidas" %}</h2>
+      <a href="{% url 'finance:payables' %}?status=pending" class="btn btn-ghost btn-sm">{% trans "Ver todas" %}</a>
+    </div>
+    <ul class="mini-list">
+      {% for p in overdue_payables %}
+      <li class="mini-item">
+        <div class="mini-left">
+          <span class="mini-name">{{ p.supplier|default:p.description|truncatechars:30 }}</span>
+          <span class="mini-sub">{{ p.project.name|default:"—"|truncatechars:25 }}{% if p.reference %} · {{ p.reference }}{% endif %}</span>
+        </div>
+        <div class="mini-right">
+          <span class="mini-amount overdue">€{{ p.amount|floatformat:2 }}</span>
+          <span class="mini-date overdue">{{ p.due_date|date:"d/m/Y" }}</span>
+        </div>
+      </li>
+      {% empty %}
+      <li class="empty-msg">{% trans "Nenhuma conta vencida." %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Contas a receber vencidas -->
+  <div class="card" style="overflow:hidden;">
+    <div class="section-header">
+      <h2>🔴 {% trans "A receber — vencidas" %}</h2>
+      <a href="{% url 'finance:receivables' %}?status=pending" class="btn btn-ghost btn-sm">{% trans "Ver todas" %}</a>
+    </div>
+    <ul class="mini-list">
+      {% for r in overdue_receivables %}
+      <li class="mini-item">
+        <div class="mini-left">
+          <span class="mini-name">{{ r.client.name|truncatechars:30 }}</span>
+          <span class="mini-sub">{{ r.invoice.number }}{% if r.project %} · {{ r.project.name|truncatechars:20 }}{% endif %}</span>
+        </div>
+        <div class="mini-right">
+          <span class="mini-amount overdue">€{{ r.amount_remaining|floatformat:2 }}</span>
+          <span class="mini-date overdue">{{ r.due_date|date:"d/m/Y" }}</span>
+        </div>
+      </li>
+      {% empty %}
+      <li class="empty-msg">{% trans "Nenhuma conta vencida." %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- A pagar próximos 30 dias -->
+  <div class="card" style="overflow:hidden;">
+    <div class="section-header">
+      <h2>🟡 {% trans "A pagar — próx. 30 dias" %}</h2>
+    </div>
+    <ul class="mini-list">
+      {% for p in due_30_payables %}
+      <li class="mini-item">
+        <div class="mini-left">
+          <span class="mini-name">{{ p.supplier|default:p.description|truncatechars:30 }}</span>
+          <span class="mini-sub">{{ p.project.name|default:"—"|truncatechars:25 }}</span>
+        </div>
+        <div class="mini-right">
+          <span class="mini-amount">€{{ p.amount_remaining|floatformat:2 }}</span>
+          <span class="mini-date">{{ p.due_date|date:"d/m/Y" }}</span>
+        </div>
+      </li>
+      {% empty %}
+      <li class="empty-msg">{% trans "Nada previsto para os próximos 30 dias." %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- A receber próximos 30 dias -->
+  <div class="card" style="overflow:hidden;">
+    <div class="section-header">
+      <h2>🟢 {% trans "A receber — próx. 30 dias" %}</h2>
+    </div>
+    <ul class="mini-list">
+      {% for r in due_30_receivables %}
+      <li class="mini-item">
+        <div class="mini-left">
+          <span class="mini-name">{{ r.client.name|truncatechars:30 }}</span>
+          <span class="mini-sub">{{ r.invoice.number }}</span>
+        </div>
+        <div class="mini-right">
+          <span class="mini-amount" style="color:var(--green);">€{{ r.amount_remaining|floatformat:2 }}</span>
+          <span class="mini-date">{{ r.due_date|date:"d/m/Y" }}</span>
+        </div>
+      </li>
+      {% empty %}
+      <li class="empty-msg">{% trans "Nada previsto para os próximos 30 dias." %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>
+{% endblock %}

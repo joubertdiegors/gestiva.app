@@ -1,0 +1,96 @@
+{% load i18n %}
+<div class="card-title" style="margin-bottom:12px;">{% trans "Infração" %}</div>
+<div class="info-grid" style="margin-bottom:16px;">
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.date.label }}</div>
+    {{ form.date }}
+    {% if form.date.errors %}<div class="field-error">{{ form.date.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.driver.label }}</div>
+    {{ form.driver }}
+    {% if form.driver.errors %}<div class="field-error">{{ form.driver.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.amount.label }}</div>
+    {{ form.amount }}
+    {% if form.amount.errors %}<div class="field-error">{{ form.amount.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.points.label }}</div>
+    {{ form.points }}
+    {% if form.points.errors %}<div class="field-error">{{ form.points.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.reference.label }}</div>
+    {{ form.reference }}
+    {% if form.reference.errors %}<div class="field-error">{{ form.reference.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.file.label }}</div>
+    {{ form.file }}
+    {% if form.file.errors %}<div class="field-error">{{ form.file.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full">
+    <div class="info-label">{{ form.location.label }}</div>
+    {{ form.location }}
+    {% if form.location.errors %}<div class="field-error">{{ form.location.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full" style="border-bottom:none;">
+    <div class="info-label">{{ form.offence_description.label }}</div>
+    {{ form.offence_description }}
+    {% if form.offence_description.errors %}<div class="field-error">{{ form.offence_description.errors.0 }}</div>{% endif %}
+  </div>
+
+</div>
+
+<div class="card-title" style="margin-bottom:12px;">{% trans "Pagamento e Desconto" %}</div>
+<div class="info-grid">
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.status.label }}</div>
+    {{ form.status }}
+    {% if form.status.errors %}<div class="field-error">{{ form.status.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.paid_date.label }}</div>
+    {{ form.paid_date }}
+    {% if form.paid_date.errors %}<div class="field-error">{{ form.paid_date.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label" style="display:flex;align-items:center;gap:8px;">
+      {{ form.deduct_from_payroll }} {{ form.deduct_from_payroll.label }}
+    </div>
+    {% if form.deduct_from_payroll.errors %}<div class="field-error">{{ form.deduct_from_payroll.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.payroll_deducted_date.label }}</div>
+    {{ form.payroll_deducted_date }}
+    {% if form.payroll_deducted_date.errors %}<div class="field-error">{{ form.payroll_deducted_date.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full">
+    <div class="info-label" style="display:flex;align-items:center;gap:8px;">
+      {{ form.payroll_deducted }} {{ form.payroll_deducted.label }}
+    </div>
+    {% if form.payroll_deducted.errors %}<div class="field-error">{{ form.payroll_deducted.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full" style="border-bottom:none;">
+    <div class="info-label">{{ form.notes.label }}</div>
+    {{ form.notes }}
+    {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
+  </div>
+
+</div>

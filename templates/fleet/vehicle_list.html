@@ -8,97 +8,144 @@
   <span class="current">{% trans "Vehicles" %}</span>
 {% endblock %}
 
-{% block extra_head %}
-<style>
-  .vehicle-grid { display: grid; gap: 12px; }
-  .vehicle-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px 20px;
-    display: grid; grid-template-columns: auto 1fr auto auto;
-    align-items: center; gap: 16px;
-    text-decoration: none; color: var(--text);
-    box-shadow: var(--shadow); transition: border-color .15s;
-  }
-  .vehicle-card:hover { border-color: var(--accent); }
-  .plate-badge {
-    font-weight: 700; font-size: 15px; letter-spacing: 1px;
-    background: var(--surface2); border: 1px solid var(--border2);
-    border-radius: 8px; padding: 6px 12px; white-space: nowrap;
-  }
-  .vehicle-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-  .vehicle-meta { font-size: 13px; color: var(--text3); font-family: sans-serif; display: flex; gap: 12px; flex-wrap: wrap; }
-  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-  .filter-bar form { display:flex; gap:8px; flex:1; min-width:200px; }
-  .filter-bar input {
-    flex: 1; padding: 8px 14px; border: 1px solid var(--border2);
-    border-radius: var(--radius); font-size: 14px;
-    background: var(--surface); color: var(--text);
-  }
-  .filter-bar input:focus { outline: none; border-color: var(--accent); }
-  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; white-space: nowrap; }
-  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-  @media(max-width:640px){
-    .vehicle-card { grid-template-columns: 1fr; gap: 8px; }
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">🚗 {% trans "Vehicles" %}</h1>
-    <p class="page-sub">{% trans "Company fleet management" %}</p>
-  </div>
-  <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary">+ {% trans "New Vehicle" %}</a>
-</div>
-
-<div class="filter-bar">
-  <form method="get" style="display:flex;gap:8px;flex:1;">
-    <input type="text" name="q" value="{{ q }}" placeholder="{% trans 'Search plate, brand, model...' %}">
-    <button type="submit" class="btn btn-ghost">{% trans "Search" %}</button>
-    {% if q %}<a href="?" class="btn btn-ghost">✕</a>{% endif %}
-  </form>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;">
-    <a href="?" class="sf-btn {% if not status_filter %}active{% endif %}">{% trans "All" %}</a>
-    {% for val, label in status_choices %}
-    <a href="?status={{ val }}{% if q %}&q={{ q }}{% endif %}"
-       class="sf-btn {% if status_filter == val %}active{% endif %}">{{ label }}</a>
-    {% endfor %}
-  </div>
-</div>
 
 {% if vehicles %}
-<div class="vehicle-grid">
-  {% for v in vehicles %}
-  <div class="vehicle-card">
-    <span class="plate-badge">{{ v.license_plate }}</span>
-    <div>
-      <div class="vehicle-name">{{ v.brand }} {{ v.model }} ({{ v.year }})</div>
-      <div class="vehicle-meta">
-        <span>{{ v.category }}</span>
-        <span>{{ v.get_fuel_type_display }}</span>
-        <span>{{ v.current_km|floatformat:0 }} km</span>
-        {% if v.default_driver %}<span>👤 {{ v.default_driver }}</span>{% endif %}
-      </div>
+<div class="ca-table-wrap" data-ca-table="vehicles">
+
+  <div class="ca-table-actions">
+    <div class="ca-table-actions-title">
+      <h1>{% trans "Vehicles" %}</h1>
+      <span><strong data-ca-row-count>{{ vehicles|length }}</strong> {% trans "resultados" %}</span>
     </div>
-    <span class="badge
-      {% if v.status == 'active' %}badge-green
-      {% elif v.status == 'maintenance' %}badge-amber
-      {% else %}badge-gray{% endif %}">
-      {{ v.get_status_display }}
-    </span>
-    <div style="display:flex;gap:8px;">
-      <a href="{% url 'fleet:vehicle_detail' v.pk %}" class="btn btn-ghost btn-sm">{% trans "View" %}</a>
-      <a href="{% url 'fleet:vehicle_edit' v.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+    <div class="ca-table-actions-btns">
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters" data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="refresh" data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="columns" data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      </button>
+      <span class="ca-tbl-sep"></span>
+      <a href="{% url 'fleet:vehicle_create' %}" class="ca-tbl-btn-primary" data-tip="{% trans 'New Vehicle' %}">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {% trans "New Vehicle" %}
+      </a>
     </div>
   </div>
-  {% endfor %}
+
+  <div class="ca-bulk-bar" hidden>
+    <strong><span data-ca-bulk-count>0</span> {% trans "selecionado(s)" %}</strong>
+  </div>
+
+  <div class="ca-table-scroll">
+  <table class="ca-table">
+    <thead>
+      <tr>
+        <th data-col-required style="width:40px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;">
+            <input type="checkbox" class="ca-checkbox" data-ca-select-all>
+          </div>
+        </th>
+        <th data-col="estado" data-col-label="{% trans 'Status' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Status" %}</span>
+            <div class="ca-th-search"><input data-col="estado" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="nr_frota" data-col-label="{% trans 'Fleet #' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Fleet #" %}</span>
+            <div class="ca-th-search"><input data-col="nr_frota" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="matricula" data-col-label="{% trans 'Plate' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Plate" %}</span>
+            <div class="ca-th-search"><input data-col="matricula" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="viatura" data-col-label="{% trans 'Vehicle' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Vehicle" %}</span>
+            <div class="ca-th-search"><input data-col="viatura" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="categoria" data-col-label="{% trans 'Category' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Category" %}</span>
+            <div class="ca-th-search"><input data-col="categoria" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="combustivel" data-col-label="{% trans 'Fuel' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Fuel" %}</span>
+            <div class="ca-th-search"><input data-col="combustivel" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="km" data-col-label="{% trans 'KM' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "KM" %}</span>
+            <div class="ca-th-search"><input data-col="km" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="condutor" data-col-label="{% trans 'Driver' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Driver" %}</span>
+            <div class="ca-th-search"><input data-col="condutor" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in vehicles %}
+      <tr style="cursor:pointer" onclick="window.location='{% url 'fleet:vehicle_detail' v.pk %}'">
+        <td style="padding:0 8px;text-align:center;" onclick="event.stopPropagation()">
+          <input type="checkbox" class="ca-checkbox" data-ca-row-select>
+        </td>
+        <td data-col="estado" onclick="event.stopPropagation()">
+          {% if v.status == 'active' %}
+            <span class="ca-badge green"><span class="dot"></span>{{ v.get_status_display }}</span>
+          {% elif v.status == 'maintenance' %}
+            <span class="ca-badge amber"><span class="dot"></span>{{ v.get_status_display }}</span>
+          {% else %}
+            <span class="ca-badge gray"><span class="dot"></span>{{ v.get_status_display }}</span>
+          {% endif %}
+        </td>
+        <td data-col="nr_frota" style="color:var(--text2);font-size:13px;text-align:right;">
+          {% if v.fleet_number %}<strong style="color:var(--accent)">#{{ v.fleet_number }}</strong>{% else %}—{% endif %}
+        </td>
+        <td data-col="matricula">
+          <a href="{% url 'fleet:vehicle_detail' v.pk %}" style="color:var(--accent);font-weight:700;letter-spacing:.5px;text-decoration:none" onclick="event.stopPropagation()">{{ v.license_plate }}</a>
+        </td>
+        <td data-col="viatura" style="color:var(--text2);font-size:13px;">{{ v.brand }} {{ v.model }} ({{ v.year }})</td>
+        <td data-col="categoria" style="color:var(--text2);font-size:13px;">{{ v.category }}</td>
+        <td data-col="combustivel" style="color:var(--text2);font-size:13px;">{{ v.get_fuel_type_display }}</td>
+        <td data-col="km" style="color:var(--text2);font-size:13px;text-align:right;">{{ v.current_km|floatformat:0 }} km</td>
+        <td data-col="condutor" style="color:var(--text2);font-size:13px;">
+          {% if v.default_driver %}
+            <a href="{% url 'workforce:detail' v.default_driver.pk %}" style="color:var(--text2);text-decoration:none" onclick="event.stopPropagation()">{{ v.default_driver }}</a>
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div class="ca-row-actions">
+            <a href="{% url 'fleet:vehicle_edit' v.pk %}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;" title="{% trans 'Edit' %}">✏️</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
 </div>
+
 {% else %}
-<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
-  <p style="font-size:32px;margin-bottom:12px;">🚗</p>
-  <p>{% trans "No vehicles found." %}</p>
-  <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary" style="margin-top:16px;">{% trans "Add First Vehicle" %}</a>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="empty-state">
+    <div class="icon">🚗</div>
+    <h3>{% trans "No vehicles found." %}</h3>
+    <p>{% trans "Add the first vehicle to start." %}</p>
+    <a href="{% url 'fleet:vehicle_create' %}" class="btn btn-primary" style="margin-top:16px">{% trans "Add First Vehicle →" %}</a>
+  </div>
 </div>
 {% endif %}
+
 {% endblock %}

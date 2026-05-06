@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Construart{% endblock %}
+
+{% block breadcrumb %}
+  <a href="{% url 'equipment:list' %}">Equipamentos</a>
+  <span class="sep">›</span>
+  {% if equipment %}<a href="{% url 'equipment:detail' equipment.pk %}">{{ equipment.display_name }}</a><span class="sep">›</span>{% endif %}
+  <span class="current">{{ title }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .vf-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+    padding-bottom: 80px;
+  }
+  .vf-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .vf-card:last-child { margin-bottom: 0; }
+  .vf-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .vf-card-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .vf-card-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text2); font-family: sans-serif;
+  }
+  .vf-card-body { padding: 20px; }
+
+  .fg-2    { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .fg-3    { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px 16px; }
+  .fg-auto { display: grid; grid-template-columns: 120px 1fr; gap: 14px 16px; }
+  .col-2   { grid-column: span 2; }
+  .col-3   { grid-column: span 3; }
+
+  .vf-field { display: flex; flex-direction: column; gap: 5px; }
+  .vf-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .7px; color: var(--text3); font-family: sans-serif;
+  }
+  .vf-label .req { color: var(--accent); margin-left: 2px; }
+  .vf-hint  { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-top: 2px; }
+  .vf-error { font-size: 11px; color: var(--red); font-family: sans-serif; display: flex; align-items: center; gap: 4px; }
+  .vf-error::before { content: "⚠"; font-size: 10px; }
+
+  .vf-card input[type="text"],
+  .vf-card input[type="number"],
+  .vf-card input[type="date"],
+  .vf-card select,
+  .vf-card textarea {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    font-size: 14px; font-family: inherit; color: var(--text);
+    background: var(--surface); transition: border-color .15s, box-shadow .15s;
+    appearance: none;
+  }
+  .vf-card input:focus, .vf-card select:focus, .vf-card textarea:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light);
+  }
+  .vf-card select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239896ab' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+  }
+  .vf-card textarea { resize: vertical; min-height: 80px; }
+
+  .status-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border: 1.5px solid var(--border2); border-radius: 20px;
+    font-size: 13px; font-family: sans-serif; cursor: pointer;
+    transition: all .15s; background: var(--surface); color: var(--text2); user-select: none;
+  }
+  .status-pill input[type="radio"] { display: none; }
+  .status-pill:hover { background: var(--surface2); }
+  .status-pill.pill-available { border-color: var(--green);  background: var(--green-light);  color: var(--green); }
+  .status-pill.pill-loaned    { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .status-pill.pill-maint     { border-color: var(--amber);  background: var(--amber-light);  color: var(--amber); }
+  .status-pill.pill-other     { border-color: var(--border2); background: var(--surface2); color: var(--text3); }
+
+  .vf-summary {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    position: sticky; top: calc(var(--topbar-h) + var(--tabbar-h) + 16px); overflow: hidden;
+  }
+  .vf-summary-header {
+    padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--accent-light) 0%, var(--surface2) 100%);
+  }
+  .vf-summary-code {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    background: var(--accent); color: #fff; border-radius: 12px;
+    padding: 2px 10px; margin-bottom: 8px; font-family: sans-serif;
+  }
+  .vf-summary-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .vf-summary-sub  { font-size: 12px; color: var(--text3); font-family: sans-serif; min-height: 16px; }
+  .vf-summary-body { padding: 14px 20px; }
+  .vf-summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; font-family: sans-serif;
+  }
+  .vf-summary-row:last-child { border-bottom: none; }
+  .vf-summary-row .k { color: var(--text3); }
+  .vf-summary-row .v { color: var(--text); font-weight: 500; }
+
+  .vf-action-bar {
+    position: fixed; bottom: 0; left: var(--sidebar-w); right: 0;
+    height: 64px; background: var(--surface); border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; z-index: 90; transition: left .25s;
+  }
+  .vf-action-info { font-size: 12px; color: var(--text3); font-family: sans-serif; }
+  .vf-action-btns { display: flex; gap: 10px; }
+
+  @media (max-width: 900px) {
+    .vf-layout { grid-template-columns: 1fr; }
+    .vf-summary { position: static; }
+    .vf-action-bar { left: 0; }
+  }
+  @media (max-width: 600px) {
+    .fg-2, .fg-3, .fg-auto { grid-template-columns: 1fr; }
+    .col-2, .col-3 { grid-column: span 1; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:20px;">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub" style="font-family:sans-serif;font-size:13px;color:var(--text3);margin-top:4px;">
+      {% if equipment %}Editar dados do equipamento{% else %}Preencha os dados para registar um novo equipamento{% endif %}
+    </p>
+  </div>
+  {% if equipment %}
+  <a href="{% url 'equipment:detail' equipment.pk %}" class="btn btn-ghost">← Voltar</a>
+  {% endif %}
+</div>
+
+<form method="post" id="eq-form">
+{% csrf_token %}
+<div class="vf-layout">
+
+  <div>
+    <!-- Identificação -->
+    <div class="vf-card">
+      <div class="vf-card-header">
+        <div class="vf-card-icon">🏷</div>
+        <span class="vf-card-title">Identificação</span>
+      </div>
+      <div class="vf-card-body">
+
+        <div class="fg-auto" style="margin-bottom:14px;">
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.internal_code.id_for_label }}">Código interno</label>
+            {{ form.internal_code }}
+            <span class="vf-hint">Ex: EQ-001</span>
+            {% if form.internal_code.errors %}<span class="vf-error">{{ form.internal_code.errors.0 }}</span>{% endif %}
+          </div>
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.category.id_for_label }}">Categoria <span class="req">*</span></label>
+            {{ form.category }}
+            {% if form.category.errors %}<span class="vf-error">{{ form.category.errors.0 }}</span>{% endif %}
+          </div>
+        </div>
+
+        <div class="vf-field" style="margin-bottom:14px;">
+          <label class="vf-label" for="{{ form.name.id_for_label }}">Nome <span class="req">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<span class="vf-error">{{ form.name.errors.0 }}</span>{% endif %}
+        </div>
+
+        <div class="fg-3">
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.brand.id_for_label }}">Marca</label>
+            {{ form.brand }}
+          </div>
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.model.id_for_label }}">Modelo</label>
+            {{ form.model }}
+          </div>
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.serial_number.id_for_label }}">Nº de série</label>
+            {{ form.serial_number }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Estado & Aquisição -->
+    <div class="vf-card">
+      <div class="vf-card-header">
+        <div class="vf-card-icon">⚙️</div>
+        <span class="vf-card-title">Estado & Aquisição</span>
+      </div>
+      <div class="vf-card-body">
+
+        <div class="vf-field" style="margin-bottom:20px;">
+          <label class="vf-label">Estado</label>
+          <div class="status-pills" id="status-pills">
+            {% for val, label in form.fields.status.choices %}
+            <label class="status-pill
+              {% if form.status.value == val or not form.status.value and val == 'available' %}
+                {% if val == 'available' %}pill-available
+                {% elif val == 'loaned' %}pill-loaned
+                {% elif val == 'maintenance' %}pill-maint
+                {% else %}pill-other{% endif %}
+              {% endif %}" data-val="{{ val }}">
+              <input type="radio" name="status" value="{{ val }}"
+                {% if form.status.value == val %}checked
+                {% elif not form.status.value and val == 'available' %}checked{% endif %}>
+              {% if val == 'available' %}🟢
+              {% elif val == 'loaned' %}📤
+              {% elif val == 'maintenance' %}🔧
+              {% elif val == 'sold' %}💰
+              {% else %}📦{% endif %}
+              {{ label }}
+            </label>
+            {% endfor %}
+          </div>
+          {% if form.status.errors %}<span class="vf-error">{{ form.status.errors.0 }}</span>{% endif %}
+        </div>
+
+        <div class="fg-3">
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.condition.id_for_label }}">Condição</label>
+            {{ form.condition }}
+          </div>
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.purchase_date.id_for_label }}">Data de compra</label>
+            {{ form.purchase_date }}
+          </div>
+          <div class="vf-field">
+            <label class="vf-label" for="{{ form.purchase_price.id_for_label }}">Preço de compra (€)</label>
+            {{ form.purchase_price }}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="vf-card">
+      <div class="vf-card-header">
+        <div class="vf-card-icon">📝</div>
+        <span class="vf-card-title">Notas</span>
+      </div>
+      <div class="vf-card-body">
+        <div class="vf-field">
+          <label class="vf-label" for="{{ form.notes.id_for_label }}">Observações internas</label>
+          {{ form.notes }}
+        </div>
+      </div>
+    </div>
+
+    {% if form.non_field_errors %}
+    <div style="background:var(--red-light);border:1px solid var(--red);border-radius:var(--radius);padding:12px 16px;font-family:sans-serif;font-size:13px;color:var(--red);">
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Painel lateral -->
+  <div>
+    <div class="vf-summary">
+      <div class="vf-summary-header">
+        <div id="sum-code" style="display:none;" class="vf-summary-code"></div>
+        <div class="vf-summary-name" id="sum-name">{% if equipment %}{{ equipment.display_name }}{% else %}—{% endif %}</div>
+        <div class="vf-summary-sub" id="sum-sub">{% if equipment %}{{ equipment.brand }} {{ equipment.model }}{% endif %}</div>
+      </div>
+      <div class="vf-summary-body">
+        <div class="vf-summary-row">
+          <span class="k">Categoria</span>
+          <span class="v" id="sum-cat">{% if equipment %}{{ equipment.category }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="vf-summary-row">
+          <span class="k">Condição</span>
+          <span class="v" id="sum-cond">{% if equipment %}{{ equipment.get_condition_display }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="vf-summary-row">
+          <span class="k">Nº de série</span>
+          <span class="v" id="sum-serial">{% if equipment and equipment.serial_number %}{{ equipment.serial_number }}{% else %}—{% endif %}</span>
+        </div>
+        <div class="vf-summary-row">
+          <span class="k">Preço de compra</span>
+          <span class="v" id="sum-price">{% if equipment and equipment.purchase_price %}€ {{ equipment.purchase_price }}{% else %}—{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="vf-action-bar">
+  <span class="vf-action-info">
+    {% if equipment %}A editar: <strong>{{ equipment.display_name }}</strong>
+    {% else %}Novo equipamento{% endif %}
+  </span>
+  <div class="vf-action-btns">
+    {% if equipment %}
+    <a href="{% url 'equipment:detail' equipment.pk %}" class="btn btn-ghost">Cancelar</a>
+    {% else %}
+    <a href="{% url 'equipment:list' %}" class="btn btn-ghost">Cancelar</a>
+    {% endif %}
+    <button type="submit" class="btn btn-primary" style="padding:10px 28px;font-size:14px;">💾 Guardar</button>
+  </div>
+</div>
+</form>
+
+<script>
+(function () {
+  const nameEl   = document.getElementById('id_name');
+  const brandEl  = document.getElementById('id_brand');
+  const modelEl  = document.getElementById('id_model');
+  const serialEl = document.getElementById('id_serial_number');
+  const codeEl   = document.getElementById('id_internal_code');
+  const priceEl  = document.getElementById('id_purchase_price');
+  const catSel   = document.getElementById('id_category');
+  const condSel  = document.getElementById('id_condition');
+
+  const sumName   = document.getElementById('sum-name');
+  const sumSub    = document.getElementById('sum-sub');
+  const sumCode   = document.getElementById('sum-code');
+  const sumCat    = document.getElementById('sum-cat');
+  const sumCond   = document.getElementById('sum-cond');
+  const sumSerial = document.getElementById('sum-serial');
+  const sumPrice  = document.getElementById('sum-price');
+
+  function sel(el) {
+    const o = el.options[el.selectedIndex];
+    return o && o.value ? o.text : '—';
+  }
+
+  function update() {
+    sumName.textContent = nameEl.value.trim() || '—';
+    const b = brandEl.value.trim(), m = modelEl.value.trim();
+    sumSub.textContent = [b, m].filter(Boolean).join(' ') || '';
+    const code = codeEl.value.trim();
+    sumCode.textContent = code;
+    sumCode.style.display = code ? 'inline-block' : 'none';
+    sumCat.textContent    = sel(catSel);
+    sumCond.textContent   = sel(condSel);
+    sumSerial.textContent = serialEl.value.trim() || '—';
+    const p = priceEl.value.trim();
+    sumPrice.textContent  = p ? `€ ${parseFloat(p).toLocaleString('pt-PT', {minimumFractionDigits:2})}` : '—';
+  }
+
+  [nameEl, brandEl, modelEl, serialEl, codeEl, priceEl].forEach(el => el.addEventListener('input', update));
+  [catSel, condSel].forEach(el => el.addEventListener('change', update));
+  update();
+
+  // Status pills — esconde o select nativo e usa pills
+  const statusSelect = document.getElementById('id_status');
+  if (statusSelect) statusSelect.style.display = 'none';
+  const pillMap = { available: 'pill-available', loaned: 'pill-loaned', maintenance: 'pill-maint', sold: 'pill-other', written_off: 'pill-other' };
+  document.querySelectorAll('.status-pill').forEach(pill => {
+    const radio = pill.querySelector('input[type="radio"]');
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.status-pill').forEach(p => p.classList.remove(...Object.values(pillMap)));
+      radio.checked = true;
+      pill.classList.add(pillMap[radio.value] || 'pill-other');
+    });
+  });
+
+  // Sidebar shift
+  const obs = new MutationObserver(() => {
+    const bar = document.querySelector('.vf-action-bar');
+    if (bar) bar.style.left = document.body.classList.contains('sidebar-expanded') ? 'var(--sidebar-w-expanded)' : 'var(--sidebar-w)';
+  });
+  obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+{% endblock %}

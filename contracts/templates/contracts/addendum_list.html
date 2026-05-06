@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Adendos — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block extra_head %}
+<style>
+.ct-grid{display:grid;gap:10px}
+.ct-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:14px;box-shadow:var(--shadow);transition:border-color .15s;text-decoration:none;color:inherit}
+.ct-card:hover{border-color:var(--accent)}
+.ct-num{font-family:monospace;font-size:12px;color:var(--text3);white-space:nowrap}
+.ct-title{font-size:15px;font-weight:500}
+.ct-meta{font-size:12px;color:var(--text3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-grey{background:#f0f0f0;color:#666}.badge-blue{background:#e3eeff;color:#2563eb}.badge-green{background:#e6f9ef;color:#15803d}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-row input,.filter-row select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:13px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Adendos</h1>
+    <p class="page-sub">Adendos emitidos para subempreiteiros</p>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{% url 'contracts:list' %}" class="btn btn-ghost">Contratos</a>
+    <a href="{% url 'contracts:addendum_create' %}" class="btn btn-primary">+ Novo Adendo</a>
+  </div>
+</div>
+
+<form method="get" class="filter-row">
+  <input type="text" name="q" value="{{ filter_q }}" placeholder="Pesquisar título ou subempreiteiro…">
+  <select name="status" onchange="this.form.submit()">
+    <option value="">Todos os estados</option>
+    {% for val,label in status_choices %}<option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  {% if filter_q or filter_status %}<a href="{% url 'contracts:addendum_list' %}" class="btn btn-ghost btn-sm">Limpar</a>{% endif %}
+  {% if filter_q %}<button type="submit" class="btn btn-ghost btn-sm">Pesquisar</button>{% endif %}
+</form>
+
+{% if addenda %}
+<div class="ct-grid">
+  {% for add in addenda %}
+  <a class="ct-card" href="{% url 'contracts:addendum_detail' add.pk %}">
+    <span class="ct-num">Adendo {{ add.number }}</span>
+    <div>
+      <div class="ct-title">{{ add.title }}</div>
+      <div class="ct-meta">
+        <span>🏢 {{ add.subcontractor.name }}</span>
+        <span>🏗️ {{ add.project.name }}</span>
+        <span>📄 {{ add.contract.title }}</span>
+        <span>💶 {{ add.total_ht|floatformat:2 }} €</span>
+      </div>
+    </div>
+    <span class="badge badge-{{ add.status_colour }}">{{ add.get_status_display }}</span>
+    <span class="btn btn-ghost btn-sm" style="pointer-events:none">Ver →</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📋</div>
+  <div class="empty-title">Nenhum adendo encontrado</div>
+  <div class="empty-sub">{% if filter_q or filter_status %}Ajuste os filtros.{% else %}Os adendos são criados a partir dos contratos de cliente.{% endif %}</div>
+</div>
+{% endif %}
+{% endblock %}

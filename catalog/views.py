@@ -8,6 +8,7 @@ from django.db.models import Q, Count, Prefetch
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 
+from accounts.decorators import perm_required
 from .models import Product, ProductCategory, UnitOfMeasure
 from .forms import ProductForm, ProductCategoryForm, UnitOfMeasureForm
 
@@ -19,7 +20,7 @@ PAGE_SIZE = 30
 # UNITS OF MEASURE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('catalog.view_product')
 def unit_list(request):
     units = UnitOfMeasure.objects.annotate(
         product_count=Count('products')
@@ -27,7 +28,7 @@ def unit_list(request):
     return render(request, 'catalog/unit_list.html', {'units': units})
 
 
-@login_required
+@perm_required('catalog.change_product')
 @require_POST
 def unit_save(request, pk=None):
     instance = get_object_or_404(UnitOfMeasure, pk=pk) if pk else None
@@ -47,7 +48,7 @@ def unit_save(request, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('catalog.delete_product')
 @require_POST
 def unit_delete(request, pk):
     unit = get_object_or_404(UnitOfMeasure, pk=pk)
@@ -69,7 +70,7 @@ def unit_delete(request, pk):
 # PRODUCT CATEGORIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('catalog.view_product')
 def category_list(request):
     qs = (
         ProductCategory.objects
@@ -108,7 +109,7 @@ def category_list(request):
     })
 
 
-@login_required
+@perm_required('catalog.change_product')
 @require_POST
 def category_save(request, pk=None):
     instance = get_object_or_404(ProductCategory, pk=pk) if pk else None
@@ -130,7 +131,7 @@ def category_save(request, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('catalog.delete_product')
 @require_POST
 def category_delete(request, pk):
     cat = get_object_or_404(ProductCategory, pk=pk)
@@ -157,7 +158,7 @@ def category_delete(request, pk):
 # PRODUCTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('catalog.view_product')
 def product_list(request):
     qs = (
         Product.objects
@@ -211,7 +212,7 @@ def product_list(request):
     })
 
 
-@login_required
+@perm_required('catalog.add_product')
 def product_create(request):
     form = ProductForm(request.POST or None)
     if form.is_valid():
@@ -226,7 +227,7 @@ def product_create(request):
     })
 
 
-@login_required
+@perm_required('catalog.view_product')
 def product_detail(request, pk):
     from procurement.models import ProductSupplier
     from suppliers.models import Supplier
@@ -259,7 +260,7 @@ def product_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('catalog.change_product')
 def product_update(request, pk):
     product = get_object_or_404(Product, pk=pk)
     form = ProductForm(request.POST or None, instance=product)
@@ -274,7 +275,7 @@ def product_update(request, pk):
     })
 
 
-@login_required
+@perm_required('catalog.delete_product')
 @require_POST
 def product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -309,7 +310,7 @@ def product_delete(request, pk):
     return redirect('catalog:product_list')
 
 
-@login_required
+@perm_required('catalog.change_product')
 @require_POST
 def product_toggle_approved(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -318,7 +319,7 @@ def product_toggle_approved(request, pk):
     return JsonResponse({'ok': True, 'is_approved': product.is_approved})
 
 
-@login_required
+@perm_required('catalog.change_product')
 @require_POST
 def product_toggle_active(request, pk):
     product = get_object_or_404(Product, pk=pk)

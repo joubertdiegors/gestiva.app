@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Contas a Receber — Construart{% endblock %}
+{% block tab_parent %}/finance/{% endblock %}
+{% block tab_icon %}💰{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'finance:dashboard' %}">{% trans "Financeiro" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Contas a receber" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .dt-wrap { overflow-x:auto; }
+  .dt { width:100%; border-collapse:collapse; font-size:13px; font-family:sans-serif; }
+  .dt thead th { padding:9px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+  .dt tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+  .dt tbody tr:last-child { border-bottom:none; }
+  .dt tbody tr:hover { background:var(--surface2); }
+  .dt td { padding:10px 14px; color:var(--text); vertical-align:middle; }
+  .dt td.muted { color:var(--text3); }
+  .dt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dt-empty { padding:20px; text-align:center; font-size:13px; color:var(--text3); font-family:sans-serif; }
+  .overdue-row td { background:color-mix(in srgb,var(--red) 4%,transparent); }
+  .overdue-date { color:var(--red); font-weight:600; }
+  .btn-icon { width:28px; height:28px; border:1px solid var(--border); border-radius:var(--radius); background:none; color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .btn-icon:hover { background:var(--surface2); color:var(--accent); }
+  .btn-icon.danger:hover { background:var(--red-light); color:var(--red); }
+  .popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:600; align-items:center; justify-content:center; }
+  .popup-overlay.open { display:flex; }
+  .popup { background:var(--surface); border-radius:var(--radius-lg); width:480px; max-width:96vw; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-md); }
+  .popup-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--surface); z-index:1; }
+  .popup-title { font-size:15px; font-weight:500; }
+  .popup-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text3); }
+  .popup-body { padding:22px; }
+  .popup-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+  .form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-grid2 .span-2 { grid-column:span 2; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns:1fr; } .form-grid2 .span-2 { grid-column:span 1; } }
+  .field-error { color:var(--red); font-size:12px; margin-top:3px; font-family:sans-serif; }
+  .popup-alert { padding:9px 12px; border-radius:var(--radius); font-size:13px; display:none; margin-bottom:12px; font-family:sans-serif; }
+  .popup-alert.show { display:block; }
+  .popup-alert.error { background:var(--red-light); color:var(--red); }
+  .payments-panel { display:none; background:var(--surface2); padding:12px 18px 12px 40px; border-bottom:1px solid var(--border); }
+  .payments-panel table { width:100%; font-size:12px; font-family:sans-serif; border-collapse:collapse; }
+  .payments-panel td { padding:5px 10px; border-bottom:1px solid var(--border); }
+  .payments-panel tr:last-child td { border-bottom:none; }
+  .payments-panel .num { text-align:right; font-variant-numeric:tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% trans "Contas a receber" %}</h1>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'invoicing:create' %}" class="btn btn-primary">+ {% trans "Nova fatura" %}</a>
+    <a href="{% url 'finance:dashboard' %}" class="btn btn-ghost btn-sm">← {% trans "Painel" %}</a>
+  </div>
+</div>
+
+<div class="filters">
+  <a href="{% url 'finance:receivables' %}" class="btn {% if not status_filter %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">{% trans "Todas" %}</a>
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="btn {% if status_filter == val %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card" style="overflow:hidden;">
+  <div class="dt-wrap">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th></th>
+          <th>{% trans "Fatura" %}</th>
+          <th>{% trans "Cliente" %}</th>
+          <th>{% trans "Projeto" %}</th>
+          <th>{% trans "Emissão" %}</th>
+          <th>{% trans "Vencimento" %}</th>
+          <th class="num">{% trans "Total" %}</th>
+          <th class="num">{% trans "Recebido" %}</th>
+          <th class="num">{% trans "Em aberto" %}</th>
+          <th>{% trans "Estado" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="receivables-tbody">
+        {% for r in receivables %}
+        <tr data-id="{{ r.pk }}" {% if r.is_overdue %}class="overdue-row"{% endif %}>
+          <td style="width:28px;">
+            <button class="btn-icon" onclick="togglePayments({{ r.pk }}, this)">▶</button>
+          </td>
+          <td style="font-weight:600;">
+            <a href="{% url 'invoicing:detail' r.invoice.pk %}" style="color:var(--accent);text-decoration:none;">{{ r.invoice.number }}</a>
+          </td>
+          <td style="font-weight:500;">{{ r.client.name }}</td>
+          <td class="muted">{{ r.project.name|default:"—" }}</td>
+          <td class="muted">{{ r.issue_date|date:"d/m/Y" }}</td>
+          <td {% if r.is_overdue %}class="overdue-date"{% else %}class="muted"{% endif %}>
+            {{ r.due_date|date:"d/m/Y"|default:"—" }}
+          </td>
+          <td class="num">€{{ r.amount|floatformat:2 }}</td>
+          <td class="num" style="color:var(--green);">€{{ r.amount_paid|floatformat:2 }}</td>
+          <td class="num" style="font-weight:500;" id="remaining-{{ r.pk }}">€{{ r.amount_remaining|floatformat:2 }}</td>
+          <td id="status-{{ r.pk }}">
+            {% include "finance/_status_badge.html" with status=r.status display=r.get_status_display %}
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;justify-content:flex-end;">
+              {% if r.status != 'paid' and r.status != 'cancelled' %}
+              <button class="btn-icon" title="{% trans 'Registar pagamento' %}" onclick="openPaymentPopup({{ r.pk }})">💳</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        <tr id="payments-panel-{{ r.pk }}" style="display:none;">
+          <td colspan="11" style="padding:0;">
+            <div class="payments-panel">
+              <table>
+                <thead><tr>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Data" %}</td>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Método" %}</td>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Ref." %}</td>
+                  <td class="num" style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Valor" %}</td>
+                  <td></td>
+                </tr></thead>
+                <tbody id="pmt-tbody-{{ r.pk }}">
+                  {% for pmt in r.payments.all %}
+                  <tr data-id="{{ pmt.pk }}">
+                    <td>{{ pmt.date|date:"d/m/Y" }}</td>
+                    <td>{{ pmt.get_method_display }}</td>
+                    <td>{{ pmt.reference|default:"—" }}</td>
+                    <td class="num">€{{ pmt.amount|floatformat:2 }}</td>
+                    <td style="text-align:right;">
+                      <button class="btn-icon danger" onclick="deletePayment({{ pmt.pk }}, {{ r.pk }})">🗑</button>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="pmt-empty-{{ r.pk }}"><td colspan="5" style="padding:6px 10px;color:var(--text3);">{% trans "Sem pagamentos." %}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11" class="dt-empty">{% trans "Nenhuma conta a receber encontrada." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ POPUP PAGAMENTO ══ -->
+<div class="popup-overlay" id="payment-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">{% trans "Registar recebimento" %}</span>
+      <button class="popup-close" onclick="closePopup()">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="payment-error"></div>
+      <input type="hidden" id="pmt-receivable-id">
+      <div class="form-grid2">
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %} *</label>
+          <input type="date" id="pmt-date" class="form-control">
+          <div class="field-error" id="err-pmt-date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Valor (€)" %} *</label>
+          <input type="number" step="0.01" id="pmt-amount" class="form-control">
+          <div class="field-error" id="err-pmt-amount"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Método" %}</label>
+          <select id="pmt-method" class="form-control">
+            {% for val, label in method_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Referência" %}</label>
+          <input type="text" id="pmt-reference" class="form-control">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="pmt-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="payment-save-btn" onclick="savePayment()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup()">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CSRF = '{{ csrf_token }}';
+  const URL_PAYMENT_SAVE   = "{% url 'finance:payment_save' %}";
+  const URL_PAYMENT_DELETE = (id) => "{% url 'finance:payment_delete' 0 %}".replace('/0/', `/${id}/`);
+
+  function post(url, data) {
+    return fetch(url, { method:'POST', body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }) });
+  }
+  function fmt(v) { return '€' + parseFloat(v).toFixed(2).replace('.', ','); }
+
+  function statusBadge(status, display) {
+    const map = { pending:'badge-amber', partial:'badge-amber', paid:'badge-green', cancelled:'badge-red' };
+    return `<span class="badge ${map[status]||'badge-gray'}">${display}</span>`;
+  }
+
+  window.closePopup = function () { document.getElementById('payment-overlay').classList.remove('open'); };
+  document.getElementById('payment-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('payment-overlay')) closePopup();
+  });
+
+  window.togglePayments = function (pk, btn) {
+    const panel = document.getElementById(`payments-panel-${pk}`);
+    const open  = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : '';
+    btn.textContent = open ? '▶' : '▼';
+  };
+
+  window.openPaymentPopup = function (receivableId) {
+    document.getElementById('pmt-receivable-id').value = receivableId;
+    document.getElementById('pmt-date').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('pmt-method').value    = 'transfer';
+    document.getElementById('pmt-reference').value = '';
+    document.getElementById('pmt-notes').value     = '';
+    // Pre-fill with remaining amount
+    const rem = document.getElementById(`remaining-${receivableId}`);
+    document.getElementById('pmt-amount').value = rem ? rem.textContent.replace('€','').replace(',','.') : '';
+    document.getElementById('payment-overlay').classList.add('open');
+  };
+
+  window.savePayment = function () {
+    const data = {
+      receivable_id: document.getElementById('pmt-receivable-id').value,
+      date:          document.getElementById('pmt-date').value,
+      amount:        document.getElementById('pmt-amount').value,
+      method:        document.getElementById('pmt-method').value,
+      reference:     document.getElementById('pmt-reference').value,
+      notes:         document.getElementById('pmt-notes').value,
+    };
+    const btn = document.getElementById('payment-save-btn');
+    btn.disabled = true;
+    post(URL_PAYMENT_SAVE, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) {
+        Object.entries(json.errors||{}).forEach(([f,m]) => {
+          const el = document.getElementById(`err-pmt-${f}`); if (el) el.textContent = m[0]||m;
+        });
+        return;
+      }
+      const p = json.payment;
+      const e = json.parent;
+      const recId = data.receivable_id;
+
+      document.getElementById(`remaining-${e.id}`).textContent = fmt(e.amount_remaining);
+      document.getElementById(`status-${e.id}`).innerHTML      = statusBadge(e.status, e.status_display);
+      const cells = document.querySelector(`#receivables-tbody tr[data-id="${e.id}"]`)?.querySelectorAll('td');
+      if (cells) cells[7].textContent = fmt(e.amount_paid);
+
+      // Add to payments panel
+      const emptyPmt = document.getElementById(`pmt-empty-${recId}`);
+      if (emptyPmt) emptyPmt.remove();
+      const tbody = document.getElementById(`pmt-tbody-${recId}`);
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = p.id;
+        tr.innerHTML = `
+          <td>${p.date.split('-').reverse().join('/')}</td>
+          <td>${p.method}</td>
+          <td>${p.reference||'—'}</td>
+          <td class="num">${fmt(p.amount)}</td>
+          <td style="text-align:right;"><button class="btn-icon danger" onclick="deletePayment(${p.id},${recId})">🗑</button></td>`;
+        tbody.appendChild(tr);
+      }
+
+      // Show panel
+      const panelRow = document.getElementById(`payments-panel-${recId}`);
+      if (panelRow) panelRow.style.display = '';
+      const expandBtn = document.querySelector(`#receivables-tbody tr[data-id="${recId}"] button.btn-icon`);
+      if (expandBtn) expandBtn.textContent = '▼';
+
+      closePopup();
+    }).catch(() => { btn.disabled = false; });
+  };
+
+  window.deletePayment = function (pmtPk, recId) {
+    if (!confirm('{% trans "Eliminar este pagamento?" %}')) return;
+    post(URL_PAYMENT_DELETE(pmtPk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      document.querySelector(`#pmt-tbody-${recId} tr[data-id="${pmtPk}"]`)?.remove();
+      const e = json.parent;
+      document.getElementById(`remaining-${e.id}`).textContent = fmt(e.amount_remaining);
+      document.getElementById(`status-${e.id}`).innerHTML      = statusBadge(e.status, e.status_display);
+      const cells = document.querySelector(`#receivables-tbody tr[data-id="${e.id}"]`)?.querySelectorAll('td');
+      if (cells) cells[7].textContent = fmt(e.amount_paid);
+      const tbody = document.getElementById(`pmt-tbody-${recId}`);
+      if (tbody && !tbody.querySelector('tr[data-id]')) {
+        const tr = document.createElement('tr');
+        tr.id = `pmt-empty-${recId}`;
+        tr.innerHTML = `<td colspan="5" style="padding:6px 10px;color:var(--text3);">{% trans "Sem pagamentos." %}</td>`;
+        tbody.appendChild(tr);
+      }
+    });
+  };
+})();
+</script>
+{% endblock %}

@@ -10,71 +10,89 @@
   <span class="current">{{ title }}</span>
 {% endblock %}
 
-{% block extra_head %}
-<style>
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-grid .span-2 { grid-column: span 2; }
-  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-header">
-  <div><h1 class="page-title">{{ title }}</h1>
-  <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p></div>
-  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Back" %}</a>
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p>
+  </div>
+  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Voltar" %}</a>
 </div>
-<div class="card">
-  <form method="post">
-    {% csrf_token %}
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">{{ form.date.label }}</label>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="info-card" style="margin-bottom:16px;">
+    <div class="card-title">{% trans "Abastecimento" %}</div>
+    <div class="info-grid">
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.date.label }}</div>
         {{ form.date }}
+        {% if form.date.errors %}<div class="field-error">{{ form.date.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.driver.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.driver.label }}</div>
         {{ form.driver }}
-        {% if form.driver.errors %}<div class="form-error">{{ form.driver.errors }}</div>{% endif %}
+        {% if form.driver.errors %}<div class="field-error">{{ form.driver.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.km.label }}</label>
-        {{ form.km }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.fuel_type.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.fuel_type.label }}</div>
         {{ form.fuel_type }}
+        {% if form.fuel_type.errors %}<div class="field-error">{{ form.fuel_type.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.liters.label }}</label>
-        {{ form.liters }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.price_per_liter.label }}</label>
-        {{ form.price_per_liter }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.total_cost.label }}</label>
-        {{ form.total_cost }}
-        {% if form.total_cost.errors %}<div class="form-error">{{ form.total_cost.errors }}</div>{% endif %}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.station.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.station.label }}</div>
         {{ form.station }}
+        {% if form.station.errors %}<div class="field-error">{{ form.station.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.full_tank.label }}</label>
-        {{ form.full_tank }}
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.km.label }}</div>
+        {{ form.km }}
+        {% if form.km.errors %}<div class="field-error">{{ form.km.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group span-2">
-        <label class="form-label">{{ form.notes.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.liters.label }}</div>
+        {{ form.liters }}
+        {% if form.liters.errors %}<div class="field-error">{{ form.liters.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.price_per_liter.label }}</div>
+        {{ form.price_per_liter }}
+        {% if form.price_per_liter.errors %}<div class="field-error">{{ form.price_per_liter.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.total_cost.label }}</div>
+        {{ form.total_cost }}
+        {% if form.total_cost.errors %}<div class="field-error">{{ form.total_cost.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label" style="display:flex;align-items:center;gap:8px;">
+          {{ form.full_tank }} {{ form.full_tank.label }}
+        </div>
+        {% if form.full_tank.errors %}<div class="field-error">{{ form.full_tank.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full" style="border-bottom:none;">
+        <div class="info-label">{{ form.notes.label }}</div>
         {{ form.notes }}
+        {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
       </div>
+
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
-      <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-    </div>
-  </form>
-</div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end;">
+    <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+    <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+  </div>
+</form>
 {% endblock %}

@@ -32,7 +32,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 # No PythonAnywhere pode em vez disso mapear /media/ em Web → Static files (recomendado).
 SERVE_MEDIA = config('SERVE_MEDIA', default=False, cast=bool)
 
-# Lista separada por vírgulas no .env, ex.: localhost,127.0.0.1,joubertdiegors.pythonanywhere.com
+# Lista separada por vírgulas no .env, ex.: localhost,127.0.0.1,seuusuario.pythonanywhere.com
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
     default='localhost,127.0.0.1',
@@ -73,8 +73,17 @@ LOCAL_APPS = [
     'subcontractors',
     # Comercial
     'budget',
+    # Faturação e financeiro
+    'invoicing',
+    'finance',
     # Frota
     'fleet',
+    # Equipamentos e ferramentas
+    'equipment',
+    # Comercial — Contratos
+    'contracts',
+    # Modelos de documentos
+    'document_templates',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
@@ -191,3 +200,31 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': config('DJANGO_LOG_LEVEL', default='INFO'),
+            'propagate': False,
+        },
+    },
+}

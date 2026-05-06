@@ -51,6 +51,22 @@ class AccessProfile(models.Model):
         return self.group.profile_users.filter(is_active=True).count()
 
 
+class UserTablePreference(models.Model):
+    user       = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='table_preferences',
+    )
+    table_id   = models.CharField(max_length=100)
+    hidden_cols = models.JSONField(default=list)
+
+    class Meta:
+        unique_together = ('user', 'table_id')
+
+    def __str__(self):
+        return f'{self.user} / {self.table_id}'
+
+
 class User(AbstractUser):
     phone = models.CharField(_('Phone'), max_length=20, blank=True)
 

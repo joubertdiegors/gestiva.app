@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Adendo {{ addendum.number }} — {{ addendum.title }} — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block extra_head %}
+<style>
+.doc-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:900px){.doc-grid{grid-template-columns:1fr}}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.detail-card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.info-row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text3);min-width:130px;flex-shrink:0}
+.info-value{color:var(--text);font-weight:500}
+.lines-table{width:100%;border-collapse:collapse;font-size:13px}
+.lines-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);border-bottom:2px solid var(--border)}
+.lines-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.lines-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.lines-table tfoot td{font-weight:700;border-top:2px solid var(--border);padding-top:10px}
+.lt-title td,.lt-h2 td,.lt-h3 td,.lt-h4 td{font-weight:700;background:var(--bg)}
+.lt-title td{font-size:14px;text-transform:uppercase;letter-spacing:.03em}
+.lt-comment td{color:var(--text3);font-style:italic;font-size:12px}
+.lt-page_break td{text-align:center;color:var(--text3);font-size:11px;padding:4px 0}
+.btn-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px}
+.btn-del:hover{color:var(--danger);background:#fee2e2}
+.add-line-wrap{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.add-line-grid{display:grid;grid-template-columns:140px 1fr 80px 70px 100px 80px 80px auto;gap:6px;align-items:end}
+@media(max-width:1100px){.add-line-grid{grid-template-columns:1fr 1fr}}
+.sub-card{border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;text-decoration:none;color:inherit;transition:border-color .15s;background:var(--bg)}
+.sub-card:hover{border-color:var(--accent)}
+.sub-title{font-weight:500;font-size:13px}
+.sub-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-grey{background:#f0f0f0;color:#666}.badge-blue{background:#e3eeff;color:#2563eb}.badge-green{background:#e6f9ef;color:#15803d}
+.progress-wrap{background:var(--border);border-radius:4px;height:8px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <p class="page-sub" style="margin-bottom:4px">
+      <a href="{% url 'contracts:detail' addendum.contract.pk %}" style="color:var(--accent);text-decoration:none">{{ addendum.contract.title }}</a>
+    </p>
+    <h1 class="page-title">Adendo {{ addendum.number }} — {{ addendum.title }}</h1>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{% url 'contracts:addendum_edit' addendum.pk %}" class="btn btn-ghost">✏️ Editar</a>
+    <a href="{% url 'contracts:detail' addendum.contract.pk %}" class="btn btn-ghost">← Contrato</a>
+  </div>
+</div>
+
+<div class="doc-grid">
+  {# ══ MAIN ══ #}
+  <div>
+    {# Lines #}
+    <div class="detail-card">
+      <div class="detail-card-title">
+        <span>💶 Linhas do Adendo</span>
+        {% if not addendum.lines.exists %}
+        <form method="post" action="{% url 'contracts:addendum_copy_lines' addendum.pk %}" style="margin:0">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm" title="Copiar linhas do contrato original">📋 Copiar do Contrato</button>
+        </form>
+        {% endif %}
+      </div>
+
+      {% if addendum.lines.all %}
+      <table class="lines-table">
+        <thead><tr>
+          <th>Descrição</th><th class="num">Qtd.</th><th>Un.</th>
+          <th class="num">P.Unit.</th><th class="num">Desc.%</th>
+          <th class="num">Total HT</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for line in addendum.lines.all %}
+        <tr class="lt-{{ line.line_type }}">
+          {% if line.line_type == 'page_break' %}
+            <td colspan="7">— Quebra de Página —</td>
+          {% elif line.is_section or line.line_type == 'comment' %}
+            <td colspan="6">{{ line.description }}</td>
+            <td style="text-align:center"><form method="post" action="{% url 'contracts:addendum_line_delete' addendum.pk line.pk %}" style="margin:0">{% csrf_token %}<button type="submit" class="btn-del">✕</button></form></td>
+          {% else %}
+            <td>{{ line.description }}{% if line.detail %}<div style="font-size:11px;color:var(--text3)">{{ line.detail }}</div>{% endif %}</td>
+            <td class="num">{{ line.quantity|floatformat:"-4" }}</td>
+            <td>{{ line.unit }}</td>
+            <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+            <td class="num">{% if line.discount_percent %}{{ line.discount_percent|floatformat:2 }}%{% else %}—{% endif %}</td>
+            <td class="num"><strong>{{ line.total_ht|floatformat:2 }} €</strong></td>
+            <td style="text-align:center"><form method="post" action="{% url 'contracts:addendum_line_delete' addendum.pk line.pk %}" style="margin:0">{% csrf_token %}<button type="submit" class="btn-del">✕</button></form></td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr>
+          <td colspan="5" style="text-align:right;color:var(--text3);font-size:12px;font-weight:600">TOTAL HT</td>
+          <td class="num">{{ addendum.total_ht|floatformat:2 }} €</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+      {% else %}
+      <p style="font-size:13px;color:var(--text3);margin:0 0 12px">Nenhuma linha ainda.</p>
+      {% endif %}
+
+      <div class="add-line-wrap">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);margin-bottom:8px">Adicionar Linha</div>
+        <form method="post" action="{% url 'contracts:addendum_line_add' addendum.pk %}" id="add-line-form">
+          {% csrf_token %}
+          <div class="add-line-grid">
+            <div class="form-group"><label class="form-label">Tipo</label>{{ line_form.line_type }}</div>
+            <div class="form-group"><label class="form-label">Descrição</label>{{ line_form.description }}</div>
+            <div class="form-group num-field"><label class="form-label">Qtd.</label>{{ line_form.quantity }}</div>
+            <div class="form-group num-field"><label class="form-label">Un.</label>{{ line_form.unit }}</div>
+            <div class="form-group num-field"><label class="form-label">Preço Unit.</label>{{ line_form.unit_price }}</div>
+            <div class="form-group num-field"><label class="form-label">Desc.%</label>{{ line_form.discount_percent }}</div>
+            <div class="form-group num-field"><label class="form-label">IVA %</label>{{ line_form.vat_rate }}</div>
+            <div class="form-group" style="align-self:flex-end"><button type="submit" class="btn btn-primary">+</button></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# EAs ao subempreiteiro #}
+    <div class="detail-card">
+      <div class="detail-card-title">
+        <span>📨 EAs ao Subempreiteiro ({{ addendum.statements.count }})</span>
+        <a href="{% url 'contracts:statement_create_sub' addendum.pk %}" class="btn btn-primary btn-sm">+ Novo EA</a>
+      </div>
+      {% for st in addendum.statements.all %}
+      <a class="sub-card" href="{% url 'contracts:statement_detail' st.pk %}">
+        <div>
+          <div class="sub-title">EA {{ st.number }}</div>
+          <div class="sub-meta">{{ st.issue_date|date:"d/m/Y" }} · {{ st.total|floatformat:2 }} €</div>
+        </div>
+        <span class="badge badge-{{ st.status_colour }}">{{ st.get_status_display }}</span>
+        <span class="btn btn-ghost btn-sm" style="pointer-events:none">Ver →</span>
+      </a>
+      {% empty %}<p style="font-size:13px;color:var(--text3);margin:0">Nenhum EA ainda.</p>{% endfor %}
+    </div>
+
+    {# Faturas do subempreiteiro #}
+    <div class="detail-card">
+      <div class="detail-card-title">
+        <span>🧾 Faturas do Subempreiteiro ({{ addendum.subcontractor_invoices.count }})</span>
+        <a href="{% url 'contracts:subinvoice_create' addendum.pk %}" class="btn btn-primary btn-sm">+ Registar Fatura</a>
+      </div>
+      {% for inv in addendum.subcontractor_invoices.all %}
+      <div class="sub-card" style="cursor:default">
+        <div>
+          <div class="sub-title">{{ inv.invoice_number }}</div>
+          <div class="sub-meta">{{ inv.invoice_date|date:"d/m/Y" }} · {{ inv.amount|floatformat:2 }} €{% if inv.payable %} · <a href="{% url 'finance:payable_list' %}" style="color:var(--accent)">→ Contas a Pagar</a>{% endif %}</div>
+        </div>
+        <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'approved' %}badge-blue{% else %}badge-grey{% endif %}">{{ inv.get_status_display }}</span>
+        <form method="post" action="{% url 'contracts:subinvoice_delete' inv.pk %}" style="margin:0" onsubmit="return confirm('Eliminar esta fatura e o registo financeiro associado?')">
+          {% csrf_token %}<button type="submit" class="btn-del">🗑</button>
+        </form>
+      </div>
+      {% empty %}<p style="font-size:13px;color:var(--text3);margin:0">Nenhuma fatura registada ainda.</p>{% endfor %}
+    </div>
+  </div>
+
+  {# ══ SIDEBAR ══ #}
+  <div>
+    <div class="detail-card">
+      <div class="detail-card-title">Informações</div>
+      <div class="info-row"><span class="info-label">Subempreiteiro</span><span class="info-value"><a href="{% url 'subcontractors:detail' addendum.subcontractor.pk %}" style="color:var(--accent);text-decoration:none">{{ addendum.subcontractor.name }}</a></span></div>
+      <div class="info-row"><span class="info-label">Projeto</span><span class="info-value"><a href="{% url 'project_detail' addendum.project.pk %}" style="color:var(--accent);text-decoration:none">{{ addendum.project.name }}</a></span></div>
+      <div class="info-row"><span class="info-label">Contrato Base</span><span class="info-value"><a href="{% url 'contracts:detail' addendum.contract.pk %}" style="color:var(--accent);text-decoration:none">{{ addendum.contract.title }}</a></span></div>
+      <div class="info-row"><span class="info-label">Assinatura</span><span class="info-value">{{ addendum.signed_date|date:"d/m/Y"|default:"—" }}</span></div>
+      <div class="info-row"><span class="info-label">Início</span><span class="info-value">{{ addendum.start_date|date:"d/m/Y"|default:"—" }}</span></div>
+      <div class="info-row"><span class="info-label">Prazo</span><span class="info-value">{{ addendum.end_date|date:"d/m/Y"|default:"—" }}</span></div>
+      <div class="info-row"><span class="info-label">Estado</span><span class="info-value"><span class="badge badge-{{ addendum.status_colour }}">{{ addendum.get_status_display }}</span></span></div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">Resumo Financeiro</div>
+      <div class="info-row"><span class="info-label">Total Adendo HT</span><span class="info-value">{{ addendum.total_ht|floatformat:2 }} €</span></div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">Ações</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="{% url 'contracts:statement_create_sub' addendum.pk %}" class="btn btn-primary" style="text-align:center">+ Novo EA ao Sub</a>
+        <a href="{% url 'contracts:subinvoice_create' addendum.pk %}" class="btn btn-ghost" style="text-align:center">🧾 Registar Fatura Sub</a>
+        <a href="{% url 'contracts:addendum_edit' addendum.pk %}" class="btn btn-ghost" style="text-align:center">✏️ Editar Adendo</a>
+        <form method="post" action="{% url 'contracts:addendum_delete' addendum.pk %}" onsubmit="return confirm('Eliminar este adendo? Esta ação é irreversível.')">
+          {% csrf_token %}<button type="submit" class="btn btn-ghost" style="width:100%;color:var(--danger)">🗑 Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var sel=document.getElementById('id_line_type');
+  var numFields=document.querySelectorAll('#add-line-form .num-field');
+  function toggle(){var show=sel.value==='line';numFields.forEach(function(f){f.style.display=show?'':'none'});}
+  if(sel){toggle();sel.addEventListener('change',toggle);}
+})();
+</script>
+{% endblock %}

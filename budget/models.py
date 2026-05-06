@@ -131,7 +131,7 @@ class Budget(models.Model):
         prefix = f"ORC-{year}-"
         last = (
             cls.objects.filter(number__startswith=prefix)
-            .order_by('-number')
+            .order_by('-id')
             .values_list('number', flat=True)
             .first()
         )

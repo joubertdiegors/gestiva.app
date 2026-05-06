@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Contratos — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block extra_head %}
+<style>
+.ct-grid{display:grid;gap:10px}
+.ct-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:14px;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s;text-decoration:none;color:inherit}
+.ct-card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(200,98,42,.12)}
+.ct-type{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);white-space:nowrap}
+.ct-title{font-size:15px;font-weight:500}
+.ct-meta{font-size:12px;color:var(--text3);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-grey{background:#f0f0f0;color:#666}.badge-green{background:#e6f9ef;color:#15803d}.badge-red{background:#fee2e2;color:#dc2626}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filter-row input,.filter-row select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:13px}
+.filter-row input{min-width:200px}
+@media(max-width:640px){.ct-card{grid-template-columns:1fr auto}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Contratos</h1>
+    <p class="page-sub">Contratos com clientes, subempreiteiros e fornecedores</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'contracts:addendum_list' %}" class="btn btn-ghost">Adendos</a>
+    <a href="{% url 'contracts:statement_list' %}" class="btn btn-ghost">EAs</a>
+    <a href="{% url 'contracts:create' %}" class="btn btn-primary">+ Novo Contrato</a>
+  </div>
+</div>
+
+<form method="get" class="filter-row">
+  <input type="text" name="q" value="{{ filter_q }}" placeholder="Pesquisar título…">
+  <select name="type" onchange="this.form.submit()">
+    <option value="">Todos os tipos</option>
+    {% for val,label in type_choices %}
+    <option value="{{ val }}" {% if filter_type == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" onchange="this.form.submit()">
+    <option value="">Todos os estados</option>
+    {% for val,label in status_choices %}
+    <option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  {% if filter_q or filter_type or filter_status %}
+  <a href="{% url 'contracts:list' %}" class="btn btn-ghost btn-sm">Limpar</a>
+  {% endif %}
+  {% if filter_q %}<button type="submit" class="btn btn-ghost btn-sm">Pesquisar</button>{% endif %}
+</form>
+
+{% if contracts %}
+<div class="ct-grid">
+  {% for c in contracts %}
+  <a class="ct-card" href="{% url 'contracts:detail' c.pk %}">
+    <span class="ct-type">{{ c.get_contract_type_display }}</span>
+    <div>
+      <div class="ct-title">{{ c.title }}</div>
+      <div class="ct-meta">
+        {% if c.counterpart %}<span>🏢 {{ c.counterpart }}</span>{% endif %}
+        {% if c.project %}<span>🏗️ {{ c.project.name }}</span>{% endif %}
+        {% if c.reference %}<span>📎 {{ c.reference }}</span>{% endif %}
+        {% if c.signed_date %}<span>📅 {{ c.signed_date|date:"d/m/Y" }}</span>{% endif %}
+        <span>{{ c.addenda.count }} adendo{{ c.addenda.count|pluralize:"s" }}</span>
+      </div>
+    </div>
+    <span class="badge badge-{{ c.status_colour }}">{{ c.get_status_display }}</span>
+    <span class="btn btn-ghost btn-sm" style="pointer-events:none">Ver →</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📄</div>
+  <div class="empty-title">Nenhum contrato encontrado</div>
+  <div class="empty-sub">{% if filter_q or filter_type or filter_status %}Ajuste os filtros.{% else %}Crie o primeiro contrato.{% endif %}</div>
+  {% if not filter_q and not filter_type and not filter_status %}
+  <a href="{% url 'contracts:create' %}" class="btn btn-primary" style="margin-top:16px">+ Novo Contrato</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

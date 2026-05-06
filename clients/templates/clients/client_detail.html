@@ -121,6 +121,7 @@
     </p>
   </div>
   <div style="display:flex;gap:8px;">
+    <a href="{% url 'contracts:client_contracts' client_pk=client.pk %}" class="btn btn-ghost">📄 {% trans "Contratos" %}</a>
     <a href="{% url 'clients:update' client.pk %}" class="btn btn-secondary">✏️ {% trans "Editar" %}</a>
     <a href="{% url 'clients:list' %}" class="btn btn-ghost btn-sm">← {% trans "Voltar" %}</a>
   </div>

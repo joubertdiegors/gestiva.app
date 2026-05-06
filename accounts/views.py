@@ -1,11 +1,14 @@
+import json
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group, Permission
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
+from django.views.decorators.http import require_http_methods
 
-from .models import User, AccessProfile
+from .models import User, AccessProfile, UserTablePreference
 from .forms import UserCreateForm, UserEditForm, UserPasswordResetForm, ProfileForm
 from .permissions import build_matrix
 
@@ -271,3 +274,35 @@ def profile_delete(request, pk):
         _("Perfil '%(name)s' eliminado.") % {'name': name}
     )
     return redirect('accounts:profile_list')
+
+
+# ---------------------------------------------------------------------------
+# API: preferências de colunas por utilizador
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def api_table_prefs(request, table_id):
+    if request.method == 'GET':
+        try:
+            pref = UserTablePreference.objects.get(user=request.user, table_id=table_id)
+            hidden = pref.hidden_cols
+        except UserTablePreference.DoesNotExist:
+            hidden = []
+        return JsonResponse({'hidden_cols': hidden})
+
+    # POST — salva a lista de colunas ocultas
+    try:
+        body = json.loads(request.body)
+        hidden = body.get('hidden_cols', [])
+        if not isinstance(hidden, list):
+            return JsonResponse({'error': 'invalid'}, status=400)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'invalid'}, status=400)
+
+    UserTablePreference.objects.update_or_create(
+        user=request.user,
+        table_id=table_id,
+        defaults={'hidden_cols': hidden},
+    )
+    return JsonResponse({'ok': True})

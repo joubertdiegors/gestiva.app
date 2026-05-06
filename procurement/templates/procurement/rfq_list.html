@@ -12,75 +12,117 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">{% trans "Cotações (RFQ)" %}</h1>
-    <p class="page-sub">{% trans "Selecione produtos, escolha fornecedores e envie o pedido de orçamento." %}</p>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="{% url 'procurement:rfq_create' %}" class="btn btn-primary">+ {% trans "Nova cotação" %}</a>
-  </div>
-</div>
 
-<div class="card" style="padding:14px 16px;margin-bottom:14px;">
-  <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-    <div class="form-group" style="margin:0;min-width:240px;flex:1">
-      <label class="form-label">{% trans "Pesquisar" %}</label>
-      <input class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Ex: RFQ-000123' %}">
-    </div>
-    <div class="form-group" style="margin:0;min-width:220px">
-      <label class="form-label">{% trans "Estado" %}</label>
-      <select class="form-control" name="status">
-        <option value="">{% trans "Todos" %}</option>
-        {% for k, lbl in statuses %}
-          <option value="{{ k }}" {% if sel_status == k %}selected{% endif %}>{{ lbl }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <button class="btn btn-secondary" type="submit">{% trans "Filtrar" %}</button>
-    <a class="btn btn-ghost" href="{% url 'procurement:rfq_list' %}">{% trans "Limpar" %}</a>
-  </form>
-</div>
+{% if page.object_list %}
+<div class="ca-table-wrap" data-ca-table="rfq">
 
-<div class="card" style="overflow:hidden;">
-  <table class="dt" style="width:100%;border-collapse:collapse;">
+  <div class="ca-table-actions">
+    <div class="ca-table-actions-title">
+      <h1>{% trans "Cotações (RFQ)" %}</h1>
+      <span><strong data-ca-row-count>{{ page.object_list|length }}</strong> {% trans "resultados" %}</span>
+    </div>
+    <div class="ca-table-actions-btns">
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters" data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="refresh" data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="columns" data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      </button>
+      <span class="ca-tbl-sep"></span>
+      <a href="{% url 'procurement:rfq_create' %}" class="ca-tbl-btn-primary" data-tip="{% trans 'Nova cotação' %}">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {% trans "Nova cotação" %}
+      </a>
+    </div>
+  </div>
+
+  <div class="ca-bulk-bar" hidden>
+    <strong><span data-ca-bulk-count>0</span> {% trans "selecionado(s)" %}</strong>
+  </div>
+
+  <div class="ca-table-scroll">
+  <table class="ca-table">
     <thead>
       <tr>
-        <th>{% trans "Número" %}</th>
-        <th>{% trans "Estado" %}</th>
-        <th>{% trans "Prazo" %}</th>
-        <th>{% trans "Criado em" %}</th>
-        <th></th>
+        <th data-col-required style="width:40px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;">
+            <input type="checkbox" class="ca-checkbox" data-ca-select-all>
+          </div>
+        </th>
+        <th data-col="numero" data-col-label="{% trans 'Número' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Número" %}</span>
+            <div class="ca-th-search"><input data-col="numero" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="estado" data-col-label="{% trans 'Estado' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Estado" %}</span>
+            <div class="ca-th-search"><input data-col="estado" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="prazo" data-col-label="{% trans 'Prazo' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Prazo" %}</span>
+            <div class="ca-th-search"><input data-col="prazo" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="criado_em" data-col-label="{% trans 'Criado em' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Criado em" %}</span>
+            <div class="ca-th-search"><input data-col="criado_em" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
       </tr>
     </thead>
     <tbody>
       {% for rfq in page.object_list %}
-      <tr>
-        <td style="font-weight:600;">{{ rfq.number }}</td>
-        <td class="muted">{{ rfq.get_status_display }}</td>
-        <td class="muted">{% if rfq.due_date %}{{ rfq.due_date|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-        <td class="muted">{{ rfq.created_at|date:"d/m/Y H:i" }}</td>
-        <td style="text-align:right">
-          <a class="btn btn-ghost btn-sm" href="{% url 'procurement:rfq_detail' rfq.pk %}">{% trans "Abrir" %}</a>
+      <tr style="cursor:pointer" onclick="window.location='{% url 'procurement:rfq_detail' rfq.pk %}'">
+        <td style="padding:0 8px;text-align:center;" onclick="event.stopPropagation()">
+          <input type="checkbox" class="ca-checkbox" data-ca-row-select>
+        </td>
+        <td data-col="numero">
+          <a href="{% url 'procurement:rfq_detail' rfq.pk %}" style="color:var(--accent);font-weight:600;text-decoration:none" onclick="event.stopPropagation()">{{ rfq.number }}</a>
+        </td>
+        <td data-col="estado" style="color:var(--text2);font-size:13px;">{{ rfq.get_status_display }}</td>
+        <td data-col="prazo" style="color:var(--text2);font-size:13px;">{% if rfq.due_date %}{{ rfq.due_date|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+        <td data-col="criado_em" style="color:var(--text2);font-size:13px;">{{ rfq.created_at|date:"d/m/Y H:i" }}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div class="ca-row-actions">
+            <a href="{% url 'procurement:rfq_detail' rfq.pk %}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;" title="{% trans 'Abrir' %}">👁</a>
+          </div>
         </td>
       </tr>
-      {% empty %}
-      <tr><td colspan="5" class="dt-empty">{% trans "Nenhuma cotação encontrada." %}</td></tr>
       {% endfor %}
     </tbody>
   </table>
-</div>
+  </div>
 
-{% if page.paginator.num_pages > 1 %}
-  <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px;">
+  {% if page.paginator.num_pages > 1 %}
+  <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--border);">
     {% if page.has_previous %}
-      <a class="btn btn-ghost btn-sm" href="?q={{ q }}&status={{ sel_status }}&page={{ page.previous_page_number }}">{% trans "Anterior" %}</a>
+      <a class="btn btn-ghost btn-sm" href="?page={{ page.previous_page_number }}">{% trans "Anterior" %}</a>
     {% endif %}
-    <span class="muted" style="font-size:13px;">{% trans "Página" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>
+    <span style="font-size:13px;color:var(--text2);">{% trans "Página" %} {{ page.number }} / {{ page.paginator.num_pages }}</span>
     {% if page.has_next %}
-      <a class="btn btn-ghost btn-sm" href="?q={{ q }}&status={{ sel_status }}&page={{ page.next_page_number }}">{% trans "Próxima" %}</a>
+      <a class="btn btn-ghost btn-sm" href="?page={{ page.next_page_number }}">{% trans "Próxima" %}</a>
     {% endif %}
   </div>
-{% endif %}
-{% endblock %}
+  {% endif %}
 
+</div>
+
+{% else %}
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="empty-state">
+    <div class="icon">🧾</div>
+    <h3>{% trans "Sem cotações" %}</h3>
+    <p>{% trans "Nenhuma cotação encontrada." %}</p>
+    <a href="{% url 'procurement:rfq_create' %}" class="btn btn-primary" style="margin-top:16px">{% trans "Nova cotação →" %}</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

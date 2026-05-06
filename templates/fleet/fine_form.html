@@ -10,104 +10,121 @@
   <span class="current">{{ title }}</span>
 {% endblock %}
 
-{% block extra_head %}
-<style>
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-grid .span-2 { grid-column: span 2; }
-  .form-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
-  .form-section:last-of-type { border-bottom: none; }
-  .form-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; margin-bottom: 14px; }
-  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-header">
-  <div><h1 class="page-title">{{ title }}</h1>
-  <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p></div>
-  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Back" %}</a>
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p>
+  </div>
+  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Voltar" %}</a>
 </div>
-<div class="card">
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
 
-    <div class="form-section">
-      <div class="form-section-title">{% trans "Offence Details" %}</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">{{ form.date.label }}</label>
-          {{ form.date }}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.driver.label }}</label>
-          {{ form.driver }}
-        </div>
-        <div class="form-group span-2">
-          <label class="form-label">{{ form.location.label }}</label>
-          {{ form.location }}
-        </div>
-        <div class="form-group span-2">
-          <label class="form-label">{{ form.offence_description.label }}</label>
-          {{ form.offence_description }}
-          {% if form.offence_description.errors %}<div class="form-error">{{ form.offence_description.errors }}</div>{% endif %}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.amount.label }}</label>
-          {{ form.amount }}
-          {% if form.amount.errors %}<div class="form-error">{{ form.amount.errors }}</div>{% endif %}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.points.label }}</label>
-          {{ form.points }}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.reference.label }}</label>
-          {{ form.reference }}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.file.label }}</label>
-          {{ form.file }}
-        </div>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="info-card" style="margin-bottom:16px;">
+    <div class="card-title">{% trans "Infração" %}</div>
+    <div class="info-grid">
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.date.label }}</div>
+        {{ form.date }}
+        {% if form.date.errors %}<div class="field-error">{{ form.date.errors.0 }}</div>{% endif %}
       </div>
-    </div>
 
-    <div class="form-section">
-      <div class="form-section-title">{% trans "Payment & Payroll" %}</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">{{ form.status.label }}</label>
-          {{ form.status }}
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.paid_date.label }}</label>
-          {{ form.paid_date }}
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
-            {{ form.deduct_from_payroll }} {{ form.deduct_from_payroll.label }}
-          </label>
-        </div>
-        <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
-            {{ form.payroll_deducted }} {{ form.payroll_deducted.label }}
-          </label>
-        </div>
-        <div class="form-group">
-          <label class="form-label">{{ form.payroll_deducted_date.label }}</label>
-          {{ form.payroll_deducted_date }}
-        </div>
+      <div class="info-cell">
+        <div class="info-label">{{ form.driver.label }}</div>
+        {{ form.driver }}
+        {% if form.driver.errors %}<div class="field-error">{{ form.driver.errors.0 }}</div>{% endif %}
       </div>
-    </div>
 
-    <div class="form-group">
-      <label class="form-label">{{ form.notes.label }}</label>
-      {{ form.notes }}
-    </div>
+      <div class="info-cell">
+        <div class="info-label">{{ form.amount.label }}</div>
+        {{ form.amount }}
+        {% if form.amount.errors %}<div class="field-error">{{ form.amount.errors.0 }}</div>{% endif %}
+      </div>
 
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
-      <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+      <div class="info-cell">
+        <div class="info-label">{{ form.points.label }}</div>
+        {{ form.points }}
+        {% if form.points.errors %}<div class="field-error">{{ form.points.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.reference.label }}</div>
+        {{ form.reference }}
+        {% if form.reference.errors %}<div class="field-error">{{ form.reference.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.file.label }}</div>
+        {{ form.file }}
+        {% if form.file.errors %}<div class="field-error">{{ form.file.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label">{{ form.location.label }}</div>
+        {{ form.location }}
+        {% if form.location.errors %}<div class="field-error">{{ form.location.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label">{{ form.offence_description.label }}</div>
+        {{ form.offence_description }}
+        {% if form.offence_description.errors %}<div class="field-error">{{ form.offence_description.errors.0 }}</div>{% endif %}
+      </div>
+
     </div>
-  </form>
-</div>
+  </div>
+
+  <div class="info-card" style="margin-bottom:16px;">
+    <div class="card-title">{% trans "Pagamento e Desconto" %}</div>
+    <div class="info-grid">
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.status.label }}</div>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="field-error">{{ form.status.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.paid_date.label }}</div>
+        {{ form.paid_date }}
+        {% if form.paid_date.errors %}<div class="field-error">{{ form.paid_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label" style="display:flex;align-items:center;gap:8px;">
+          {{ form.deduct_from_payroll }} {{ form.deduct_from_payroll.label }}
+        </div>
+        {% if form.deduct_from_payroll.errors %}<div class="field-error">{{ form.deduct_from_payroll.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.payroll_deducted_date.label }}</div>
+        {{ form.payroll_deducted_date }}
+        {% if form.payroll_deducted_date.errors %}<div class="field-error">{{ form.payroll_deducted_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label" style="display:flex;align-items:center;gap:8px;">
+          {{ form.payroll_deducted }} {{ form.payroll_deducted.label }}
+        </div>
+        {% if form.payroll_deducted.errors %}<div class="field-error">{{ form.payroll_deducted.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full" style="border-bottom:none;">
+        <div class="info-label">{{ form.notes.label }}</div>
+        {{ form.notes }}
+        {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end;">
+    <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+    <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+  </div>
+</form>
 {% endblock %}

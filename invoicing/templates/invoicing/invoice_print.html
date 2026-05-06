@@ -1,0 +1,454 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ invoice.number }} — Fatura</title>
+<style>
+/* ── Base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #1a1a1a;
+  background: #f0f0f0;
+  padding: 0;
+}
+
+/* ── Print toolbar (hidden on print) ────────────────────────── */
+#print-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  z-index: 1000;
+  font-size: 13px;
+}
+#print-bar .doc-title { font-weight: 600; font-size: 14px; flex: 1; }
+#print-bar select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 180px;
+}
+#print-bar select option { background: #1e293b; color: #fff; }
+.btn-print {
+  padding: 7px 18px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-print:hover { background: #2563eb; }
+.btn-close {
+  padding: 7px 14px;
+  background: transparent;
+  color: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-close:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* ── Page wrapper ────────────────────────────────────────── */
+#page-wrap {
+  margin: 68px auto 40px;
+  max-width: 860px;
+  background: #fff;
+  box-shadow: 0 2px 20px rgba(0,0,0,.15);
+  min-height: 1100px;
+}
+
+/* ── No template fallback ────────────────────────────────── */
+.fallback-header {
+  padding: 32px 40px 24px;
+  border-bottom: 3px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.fallback-company { font-size: 22px; font-weight: 700; color: #1e293b; }
+.fallback-doc-title { font-size: 28px; font-weight: 800; color: #1e293b; text-align: right; }
+.fallback-doc-num { font-size: 13px; color: #64748b; text-align: right; margin-top: 4px; }
+
+.fallback-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 24px 40px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.party-block .party-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.party-block .party-name { font-weight: 600; font-size: 15px; color: #1e293b; }
+.party-block .party-detail { font-size: 12px; color: #475569; line-height: 1.6; margin-top: 4px; }
+
+.fallback-meta {
+  display: flex;
+  gap: 32px;
+  padding: 16px 40px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+.meta-item .meta-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; }
+.meta-item .meta-val { font-size: 13px; font-weight: 500; color: #1e293b; margin-top: 2px; }
+
+/* ── Template sections ───────────────────────────────────── */
+.sec-page-header, .sec-page-footer { padding: 10px 40px; background: #f8fafc; }
+.sec-header-generic, .sec-header-document { padding: 24px 40px; }
+.sec-footer-document { padding: 24px 40px; border-top: 1px solid #e2e8f0; }
+
+/* ── Lines table ──────────────────────────────────────────── */
+.lines-section { padding: 0 40px; }
+
+.lines-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 16px 0;
+}
+.lines-tbl thead th {
+  padding: 8px 10px;
+  background: #1e293b;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  text-align: left;
+}
+.lines-tbl thead th.r { text-align: right; }
+.lines-tbl tbody tr { border-bottom: 1px solid #e2e8f0; }
+.lines-tbl tbody tr:last-child { border-bottom: none; }
+.lines-tbl td { padding: 7px 10px; vertical-align: top; }
+.lines-tbl td.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lines-tbl td.muted { color: #94a3b8; font-size: 11px; }
+
+/* Line type styles */
+tr.lt-title td { background: #f1f5f9; }
+tr.lt-title td.desc-cell { font-weight: 700; font-size: 13px; color: #1e293b; }
+tr.lt-title td.num-cell { font-weight: 700; font-size: 13px; color: #3b82f6; }
+tr.lt-h2 td.desc-cell { font-weight: 600; padding-left: 18px; color: #1e293b; }
+tr.lt-h2 td.num-cell { font-weight: 600; color: #475569; }
+tr.lt-h3 td.desc-cell { font-weight: 500; padding-left: 30px; color: #475569; font-style: italic; }
+tr.lt-h3 td.num-cell { color: #94a3b8; }
+tr.lt-h4 td.desc-cell { padding-left: 42px; color: #94a3b8; font-style: italic; font-size: 11.5px; }
+tr.lt-h4 td.num-cell { color: #94a3b8; font-size: 11.5px; }
+tr.lt-comment td { color: #94a3b8; font-style: italic; background: #fafafa; }
+tr.lt-page-break td { padding: 2px; }
+.page-break-line { border: none; border-top: 2px dashed #e2e8f0; }
+
+.line-detail { font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
+
+/* ── Totals block ─────────────────────────────────────────── */
+.totals-wrap {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 40px 0;
+}
+.totals-inner {
+  width: 280px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.tot-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tot-row:last-child { border-bottom: none; }
+.tot-row .tl { color: #64748b; }
+.tot-row .tv { font-variant-numeric: tabular-nums; font-weight: 500; }
+.tot-row.grand {
+  background: #1e293b;
+  font-size: 15px;
+  font-weight: 700;
+}
+.tot-row.grand .tl, .tot-row.grand .tv { color: #fff; }
+
+/* Template totals-tbl (used inside @blocTotaux variables) */
+.totals-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.totals-tbl td { padding: 5px 8px; }
+.totals-tbl td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.totals-tbl tr.grand-total td { font-weight: 700; border-top: 2px solid #1e293b; padding-top: 8px; }
+
+/* ── Notes ───────────────────────────────────────────────── */
+.notes-section {
+  padding: 16px 40px 24px;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.6;
+}
+.notes-label { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; margin-bottom: 4px; }
+
+/* ── Print media ──────────────────────────────────────────── */
+@media print {
+  @page { margin: 12mm 14mm; size: A4; }
+
+  body { background: #fff; padding: 0; font-size: 12px; }
+  #print-bar { display: none !important; }
+  #page-wrap {
+    margin: 0;
+    max-width: 100%;
+    box-shadow: none;
+    min-height: auto;
+  }
+
+  .lines-section { padding: 0 0; }
+  .fallback-header, .fallback-parties, .fallback-meta,
+  .sec-page-header, .sec-page-footer, .sec-header-generic,
+  .sec-header-document, .sec-footer-document,
+  .totals-wrap, .notes-section { padding-left: 0; padding-right: 0; }
+
+  tr.lt-page-break { page-break-after: always; }
+
+  .totals-inner { break-inside: avoid; }
+
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+{% if sections.custom_css %}
+<style>{{ sections.custom_css }}</style>
+{% endif %}
+</head>
+<body>
+
+<!-- Print toolbar -->
+<div id="print-bar">
+  <div class="doc-title">🖨️ {{ invoice.number }} — {{ invoice.client.name }}</div>
+
+  {% if tmpl_choices %}
+  <select onchange="switchTemplate(this.value)" title="Selecionar modelo">
+    <option value="">— Sem modelo —</option>
+    {% for t in tmpl_choices %}
+    <option value="{{ t.pk }}" {% if tmpl and tmpl.pk == t.pk %}selected{% endif %}>
+      {{ t.name }}{% if t.is_default %} ★{% endif %}
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+  <button class="btn-close" onclick="window.close()">✕ Fechar</button>
+</div>
+
+<!-- Document page -->
+<div id="page-wrap">
+
+  {% if has_template %}
+  <!-- Template sections -->
+
+  {% if sections.page_header %}
+  <div class="sec-page-header">{{ sections.page_header|safe }}</div>
+  {% endif %}
+
+  {% if sections.header_generic %}
+  <div class="sec-header-generic">{{ sections.header_generic|safe }}</div>
+  {% else %}
+  <!-- Fallback minimal header when template has no generic header -->
+  <div class="fallback-header">
+    <div class="fallback-company">Construart</div>
+    <div>
+      <div class="fallback-doc-title">FATURA</div>
+      <div class="fallback-doc-num">{{ invoice.number }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if sections.header_document %}
+  <div class="sec-header-document">{{ sections.header_document|safe }}</div>
+  {% endif %}
+
+  {% else %}
+  <!-- No template — render built-in fallback layout -->
+  <div class="fallback-header">
+    <div>
+      <div class="fallback-company">Construart</div>
+    </div>
+    <div>
+      <div class="fallback-doc-title">FATURA</div>
+      <div class="fallback-doc-num">{{ invoice.number }}</div>
+    </div>
+  </div>
+
+  <div class="fallback-parties">
+    <div class="party-block">
+      <div class="party-label">Emitida por</div>
+      <div class="party-name">Construart</div>
+    </div>
+    <div class="party-block">
+      <div class="party-label">Faturado a</div>
+      <div class="party-name">{{ invoice.client.name }}</div>
+      {% if invoice.billing_address %}<div class="party-detail">{{ invoice.billing_address }}</div>{% endif %}
+      {% if invoice.billing_vat %}<div class="party-detail">NIF: {{ invoice.billing_vat }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="fallback-meta">
+    <div class="meta-item">
+      <div class="meta-label">Data de emissão</div>
+      <div class="meta-val">{{ invoice.issue_date|date:"d/m/Y" }}</div>
+    </div>
+    {% if invoice.due_date %}
+    <div class="meta-item">
+      <div class="meta-label">Data de vencimento</div>
+      <div class="meta-val">{{ invoice.due_date|date:"d/m/Y" }}</div>
+    </div>
+    {% endif %}
+    {% if invoice.project %}
+    <div class="meta-item">
+      <div class="meta-label">Obra / Projeto</div>
+      <div class="meta-val">{{ invoice.project.name }}</div>
+    </div>
+    {% endif %}
+    {% if invoice.title %}
+    <div class="meta-item">
+      <div class="meta-label">Descrição</div>
+      <div class="meta-val">{{ invoice.title }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Lines table -->
+  <div class="lines-section">
+    <table class="lines-tbl">
+      <thead>
+        <tr>
+          <th style="width:44px">Nº</th>
+          <th>Descrição</th>
+          <th class="r" style="width:62px">Qtd.</th>
+          <th style="width:50px">Un.</th>
+          <th class="r" style="width:80px">P.Unit.</th>
+          {% if invoice.lines.exists %}<th class="r" style="width:50px">Desc.%</th>{% endif %}
+          <th class="r" style="width:80px">Total HT</th>
+          <th class="r" style="width:50px">IVA%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line, num in lines %}
+          {% if line.line_type == 'page_break' %}
+          <tr class="lt-page-break">
+            <td colspan="8"><hr class="page-break-line"></td>
+          </tr>
+          {% elif line.line_type == 'comment' %}
+          <tr class="lt-comment">
+            <td></td>
+            <td class="desc-cell" colspan="7">{{ line.description }}</td>
+          </tr>
+          {% elif line.line_type == 'line' %}
+          <tr class="lt-line">
+            <td class="num-cell muted">{{ num }}</td>
+            <td class="desc-cell">
+              {{ line.description }}
+              {% if line.detail %}<div class="line-detail">{{ line.detail }}</div>{% endif %}
+            </td>
+            <td class="r">{{ line.quantity|floatformat:"-2" }}</td>
+            <td class="muted">{{ line.unit }}</td>
+            <td class="r">{{ line.unit_price|floatformat:"2" }} €</td>
+            {% if invoice.lines.exists %}<td class="r muted">{% if line.discount_percent %}{{ line.discount_percent }}%{% endif %}</td>{% endif %}
+            <td class="r">{{ line.total_ht|floatformat:"2" }} €</td>
+            <td class="r muted">{{ line.vat_rate|floatformat:"-2" }}%</td>
+          </tr>
+          {% else %}
+          <tr class="lt-{{ line.line_type }}">
+            <td class="num-cell">{{ num }}</td>
+            <td class="desc-cell" colspan="7">{{ line.description }}</td>
+          </tr>
+          {% endif %}
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8;">Sem linhas</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Totals -->
+  <div class="totals-wrap">
+    <div class="totals-inner">
+      <div class="tot-row">
+        <span class="tl">Subtotal HT</span>
+        <span class="tv">{{ invoice.subtotal_ht|floatformat:"2" }} €</span>
+      </div>
+      {% if invoice.discount_percent %}
+      <div class="tot-row">
+        <span class="tl">Desconto ({{ invoice.discount_percent }}%)</span>
+        <span class="tv">- {{ invoice.discount_amount|floatformat:"2" }} €</span>
+      </div>
+      {% endif %}
+      <div class="tot-row">
+        <span class="tl">Total HT</span>
+        <span class="tv">{{ invoice.total_ht|floatformat:"2" }} €</span>
+      </div>
+      <div class="tot-row">
+        <span class="tl">IVA</span>
+        <span class="tv">{{ invoice.total_vat|floatformat:"2" }} €</span>
+      </div>
+      <div class="tot-row grand">
+        <span class="tl">Total TTC</span>
+        <span class="tv">{{ invoice.total_ttc|floatformat:"2" }} €</span>
+      </div>
+    </div>
+  </div>
+
+  {% if has_template and sections.footer_document %}
+  <div class="sec-footer-document">{{ sections.footer_document|safe }}</div>
+  {% elif invoice.notes_client or invoice.payment_terms %}
+  <div class="notes-section">
+    {% if invoice.payment_terms %}
+    <div class="notes-label">Condições de pagamento</div>
+    <p>{{ invoice.payment_terms }}</p>
+    {% endif %}
+    {% if invoice.notes_client %}
+    <div class="notes-label" style="margin-top:12px">Notas</div>
+    <p>{{ invoice.notes_client }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if has_template and sections.page_footer %}
+  <div class="sec-page-footer">{{ sections.page_footer|safe }}</div>
+  {% endif %}
+
+</div><!-- /#page-wrap -->
+
+<script>
+function switchTemplate(val) {
+  const url = new URL(window.location.href);
+  if (val) {
+    url.searchParams.set('template', val);
+  } else {
+    url.searchParams.delete('template');
+  }
+  window.location.href = url.toString();
+}
+</script>
+</body>
+</html>

@@ -24,5 +24,11 @@ class AuditLog(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['model_name', 'object_id']),
+            models.Index(fields=['-created_at']),
+        ]
+
     def __str__(self):
         return f"{self.model_name} - {self.action} - {self.object_id}"

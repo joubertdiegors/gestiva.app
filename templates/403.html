@@ -1,0 +1,39 @@
+{% load i18n %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'pt-br' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% trans "Acesso Negado" %} — Construart</title>
+  <style>
+    :root { --bg:#f0eff4; --surface:#fff; --border2:#ccc9d8; --accent:#c8622a; --text:#18171f; --text2:#5c5a6e; --radius:8px; }
+
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: var(--bg); }
+    .error-card {
+      text-align: center; padding: 48px 40px; max-width: 420px; width: 100%;
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: var(--radius); box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .error-code { font-size: 72px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 12px; }
+    .error-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .error-desc { font-size: 14px; color: var(--text2); margin-bottom: 32px; line-height: 1.6; }
+    .btn-back {
+      display: inline-block; padding: 10px 24px;
+      background: var(--accent); color: #fff;
+      border-radius: var(--radius); text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: opacity .15s;
+    }
+    .btn-back:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="error-code">403</div>
+    <div class="error-title">{% trans "Acesso Negado" %}</div>
+    <div class="error-desc">{% trans "Você não tem permissão para aceder a esta página. Contacte o administrador se achar que isso é um erro." %}</div>
+    <a class="btn-back" href="javascript:history.back()">{% trans "Voltar" %}</a>
+  </div>
+</body>
+</html>

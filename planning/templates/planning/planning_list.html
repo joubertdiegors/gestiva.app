@@ -11,6 +11,16 @@
 
 {% block extra_head %}
 <style>
+  /* Tokens locais que preenchem lacunas do construart.css nesta página */
+  :root {
+    --hover:    var(--ca-surface-2);
+    --red-light-local: var(--ca-rose-bg, rgba(239,68,68,.12));
+  }
+  [data-theme="dark"] {
+    --hover:    var(--ca-surface-2);
+    --red-light-local: rgba(239,68,68,.18);
+  }
+
   /* Área full-bleed alinhada ao ecossistema Construart (--surface, sem cinza de fundo) */
   .planning-workspace {
     margin: -28px -32px;
@@ -24,7 +34,10 @@
   body:has(.planning-workspace) {
     background: var(--surface);
   }
-  body:has(.planning-workspace) .tab.is-active {
+  body:has(.planning-workspace) .ca-tab--active {
+    background: var(--surface);
+  }
+  body:has(.planning-workspace) .ca-tab--active::after {
     background: var(--surface);
   }
   @media (max-width: 576px) {
@@ -286,15 +299,21 @@
     overflow: hidden;
     transition: background-color .12s, box-shadow .12s;
   }
-  .site-card .card-workers:has(.board-chip:nth-child(5)) {
+  .site-card .card-workers[data-cols="2"] {
     grid-template-columns: 1fr 1fr;
-  }
-  .site-card .card-workers:has(.board-chip:nth-child(9)) {
-    grid-template-columns: 1fr 1fr 1fr;
   }
   .card-workers.drag-over {
     background-color: var(--accent-light);
     box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  /* Card de extensão: borda esquerda tracejada para indicar continuação */
+  .site-card--extension .site-card__chantier::before {
+    content: '↳ ';
+    color: var(--text3);
+    font-weight: 400;
+  }
+  .site-card--extension {
+    border-left: 2px dashed var(--accent);
   }
 
   .site-card--blank .site-card__blank-label {
@@ -367,7 +386,7 @@
   .board-chip:active { cursor: grabbing; }
   .board-chip--pool {
     border: none;
-    background: var(--hover, #f3f4f6);
+    background: var(--hover);
     border-radius: 8px;
     white-space: normal;
     max-height: none;
@@ -604,7 +623,7 @@
   /* Chip de funcionário já atribuído (na lista lateral) */
   .board-chip--pool-assigned {
     border: none;
-    background: var(--hover, #f3f4f6);
+    background: var(--hover);
     border-radius: 8px;
     white-space: normal;
     max-height: none;
@@ -635,7 +654,7 @@
   /* Chip de subcontratado */
   .board-chip--sub {
     border: none;
-    background: var(--hover, #f3f4f6);
+    background: var(--hover);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -656,7 +675,7 @@
     background: transparent;
     font-size: 12px;
     font-weight: 600;
-    color: var(--orange, #f97316);
+    color: var(--ca-accent);
     padding: 0;
     margin: 0;
     border-radius: 0;
@@ -687,7 +706,7 @@
     align-items: center;
     justify-content: center;
   }
-  .sub-chip-remove:hover { color: var(--red); background: var(--red-light, #fee2e2); }
+  .sub-chip-remove:hover { color: var(--red); background: var(--red-light-local); }
 
   /* Botão × para remover funcionário do card */
   .board-chip:not(.board-chip--pool):not(.board-chip--pool-assigned) {
@@ -710,12 +729,12 @@
     align-items: center;
     justify-content: center;
   }
-  .worker-chip-remove:hover { color: var(--red); background: var(--red-light, #fee2e2); }
+  .worker-chip-remove:hover { color: var(--red); background: var(--red-light-local); }
 
   /* Chip de obra */
   .board-chip--project {
     border: none;
-    background: var(--hover, #f3f4f6);
+    background: var(--hover);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
@@ -747,7 +766,7 @@
     padding: 0;
     flex-shrink: 0;
   }
-  .card-remove-btn:hover { background: var(--red-light, #fee2e2); color: var(--red); }
+  .card-remove-btn:hover { background: var(--red-light-local); color: var(--red); }
 
   /* Botão × no canto do card */
   .card-corner-remove {
@@ -772,7 +791,7 @@
     z-index: 2;
   }
   .site-card:hover .card-corner-remove { opacity: 1; }
-  .card-corner-remove:hover { background: var(--red-light, #fee2e2); color: var(--red); opacity: 1; }
+  .card-corner-remove:hover { background: var(--red-light-local); color: var(--red); opacity: 1; }
   .site-card { position: relative; }
 
   /* Modal de confirmação */
@@ -838,6 +857,120 @@
     padding-bottom: 32px;
     border-bottom: 2px dashed var(--border2);
   }
+
+  /* Chip de veículo atribuído no meta row */
+  .vehicle-slot {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--hover);
+    border-radius: 4px;
+    padding: 1px 5px;
+    cursor: default;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .vehicle-slot .vehicle-remove {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  .vehicle-slot .vehicle-remove:hover { color: var(--red); }
+  .vehicle-drop-zone {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 2px;
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+  .vehicle-drop-zone--hint {
+    font-size: 9px;
+    color: var(--text3);
+    font-style: italic;
+    padding: 1px 4px;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    white-space: nowrap;
+    display: none;
+  }
+  .site-card__row2--meta:hover .vehicle-drop-zone--hint { display: block; }
+  .site-card__row2--meta.vehicle-drag-over .vehicle-drop-zone--hint { display: block; border-color: var(--accent); color: var(--accent); }
+  .board-chip--vehicle {
+    border: none;
+    background: var(--hover);
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .board-chip--vehicle .chip-vehicle-plate { font-family: ui-monospace, monospace; }
+  .board-chip--vehicle .board-chip__co { opacity: 0.65; font-size: 11px; font-weight: 400; font-family: inherit; }
+  .board-chip--vehicle:active { cursor: grabbing; }
+
+  /* Ícone de condutor no chip de trabalhador */
+  .driver-icon {
+    font-size: 11px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* Popover de seleção de condutor */
+  .driver-popover {
+    position: fixed;
+    z-index: 600;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0,0,0,.14);
+    min-width: 160px;
+    max-width: 220px;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+  .driver-popover__title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 7px 10px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .driver-popover__list {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .driver-popover__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .driver-popover__item:hover { background: var(--hover); }
+  .driver-popover__item--none { color: var(--text3); font-style: italic; }
+  .driver-popover__item--active { font-weight: 600; color: var(--accent); }
+  .driver-popover__item .dp-icon { font-size: 13px; flex-shrink: 0; }
 
   /* Escondido no ecrã, visível apenas na impressão */
   .print-van { display: none; }
@@ -1038,11 +1171,8 @@
       background-size: 100% var(--line) !important;
       background-position: 0 0 !important;
     }
-    .card-workers:has(.board-chip:nth-child(5)) {
+    .card-workers[data-cols="2"] {
       grid-template-columns: 1fr 1fr !important;
-    }
-    .card-workers:has(.board-chip:nth-child(9)) {
-      grid-template-columns: 1fr 1fr 1fr !important;
     }
 
     /* Chips como texto simples */
@@ -1123,7 +1253,7 @@
 
       {% for item in page %}
       {% if item.kind == 'project' %}
-      <div class="site-card" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}" data-project-name="{{ item.project.name|escape }}">
+      <div class="site-card{% if item.planning.is_extension %} site-card--extension{% endif %}" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}" data-project-name="{{ item.project.name|escape }}"{% if item.planning.is_extension %} data-extension-of="{{ item.planning.parent_id }}"{% endif %}>
         <button class="card-corner-remove" title="{% trans 'Remover obra do board' %}">×</button>
         <div class="site-card__row2">
           <div class="site-card__chantier">{{ item.project.name }}</div>
@@ -1139,7 +1269,15 @@
               <span class="reg-placeholder">{% trans "Sem check-in" %}</span>
             {% endif %}
           </div>
-          <span class="print-van">V:</span>
+          <div class="vehicle-drop-zone" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}">
+            {% for pv in item.planning.planning_vehicles.all %}
+            <div class="vehicle-slot" data-pv-id="{{ pv.pk }}" data-vehicle-id="{{ pv.vehicle.pk }}" data-planning-id="{{ item.planning.pk }}" data-driver-id="{{ pv.driver_id|default:'' }}">
+              <span>{{ pv.vehicle.license_plate }}</span>
+              <button class="vehicle-remove" title="{% trans 'Remover veículo' %}">×</button>
+            </div>
+            {% endfor %}
+            <span class="vehicle-drop-zone--hint">🚐</span>
+          </div>
         </div>
         {% if item.planning.planning_subcontractors.all %}
         <div class="card-subs" data-planning-id="{{ item.planning.pk }}" data-project-id="{{ item.project.pk }}">
@@ -1154,15 +1292,15 @@
           {% endfor %}
         </div>
         {% endif %}
-        <div class="card-workers" data-drop-type="project" data-project-id="{{ item.project.pk }}">
+        <div class="card-workers" data-drop-type="project" data-project-id="{{ item.project.pk }}" data-planning-id="{{ item.planning.pk }}">
           {% for pw in item.workers %}
-          <div class="board-chip"
+          <div class="board-chip{% if pw.worker_id in item.driver_ids %} board-chip--driver{% endif %}"
                draggable="true"
                data-board-worker="{{ pw.worker_id }}"
                data-worker-id="{{ pw.worker_id }}"
                data-worker-name="{{ pw.worker.name|escape }}"
                data-pw-id="{{ pw.pk }}">
-            <span>{{ pw.worker.name }}</span>
+            {% if pw.worker_id in item.driver_ids %}<span class="driver-icon" title="{% trans 'Condutor' %}">🚐</span>{% endif %}<span data-fullname="{{ pw.worker.name|escape }}">{{ pw.worker.name }}</span>
             <button class="worker-chip-remove" title="{% trans 'Remover' %}" data-pw-id="{{ pw.pk }}">×</button>
           </div>
           {% endfor %}
@@ -1178,7 +1316,7 @@
         <div class="site-card__address" style="color:var(--text3);font-style:italic;"></div>
         <div class="site-card__row2 site-card__row2--meta">
           <div class="site-card__registration"><span class="reg-placeholder"></span></div>
-          <span class="print-van" style="display:none">V:</span>
+          <div class="vehicle-drop-zone"></div>
         </div>
         <div class="blank-card-body">
           <div class="blank-card-note"
@@ -1281,6 +1419,23 @@
       </div>
     </div>
 
+    <!-- Secção: Veículos -->
+    <div class="pool-section" id="section-vehicles">
+      <div class="pool-section__head" id="vehicles-toggle">
+        <span class="pool-section__title">{% trans "Veículos" %}</span>
+        <span class="pool-section__count" id="vehicles-count"></span>
+        <svg class="pool-section__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pool-section__body pool-section__body--collapsed" id="vehicles-body">
+        <div class="projects-search-bar">
+          <input type="text" id="vehicles-search" placeholder="{% trans 'Pesquisar matrícula, marca…' %}" autocomplete="off">
+        </div>
+        <div id="vehicles-pool">
+          <div class="pool-empty" id="vehicles-loading">{% trans "A carregar…" %}</div>
+        </div>
+      </div>
+    </div>
+
   </aside>
 </div>
 </div>
@@ -1308,6 +1463,9 @@
   const CLEAR_DAY_URL         = "{% url 'planning:board_clear_day' %}";
   const SUBS_SEARCH_URL       = "{% url 'planning:board_subcontractors_search' %}";
   const ASSIGN_SUB_URL        = "{% url 'planning:board_assign_subcontractor' %}";
+  const VEHICLES_SEARCH_URL      = "{% url 'planning:board_vehicles_search' %}";
+  const ASSIGN_VEHICLE_URL       = "{% url 'planning:board_assign_vehicle' %}";
+  const SET_VEHICLE_DRIVER_URL   = "{% url 'planning:board_set_vehicle_driver' %}";
   const REMOVE_WORKER_BASE_URL = "{% url 'planning:remove_worker' pw_pk=0 %}".replace('/0/', '/__PW__/');
   const BLANK_SAVE_URL    = "{% url 'planning:blank_line_save' %}";
   const CSRF = "{{ csrf_token }}";
@@ -1327,6 +1485,7 @@
       projects: !document.getElementById('projects-body').classList.contains('pool-section__body--collapsed'),
       workers:  !document.getElementById('workers-body').classList.contains('pool-section__body--collapsed'),
       subs:     !document.getElementById('subs-body').classList.contains('pool-section__body--collapsed'),
+      vehicles: !document.getElementById('vehicles-body').classList.contains('pool-section__body--collapsed'),
     };
     try { localStorage.setItem(SIDEBAR_STATE_KEY, JSON.stringify(state)); } catch(e) {}
   }
@@ -1363,9 +1522,10 @@
     return updateCount;
   }
 
-  const updateProjectsCount = initSection('projects-toggle', 'projects-body', 'projects-count', '.board-chip--project');
-  const updateWorkersCount  = initSection('workers-toggle',  'workers-body',  'workers-count',  '.board-chip--pool');
-  const updateSubsCount     = initSection('subs-toggle',     'subs-body',     'subs-count',     '.board-chip--sub');
+  const updateProjectsCount  = initSection('projects-toggle',  'projects-body',  'projects-count',  '.board-chip--project');
+  const updateWorkersCount   = initSection('workers-toggle',   'workers-body',   'workers-count',   '.board-chip--pool');
+  const updateSubsCount      = initSection('subs-toggle',      'subs-body',      'subs-count',      '.board-chip--sub');
+  const updateVehiclesCount  = initSection('vehicles-toggle',  'vehicles-body',  'vehicles-count',  '.board-chip--vehicle');
 
   /* ── Salva estado antes de Atualizar (navegação GET) ── */
   document.getElementById('board-date-form').addEventListener('submit', saveSidebarState);
@@ -1526,6 +1686,310 @@
     if (document.getElementById('subs-loading')) doSubSearch();
   }, true);
 
+  /* ── Veículos ── */
+  var vehicleSearchTimer = null;
+
+  function doVehicleSearch() {
+    var q = (document.getElementById('vehicles-search').value || '').trim();
+    var params = new URLSearchParams({ q: q, date: BOARD_DATE });
+    fetch(VEHICLES_SEARCH_URL + '?' + params.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var pool = document.getElementById('vehicles-pool');
+        pool.innerHTML = '';
+        if (!data.vehicles || data.vehicles.length === 0) {
+          pool.innerHTML = '<div class="pool-empty">Nenhum veículo disponível.</div>';
+          if (updateVehiclesCount) updateVehiclesCount();
+          return;
+        }
+        data.vehicles.forEach(function(v) {
+          pool.appendChild(makeVehicleChip(v.id, v.license_plate, v.brand + ' ' + v.model, v.assigned));
+        });
+        if (updateVehiclesCount) updateVehiclesCount();
+      });
+  }
+
+  document.getElementById('vehicles-search').addEventListener('input', function() {
+    clearTimeout(vehicleSearchTimer);
+    vehicleSearchTimer = setTimeout(doVehicleSearch, 280);
+  });
+
+  // Carrega veículos ao abrir a secção (lazy)
+  document.getElementById('vehicles-toggle').addEventListener('click', function() {
+    var body = document.getElementById('vehicles-body');
+    if (!body.classList.contains('pool-section__body--collapsed')) return;
+    if (document.getElementById('vehicles-loading')) doVehicleSearch();
+  }, true);
+
+  function makeVehicleChip(vehicleId, plate, label, assigned) {
+    var div = document.createElement('div');
+    div.className = 'board-chip board-chip--vehicle' + (assigned ? ' board-chip--assigned' : '');
+    div.draggable = true;
+    div.dataset.vehicleId = vehicleId;
+    div.dataset.plate = plate;
+    var plateSpan = document.createElement('span');
+    plateSpan.className = 'chip-vehicle-plate';
+    plateSpan.textContent = plate;
+    var labelSpan = document.createElement('span');
+    labelSpan.className = 'board-chip__co';
+    labelSpan.textContent = label;
+    div.appendChild(plateSpan);
+    div.appendChild(labelSpan);
+    if (assigned) {
+      var badge = document.createElement('span');
+      badge.style.cssText = 'font-size:9px;color:var(--accent);font-weight:400;font-family:inherit;';
+      badge.textContent = '✓';
+      div.appendChild(badge);
+    }
+    return div;
+  }
+
+  function makeVehicleSlot(pvId, planningId, vehicleId, plate) {
+    var div = document.createElement('div');
+    div.className = 'vehicle-slot';
+    div.dataset.pvId       = pvId;
+    div.dataset.vehicleId  = vehicleId;
+    div.dataset.planningId = planningId;
+    var span = document.createElement('span');
+    span.textContent = plate;
+    var btn = document.createElement('button');
+    btn.className = 'vehicle-remove';
+    btn.title = 'Remover veículo';
+    btn.textContent = '×';
+    div.appendChild(span);
+    div.appendChild(btn);
+    initVehicleRemoveBtn(btn, div);
+    initVehicleSlotClick(div);
+    return div;
+  }
+
+  /* Clique na matrícula abre o popover de condutor */
+  function initVehicleSlotClick(slot) {
+    slot.querySelector('span').style.cursor = 'pointer';
+    slot.querySelector('span').addEventListener('click', function(e) {
+      e.stopPropagation();
+      var card = slot.closest('.site-card');
+      if (!card) return;
+      var workers = [];
+      card.querySelectorAll('.card-workers .board-chip[data-worker-id]').forEach(function(chip) {
+        workers.push({ workerId: chip.dataset.workerId, workerName: chip.dataset.workerName || (chip.querySelector('[data-fullname]') || {}).dataset.fullname || '' });
+      });
+      openDriverPopover(slot, slot.dataset.pvId, workers, slot.dataset.driverId || null);
+    });
+  }
+
+  function initVehicleRemoveBtn(btn, slot) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var pvId = slot.dataset.pvId;
+      fetch(ASSIGN_VEHICLE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ action: 'remove', pv_id: parseInt(pvId, 10) })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast(data.error || 'Erro ao remover veículo.'); return; }
+        slot.remove();
+        doVehicleSearch();
+        toast('Veículo removido da obra.');
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
+  /* ── Popover de condutor ── */
+  var _activeDriverPopover = null;
+
+  function closeDriverPopover() {
+    if (_activeDriverPopover) {
+      _activeDriverPopover.remove();
+      _activeDriverPopover = null;
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (_activeDriverPopover && !_activeDriverPopover.contains(e.target)) closeDriverPopover();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDriverPopover();
+  });
+
+  /*
+   * Abre o popover de seleção de condutor para o slot recém-adicionado.
+   * workers = [{workerId, workerName}]
+   * currentDriverId = id do condutor atual (ou null)
+   */
+  function openDriverPopover(anchorEl, pvId, workers, currentDriverId) {
+    closeDriverPopover();
+
+    var pop = document.createElement('div');
+    pop.className = 'driver-popover';
+    _activeDriverPopover = pop;
+
+    var title = document.createElement('div');
+    title.className = 'driver-popover__title';
+    title.textContent = 'Selecionar condutor';
+    pop.appendChild(title);
+
+    var list = document.createElement('div');
+    list.className = 'driver-popover__list';
+
+    // Opção "sem condutor"
+    var noneItem = document.createElement('div');
+    noneItem.className = 'driver-popover__item driver-popover__item--none' + (!currentDriverId ? ' driver-popover__item--active' : '');
+    noneItem.innerHTML = '<span class="dp-icon">—</span> Sem condutor';
+    noneItem.addEventListener('click', function() { selectDriver(pvId, null, null, anchorEl); });
+    list.appendChild(noneItem);
+
+    workers.forEach(function(w) {
+      var item = document.createElement('div');
+      item.className = 'driver-popover__item' + (String(w.workerId) === String(currentDriverId) ? ' driver-popover__item--active' : '');
+      item.innerHTML = '<span class="dp-icon">🚐</span>';
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = w.workerName;
+      item.appendChild(nameSpan);
+      item.addEventListener('click', function() { selectDriver(pvId, w.workerId, w.workerName, anchorEl); });
+      list.appendChild(item);
+    });
+
+    pop.appendChild(list);
+
+    // Posiciona fixo no body, centralizado horizontalmente no card
+    document.body.appendChild(pop);
+    pop.style.position = 'fixed';
+
+    // Deixa o browser renderizar para medir o tamanho real do popover
+    requestAnimationFrame(function() {
+      var card = anchorEl.closest('.site-card');
+      var cardRect = card ? card.getBoundingClientRect() : anchorEl.getBoundingClientRect();
+      var anchorRect = anchorEl.getBoundingClientRect();
+      var popW = pop.offsetWidth;
+      var popH = pop.offsetHeight;
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+
+      // Centra horizontalmente no card
+      var left = cardRect.left + (cardRect.width - popW) / 2;
+      // Preferencialmente abaixo do anchor; se não couber, sobe
+      var top = anchorRect.bottom + 4;
+      if (top + popH > vh - 8) top = anchorRect.top - popH - 4;
+
+      pop.style.left = Math.max(8, Math.min(left, vw - popW - 8)) + 'px';
+      pop.style.top  = Math.max(8, top) + 'px';
+    });
+  }
+
+  function selectDriver(pvId, workerId, workerName, anchorEl) {
+    closeDriverPopover();
+    fetch(SET_VEHICLE_DRIVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ pv_id: parseInt(pvId, 10), worker_id: workerId ? parseInt(workerId, 10) : null })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (!data.ok) { toast(data.error || 'Erro ao definir condutor.'); return; }
+      // Atualiza data-driver-id no slot
+      var slot = document.querySelector('.vehicle-slot[data-pv-id="' + pvId + '"]');
+      if (slot) slot.dataset.driverId = workerId || '';
+      // Atualiza ícone nos chips de workers do mesmo card
+      var card = slot && slot.closest('.site-card');
+      if (card) _refreshDriverIcons(card);
+      toast(workerName ? workerName + ' definido como condutor.' : 'Condutor removido.');
+    }).catch(function() { toast('Erro de rede.'); });
+  }
+
+  /* Relê todos os vehicle-slots do card e recalcula quais chips têm ícone 🚐 */
+  function _refreshDriverIcons(card) {
+    var driverIds = new Set();
+    card.querySelectorAll('.vehicle-slot').forEach(function(s) {
+      if (s.dataset.driverId) driverIds.add(String(s.dataset.driverId));
+    });
+    card.querySelectorAll('.card-workers .board-chip[data-worker-id]').forEach(function(chip) {
+      var wId = String(chip.dataset.workerId);
+      var existing = chip.querySelector('.driver-icon');
+      if (driverIds.has(wId)) {
+        if (!existing) {
+          var icon = document.createElement('span');
+          icon.className = 'driver-icon';
+          icon.title = 'Condutor';
+          icon.textContent = '🚐';
+          chip.insertBefore(icon, chip.firstChild);
+        }
+        chip.classList.add('board-chip--driver');
+      } else {
+        if (existing) existing.remove();
+        chip.classList.remove('board-chip--driver');
+      }
+    });
+  }
+
+  /* Drop de veículo: aceita em qualquer área do card de projeto */
+  function initVehicleDropZone(metaRow) {
+    var card = metaRow.closest('.site-card');
+    if (!card) return;
+    if (card.dataset.vehicleDropInit) return; // evita listeners duplicados
+    card.dataset.vehicleDropInit = '1';
+
+    function getZone() {
+      return metaRow.querySelector('.vehicle-drop-zone');
+    }
+
+    card.addEventListener('dragover', function(e) {
+      if (_draggingType !== 'vehicle') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      metaRow.classList.add('vehicle-drag-over');
+    });
+    card.addEventListener('dragleave', function(e) {
+      if (!card.contains(e.relatedTarget)) metaRow.classList.remove('vehicle-drag-over');
+    });
+    card.addEventListener('drop', function(e) {
+      if (_draggingType !== 'vehicle') return;
+      metaRow.classList.remove('vehicle-drag-over');
+      var raw = e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      var payload;
+      try { payload = JSON.parse(raw); } catch(_) { return; }
+      if (payload.type !== 'vehicle') return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      var zone = getZone();
+      var planningId = (zone && zone.dataset.planningId) || card.dataset.planningId;
+      if (!planningId) { toast('Arraste primeiro uma obra para o card.'); return; }
+
+      var alreadyHere = zone && Array.from(zone.querySelectorAll('.vehicle-slot')).some(function(s) {
+        return s.dataset.vehicleId === String(payload.vehicle_id);
+      });
+      if (alreadyHere) { toast('Veículo já está nesta obra.'); return; }
+
+      fetch(ASSIGN_VEHICLE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+          action: 'add',
+          planning_id: parseInt(planningId, 10),
+          vehicle_id: parseInt(payload.vehicle_id, 10),
+        })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.ok) { toast(data.error || 'Erro ao atribuir veículo.'); return; }
+        zone = getZone();
+        var hint = zone && zone.querySelector('.vehicle-drop-zone--hint');
+        var slot = makeVehicleSlot(data.pv_id, data.planning_id, data.vehicle_id, data.license_plate);
+        if (hint) zone.insertBefore(slot, hint);
+        else if (zone) zone.appendChild(slot);
+        doVehicleSearch();
+        var workers = [];
+        card.querySelectorAll('.card-workers .board-chip[data-worker-id]').forEach(function(chip) {
+          workers.push({ workerId: chip.dataset.workerId, workerName: chip.dataset.workerName || (chip.querySelector('[data-fullname]') || {}).dataset.fullname || '' });
+        });
+        if (workers.length > 0) {
+          openDriverPopover(slot, data.pv_id, workers, null);
+        } else {
+          toast(data.license_plate + ' atribuído à obra.');
+        }
+      }).catch(function() { toast('Erro de rede.'); });
+    });
+  }
+
   function makeSubChip(subId, subName, contact) {
     var div = document.createElement('div');
     div.className = 'board-chip board-chip--sub';
@@ -1602,7 +2066,9 @@
         headers: { 'X-CSRFToken': CSRF }
       }).then(function(r) { return r.json(); }).then(function(data) {
         if (!data.ok) { toast('Erro ao remover.'); return; }
+        var zone = chip.closest('.card-workers');
         chip.remove();
+        if (zone) refreshCols(zone);
         toast('"' + workerName + '" removido da obra.');
         if (updateWorkersCount) updateWorkersCount();
         if (workerShowAssigned) doWorkerSearch();
@@ -1702,6 +2168,18 @@
         sub_id: subChip.dataset.subId,
         sub_name: subChip.dataset.subName,
       }));
+      return;
+    }
+    // Chip de veículo
+    var vehicleChip = e.target.closest('.board-chip--vehicle');
+    if (vehicleChip) {
+      _draggingType = 'vehicle';
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type: 'vehicle',
+        vehicle_id: vehicleChip.dataset.vehicleId,
+        plate: vehicleChip.dataset.plate,
+      }));
     }
   });
 
@@ -1772,7 +2250,10 @@
       : '<span class="reg-placeholder">Sem check-in</span>';
     metaEl.innerHTML =
       '<div class="site-card__registration">' + regHtml + '</div>' +
-      '<span class="print-van">V:</span>';
+      '<div class="vehicle-drop-zone" data-planning-id="' + escHtml(data.planning_id) + '" data-project-id="' + escHtml(data.project_id) + '">' +
+        '<span class="vehicle-drop-zone--hint">🚐</span>' +
+      '</div>';
+    initVehicleDropZone(metaEl);
 
     // Substituir blank-card-body por card-workers
     var blankBody = card.querySelector('.blank-card-body');
@@ -1782,6 +2263,7 @@
     workers.className = 'card-workers';
     workers.dataset.dropType  = 'project';
     workers.dataset.projectId = data.project_id;
+    workers.dataset.planningId = data.planning_id;
     workers.innerHTML = '<div class="workers-hint">Arraste um nome para cá</div>';
     card.appendChild(workers);
     initWorkerDropZone(workers);
@@ -1902,7 +2384,10 @@
     var metaEl = card.querySelector('.site-card__row2--meta');
     metaEl.innerHTML =
       '<div class="site-card__registration"><span class="reg-placeholder"></span></div>' +
-      '<span class="print-van" style="display:none">V:</span>';
+      '<div class="vehicle-drop-zone"></div>';
+
+    var cardSubs = card.querySelector('.card-subs');
+    if (cardSubs) cardSubs.remove();
 
     var workers = card.querySelector('.card-workers');
     if (workers) workers.remove();
@@ -1925,6 +2410,7 @@
   /* ── Drop zone: funcionários ── */
   function initWorkerDropZone(zone) {
     zone.addEventListener('dragover', function(e) {
+      if (_draggingType !== 'worker') return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       zone.classList.add('drag-over');
@@ -1946,11 +2432,58 @@
       var dropType   = zone.dataset.dropType;
       var projectId  = zone.dataset.projectId || null;
 
-      // Bloqueia duplicação: ignora se o funcionário já está neste card
-      if (dropType === 'project' && zone.querySelector('[data-board-worker="' + workerId + '"]')) return;
+      // Bloqueia duplicação: ignora se o funcionário já está neste card ou em qualquer extensão dele
+      if (dropType === 'project') {
+        var rootCard = zone.closest('.site-card');
+        var rootPlanningId = rootCard ? (rootCard.dataset.extensionOf || rootCard.dataset.planningId) : null;
+        var allRelated = rootCard ? _allCardsInChain(rootCard) : [rootCard];
+        for (var ri = 0; ri < allRelated.length; ri++) {
+          if (allRelated[ri].querySelector('[data-board-worker="' + workerId + '"]')) return;
+        }
+      }
+
+      // Verifica capacidade: se cheio, procura extensão com espaço; se não há, cria nova
+      if (dropType === 'project' && workerCount(zone) >= workerCapacity(zone)) {
+        var card = zone.closest('.site-card');
+        if (!card) { toast('Card cheio.'); return; }
+        // Procura extensão existente com capacidade disponível
+        var targetZone = _findAvailableExtensionZone(card);
+        if (targetZone) {
+          // Redireciona o drop para a zona disponível
+          var extBody = { worker_id: parseInt(workerId, 10), date: BOARD_DATE, target: 'project' };
+          var extPlanningId = targetZone.dataset.planningId;
+          if (extPlanningId) { extBody.planning_id = parseInt(extPlanningId, 10); }
+          else { extBody.project_id = parseInt(targetZone.dataset.projectId, 10); }
+          fetch(ASSIGN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify(extBody)
+          }).then(function(r) { return r.json(); }).then(function(res) {
+            if (!res.ok) { toast(res.error || 'Erro ao guardar.'); return; }
+            removeWorkerFromPool(String(workerId));
+            var newChip = makeWorkerChip(String(res.worker_id), res.worker_name, String(res.pw_id), false, '');
+            targetZone.appendChild(newChip);
+            var removeBtn = newChip.querySelector('.worker-chip-remove');
+            if (removeBtn) initWorkerRemoveBtn(removeBtn, newChip);
+            refreshCols(targetZone);
+            if (workerShowAssigned) doWorkerSearch();
+            toast('Atribuído à extensão.');
+          }).catch(function() { toast('Erro de rede.'); });
+          return;
+        }
+        expandToExtension(card, workerId, workerName, projectId);
+        return;
+      }
 
       var body = { worker_id: parseInt(workerId, 10), date: BOARD_DATE, target: dropType };
-      if (dropType === 'project') body.project_id = parseInt(projectId, 10);
+      if (dropType === 'project') {
+        var planningId = zone.dataset.planningId;
+        if (planningId) {
+          body.planning_id = parseInt(planningId, 10);
+        } else {
+          body.project_id = parseInt(projectId, 10);
+        }
+      }
 
       fetch(ASSIGN_URL, {
         method: 'POST',
@@ -1960,24 +2493,245 @@
         if (!res.ok) { toast(res.error || 'Erro ao guardar.'); return; }
 
         if (dropType === 'pool') {
-          // Devolver ao pool: remove todas as atribuições do dia e recarrega
           clearWorkerChipsOnBoard(String(workerId));
           doWorkerSearch();
           toast('Devolvido à lista.');
           return;
         }
-        // Atribuir a obra: não remove chips de outros cards (multi-obra permitido)
-        // Remove apenas o chip do pool lateral (se existir)
         removeWorkerFromPool(String(workerId));
         var newChip = makeWorkerChip(String(res.worker_id), res.worker_name, String(res.pw_id), false, '');
         zone.appendChild(newChip);
         var removeBtn = newChip.querySelector('.worker-chip-remove');
         if (removeBtn) initWorkerRemoveBtn(removeBtn, newChip);
-        // Se "Já selecionados" estiver ativo, recarrega o pool para mostrar o contador atualizado
+        refreshCols(zone);
         if (workerShowAssigned) doWorkerSearch();
         toast('Atribuído à obra.');
       }).catch(function() { toast('Erro de rede.'); });
     });
+  }
+
+  /*
+   * Captura todos os dados de um card de projeto (para copiar para outro slot).
+   * Retorna null se o card estiver em branco.
+   */
+  function _snapshotCard(card) {
+    if (!card.dataset.planningId) return null;
+    var workers = [];
+    card.querySelectorAll('.card-workers .board-chip[data-worker-id]').forEach(function(chip) {
+      workers.push({ workerId: chip.dataset.workerId, workerName: chip.dataset.workerName, pwId: chip.dataset.pwId });
+    });
+    var subs = [];
+    card.querySelectorAll('.card-subs .board-chip--sub-assigned').forEach(function(chip) {
+      subs.push({ psId: chip.dataset.psId, subId: chip.dataset.subId, subName: chip.dataset.subName });
+    });
+    var vehicles = [];
+    card.querySelectorAll('.vehicle-slot').forEach(function(s) {
+      vehicles.push({ pvId: s.dataset.pvId, vehicleId: s.dataset.vehicleId, driverId: s.dataset.driverId || '', plate: (s.querySelector('span') || {}).textContent || '' });
+    });
+    var regEl  = card.querySelector('.site-card__registration');
+    return {
+      planningId:   card.dataset.planningId,
+      projectId:    card.dataset.projectId,
+      projectName:  card.dataset.projectName || '',
+      chantier:     (card.querySelector('.site-card__chantier') || {}).textContent || '',
+      clientName:   (card.querySelector('.site-card__clientcell') || {}).textContent || '',
+      address:      (card.querySelector('.site-card__address') || {}).textContent || '',
+      regHtml:      regEl ? regEl.innerHTML : '',
+      isExtension:  card.classList.contains('site-card--extension'),
+      extensionOf:  card.dataset.extensionOf || '',
+      workers:      workers,
+      subs:         subs,
+      vehicles:     vehicles,
+    };
+  }
+
+  /*
+   * Escreve um snapshot num card — actualização puramente DOM, sem requests ao servidor.
+   */
+  function _applySnapshot(card, snap) {
+    card.classList.remove('site-card--blank');
+    card.dataset.planningId  = snap.planningId;
+    card.dataset.projectId   = snap.projectId;
+    card.dataset.projectName = snap.projectName;
+
+    if (snap.isExtension) {
+      card.classList.add('site-card--extension');
+      card.dataset.extensionOf = snap.extensionOf;
+    } else {
+      card.classList.remove('site-card--extension');
+      delete card.dataset.extensionOf;
+    }
+
+    var cornerBtn = card.querySelector('.card-corner-remove');
+    if (!cornerBtn) {
+      cornerBtn = document.createElement('button');
+      cornerBtn.className = 'card-corner-remove';
+      cornerBtn.title = 'Remover obra do board';
+      cornerBtn.textContent = '×';
+      card.insertBefore(cornerBtn, card.firstChild);
+    }
+    initRemoveBtn(cornerBtn, card);
+
+    var row2 = card.querySelector('.site-card__row2:not(.site-card__row2--meta)');
+    row2.innerHTML =
+      '<div class="site-card__chantier">' + escHtml(snap.chantier) + '</div>' +
+      '<div class="site-card__clientcell">' + escHtml(snap.clientName) + '</div>';
+
+    var addrEl = card.querySelector('.site-card__address');
+    addrEl.textContent = snap.address || '—';
+    addrEl.style.cssText = '';
+
+    var metaEl = card.querySelector('.site-card__row2--meta');
+    metaEl.innerHTML =
+      '<div class="site-card__registration">' + snap.regHtml + '</div>' +
+      '<div class="vehicle-drop-zone" data-planning-id="' + escHtml(snap.planningId) + '" data-project-id="' + escHtml(snap.projectId) + '">' +
+        '<span class="vehicle-drop-zone--hint">🚐</span>' +
+      '</div>';
+    var vZone = metaEl.querySelector('.vehicle-drop-zone');
+    var hint = vZone.querySelector('.vehicle-drop-zone--hint');
+    (snap.vehicles || []).forEach(function(v) {
+      var slot = makeVehicleSlot(v.pvId, snap.planningId, v.vehicleId, v.plate);
+      if (v.driverId) slot.dataset.driverId = v.driverId;
+      vZone.insertBefore(slot, hint);
+    });
+    initVehicleDropZone(metaEl);
+
+    var oldSubs    = card.querySelector('.card-subs');    if (oldSubs)    oldSubs.remove();
+    var oldWorkers = card.querySelector('.card-workers'); if (oldWorkers) oldWorkers.remove();
+    var oldBlank   = card.querySelector('.blank-card-body'); if (oldBlank) oldBlank.remove();
+
+    if (snap.subs.length) {
+      var subsArea = document.createElement('div');
+      subsArea.className = 'card-subs';
+      subsArea.dataset.planningId = snap.planningId;
+      subsArea.dataset.projectId  = snap.projectId;
+      snap.subs.forEach(function(s) { subsArea.appendChild(makeSubAssignedChip(s.psId, s.subId, s.subName)); });
+      card.appendChild(subsArea);
+    }
+
+    var wDiv = document.createElement('div');
+    wDiv.className = 'card-workers';
+    wDiv.dataset.dropType   = 'project';
+    wDiv.dataset.projectId  = snap.projectId;
+    wDiv.dataset.planningId = snap.planningId;
+    snap.workers.forEach(function(w) {
+      var chip = makeWorkerChip(w.workerId, w.workerName, w.pwId, false, '');
+      wDiv.appendChild(chip);
+      var btn = chip.querySelector('.worker-chip-remove');
+      if (btn) initWorkerRemoveBtn(btn, chip);
+    });
+    var hint = document.createElement('div');
+    hint.className = 'workers-hint';
+    hint.textContent = 'Arraste um nome para cá';
+    wDiv.appendChild(hint);
+    card.appendChild(wDiv);
+    initWorkerDropZone(wDiv);
+    initSubDropOnCard(card);
+    refreshCols(wDiv);
+  }
+
+  /*
+   * Cria um card de extensão para o mesmo projeto no slot adjacente,
+   * deslocando em cadeia (shift) todas as obras seguintes uma posição para a frente.
+   * O shift é puramente DOM — apenas o novo Planning da extensão vai ao servidor.
+   */
+  function expandToExtension(sourceCard, workerId, workerName, projectId) {
+    var grid = sourceCard.closest('.board-grid');
+    if (!grid) { toast('Card cheio e sem espaço para extensão.'); return; }
+
+    var allCards = Array.prototype.slice.call(grid.querySelectorAll('.site-card'));
+    var idx = allCards.indexOf(sourceCard);
+    if (idx === -1 || idx + 1 >= allCards.length) { toast('Sem slot adjacente disponível.'); return; }
+
+    // Encontra o primeiro slot vazio a partir de idx+1
+    var firstEmpty = -1;
+    for (var i = idx + 1; i < allCards.length; i++) {
+      if (!allCards[i].dataset.planningId) { firstEmpty = i; break; }
+    }
+    // Se não há slot vazio, usa o último card (será sobrescrito pelo shift)
+    if (firstEmpty === -1) firstEmpty = allCards.length - 1;
+
+    // Shift para a direita: cada card recebe o snapshot do anterior (do fim para idx+1)
+    for (var j = firstEmpty; j > idx + 1; j--) {
+      var snap = _snapshotCard(allCards[j - 1]);
+      if (snap) _applySnapshot(allCards[j], snap);
+    }
+
+    // Limpa o slot idx+1 sem adicionar ao sidebar (vai ser preenchido pela extensão)
+    var extensionSlot = allCards[idx + 1];
+    // Converte visualmente para blank (sem chamar addProjectToSidebar)
+    _clearCardToBlank(extensionSlot);
+
+    _createExtensionCard(extensionSlot, sourceCard, workerId, workerName, parseInt(projectId, 10));
+  }
+
+  /* Limpa um card para estado blank sem adicionar a obra ao sidebar */
+  function _clearCardToBlank(card) {
+    card.classList.add('site-card--blank');
+    card.classList.remove('site-card--extension');
+    delete card.dataset.planningId;
+    delete card.dataset.projectId;
+    delete card.dataset.projectName;
+    delete card.dataset.extensionOf;
+    var cornerBtn = card.querySelector('.card-corner-remove');
+    if (cornerBtn) cornerBtn.remove();
+    var row2 = card.querySelector('.site-card__row2:not(.site-card__row2--meta)');
+    if (row2) row2.innerHTML = '<div class="site-card__chantier project-drop-hint">Arraste uma obra…</div><div class="site-card__clientcell"></div>';
+    var addrEl = card.querySelector('.site-card__address');
+    if (addrEl) { addrEl.textContent = ''; addrEl.style.cssText = 'color:var(--text3);font-style:italic;'; }
+    var metaEl = card.querySelector('.site-card__row2--meta');
+    if (metaEl) metaEl.innerHTML = '<div class="site-card__registration"><span class="reg-placeholder"></span></div><div class="vehicle-drop-zone"></div>';
+    var oldSubs    = card.querySelector('.card-subs');    if (oldSubs)    oldSubs.remove();
+    var oldWorkers = card.querySelector('.card-workers'); if (oldWorkers) oldWorkers.remove();
+    var oldBlank   = card.querySelector('.blank-card-body'); if (oldBlank) oldBlank.remove();
+    var blankBody = document.createElement('div');
+    blankBody.className = 'blank-card-body';
+    var note = document.createElement('div');
+    note.className = 'blank-card-note';
+    note.contentEditable = 'true';
+    note.spellcheck = false;
+    note.dataset.slot = '999';
+    note.dataset.placeholder = 'Clique aqui para escrever algo…';
+    blankBody.appendChild(note);
+    card.appendChild(blankBody);
+    initBlankNoteSave(note);
+    initBlankCardDrop(card);
+  }
+
+  function _createExtensionCard(targetCard, sourceCard, workerId, workerName, projectId) {
+    var parentPlanningId = sourceCard.dataset.planningId;
+    fetch(ASSIGN_PROJECT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({
+        project_id: projectId,
+        date: BOARD_DATE,
+        action: 'add',
+        parent_planning_id: parseInt(parentPlanningId, 10),
+      })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (!data.ok) { toast(data.error || 'Erro ao criar extensão.'); return; }
+      convertBlankToProject(targetCard, data);
+      targetCard.classList.add('site-card--extension');
+      targetCard.dataset.extensionOf = parentPlanningId || '';
+      var newZone = targetCard.querySelector('.card-workers');
+      if (!newZone) { toast('Extensão criada mas não foi possível atribuir o funcionário.'); return; }
+      fetch(ASSIGN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ worker_id: workerId, date: BOARD_DATE, target: 'project', planning_id: data.planning_id })
+      }).then(function(r) { return r.json(); }).then(function(res) {
+        if (!res.ok) { toast(res.error || 'Erro ao atribuir na extensão.'); return; }
+        removeWorkerFromPool(String(workerId));
+        var newChip = makeWorkerChip(String(res.worker_id), res.worker_name, String(res.pw_id), false, '');
+        newZone.appendChild(newChip);
+        var btn = newChip.querySelector('.worker-chip-remove');
+        if (btn) initWorkerRemoveBtn(btn, newChip);
+        refreshCols(newZone);
+        if (workerShowAssigned) doWorkerSearch();
+        toast('Extensão criada — ' + workerName + ' adicionado.');
+      }).catch(function() { toast('Erro de rede ao atribuir.'); });
+    }).catch(function() { toast('Erro de rede ao criar extensão.'); });
   }
 
   // Remove chips do worker apenas nos cards do board (não no pool lateral)
@@ -1989,6 +2743,73 @@
   function removeWorkerFromPool(workerId) {
     document.querySelectorAll('#pool-drop [data-board-worker="' + workerId + '"]').forEach(function(el) { el.remove(); });
     if (updateWorkersCount) updateWorkersCount();
+  }
+
+  /* ── Nome curto: primeiros 2 nomes ── */
+  function shortName(fullName) {
+    var parts = (fullName || '').trim().split(/\s+/);
+    if (parts.length <= 2) return fullName;
+    return parts[0] + ' ' + parts[1];
+  }
+
+  /* ── Capacidade de uma zona de workers ── */
+  var CHIPS_PER_COL = 8; // linhas por coluna
+
+  /*
+   * Retorna todos os cards da grelha que pertencem à mesma cadeia (original + extensões).
+   * Funciona quer o card dado seja o original ou uma extensão.
+   */
+  function _allCardsInChain(card) {
+    var grid = card.closest('.board-grid');
+    if (!grid) return [card];
+    // Determina o planning_id raiz (o card que não é extensão da cadeia)
+    var rootId = card.dataset.extensionOf || card.dataset.planningId;
+    // Se o próprio card é extensão, o root é extensionOf
+    // Percorre todos os cards e recolhe os que fazem parte da cadeia
+    var result = [];
+    grid.querySelectorAll('.site-card[data-planning-id]').forEach(function(c) {
+      var cId = c.dataset.planningId;
+      var cRoot = c.dataset.extensionOf || cId;
+      if (cRoot === rootId || cId === rootId) result.push(c);
+    });
+    return result.length ? result : [card];
+  }
+
+  /*
+   * Procura na cadeia de extensões do card uma zona de workers com capacidade disponível.
+   * Retorna a primeira .card-workers com espaço, ou null se todas estiverem cheias.
+   */
+  function _findAvailableExtensionZone(card) {
+    var chain = _allCardsInChain(card);
+    for (var i = 0; i < chain.length; i++) {
+      var z = chain[i].querySelector('.card-workers');
+      if (z && workerCount(z) < workerCapacity(z)) return z;
+    }
+    return null;
+  }
+
+  function workerCapacity(zone) {
+    /* capacidade máxima = 2 colunas × CHIPS_PER_COL */
+    return CHIPS_PER_COL * 2;
+  }
+
+  function workerCount(zone) {
+    return zone.querySelectorAll('.board-chip[data-worker-id]').length;
+  }
+
+  /* Actualiza data-cols conforme o número de chips */
+  function refreshCols(zone) {
+    var n = workerCount(zone);
+    if (n > CHIPS_PER_COL) {
+      zone.dataset.cols = '2';
+    } else {
+      delete zone.dataset.cols;
+    }
+    /* Trunca/expande nomes conforme o número de colunas */
+    var cols = parseInt(zone.dataset.cols || '1', 10);
+    zone.querySelectorAll('.board-chip[data-worker-id] span[data-fullname]').forEach(function(sp) {
+      sp.textContent = cols >= 2 ? shortName(sp.dataset.fullname) : sp.dataset.fullname;
+    });
   }
 
   function makeWorkerChip(workerId, workerName, pwId, isPool, companyName, assignedProjects) {
@@ -2021,6 +2842,7 @@
       }
     } else {
       var nameSpan = document.createElement('span');
+      nameSpan.dataset.fullname = workerName;
       nameSpan.textContent = workerName;
       div.appendChild(nameSpan);
       var removeBtn = document.createElement('button');
@@ -2148,6 +2970,7 @@
   // Drop zones de funcionários nos cards de projeto existentes
   document.querySelectorAll('.card-workers[data-drop-type]').forEach(function(zone) {
     initWorkerDropZone(zone);
+    refreshCols(zone);
   });
 
   // Drop de subcontratados nos cards existentes
@@ -2159,6 +2982,18 @@
   document.querySelectorAll('.card-subs .sub-chip-remove').forEach(function(btn) {
     var chip = btn.closest('.board-chip--sub-assigned');
     if (chip) initSubRemoveBtn(btn, chip);
+  });
+
+  // Drop de veículos no meta row dos cards existentes
+  document.querySelectorAll('.site-card__row2--meta').forEach(function(metaRow) {
+    initVehicleDropZone(metaRow);
+  });
+
+  // Botões × e clique na matrícula nos vehicle slots já renderizados pelo Django
+  document.querySelectorAll('.vehicle-slot').forEach(function(slot) {
+    var btn = slot.querySelector('.vehicle-remove');
+    if (btn) initVehicleRemoveBtn(btn, slot);
+    initVehicleSlotClick(slot);
   });
 
   // Botões × nos chips de funcionários já renderizados pelo Django
@@ -2181,7 +3016,7 @@
   (function() {
     var state = loadSidebarState();
     if (!state) return;
-    ['projects', 'workers', 'subs'].forEach(function(key) {
+    ['projects', 'workers', 'subs', 'vehicles'].forEach(function(key) {
       var body   = document.getElementById(key + '-body');
       var toggle = document.getElementById(key + '-toggle');
       if (!body || !toggle) return;
@@ -2189,8 +3024,9 @@
       if (state[key]) {
         body.classList.remove('pool-section__body--collapsed');
         if (arrow) arrow.style.transform = '';
-        if (key === 'workers' && document.getElementById('pool-empty-msg')) doWorkerSearch();
-        if (key === 'subs'    && document.getElementById('subs-loading'))   doSubSearch();
+        if (key === 'workers'  && document.getElementById('pool-empty-msg'))    doWorkerSearch();
+        if (key === 'subs'     && document.getElementById('subs-loading'))      doSubSearch();
+        if (key === 'vehicles' && document.getElementById('vehicles-loading'))  doVehicleSearch();
       } else {
         body.classList.add('pool-section__body--collapsed');
         if (arrow) arrow.style.transform = 'rotate(-90deg)';

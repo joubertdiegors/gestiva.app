@@ -1,0 +1,7 @@
+{% load i18n %}
+{% if status == 'pending' %}   <span class="badge badge-amber">{{ display }}</span>
+{% elif status == 'partial' %} <span class="badge badge-amber">{{ display }}</span>
+{% elif status == 'paid' %}    <span class="badge badge-green">{{ display }}</span>
+{% elif status == 'cancelled' %}<span class="badge badge-red">{{ display }}</span>
+{% else %}                     <span class="badge badge-gray">{{ display }}</span>
+{% endif %}

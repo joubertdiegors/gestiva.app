@@ -22,19 +22,24 @@ class CollaboratorForm(forms.ModelForm):
             'name':           forms.TextInput(attrs={'class': 'field-input', 'placeholder': '—'}),
             'role':           forms.TextInput(attrs={'class': 'field-input', 'placeholder': '—'}),
             'status':         forms.Select(attrs={'class': 'field-input'}),
-            'id_number':      forms.TextInput(attrs={'class': 'field-input', 'placeholder': '—'}),
+            'id_number':      forms.TextInput(attrs={'class': 'field-input', 'placeholder': '00.00.00-000.00', 'data-mask': 'id_number', 'maxlength': '16'}),
             'id_expiry':      forms.DateInput(attrs={'class': 'field-input', 'type': 'date'}),
             'birth_date':     forms.DateInput(attrs={'class': 'field-input', 'type': 'date'}),
             'nationalities':  forms.SelectMultiple(attrs={'class': 'field-input field-select-multi', 'size': '3'}),
             'languages':      forms.SelectMultiple(attrs={'class': 'field-input field-select-multi', 'size': '3'}),
-            'phone':          forms.TextInput(attrs={'class': 'field-input', 'placeholder': '—'}),
-            'phone2':         forms.TextInput(attrs={'class': 'field-input', 'placeholder': '—'}),
+            'phone':          forms.TextInput(attrs={'class': 'field-input', 'placeholder': '+32 471 84 6113', 'data-mask': 'phone_mobile', 'maxlength': '20'}),
+            'phone2':         forms.TextInput(attrs={'class': 'field-input', 'placeholder': '+32 0 000 00 00', 'data-mask': 'phone_fixed', 'maxlength': '20'}),
             'email':          forms.EmailInput(attrs={'class': 'field-input', 'placeholder': '—'}),
             'email2':         forms.EmailInput(attrs={'class': 'field-input', 'placeholder': '—'}),
             'entry_date':     forms.DateInput(attrs={'class': 'field-input', 'type': 'date'}),
             'exit_date':      forms.DateInput(attrs={'class': 'field-input', 'type': 'date'}),
             'notes':          forms.Textarea(attrs={'class': 'field-input', 'rows': 4, 'placeholder': 'Observações…'}),
         }
+
+    def __init__(self, *args, company_locked=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if company_locked:
+            self.fields['company'].disabled = True
 
 
 class CollaboratorInsuranceNoteForm(forms.ModelForm):

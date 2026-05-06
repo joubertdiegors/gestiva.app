@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Registar devolução — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'equipment:list' %}">Equipamentos</a>
+  <span class="sep">›</span>
+  <a href="{% url 'equipment:detail' equipment.pk %}">{{ equipment.display_name }}</a>
+  <span class="sep">›</span>
+  <span class="current">Devolução</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📥 Registar devolução</h1>
+    <p class="page-sub">{{ equipment }} — {{ loan.collaborator }}</p>
+  </div>
+  <a href="{% url 'equipment:detail' equipment.pk %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div class="card" style="max-width:500px;">
+  <div style="padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:13px;font-family:sans-serif;">
+    <strong>Colaborador:</strong> {{ loan.collaborator }}<br>
+    <strong>Saída:</strong> {{ loan.loaned_at|date:"d/m/Y H:i" }}
+    {% if loan.expected_return %}
+    <br><strong>Devolução prevista:</strong> {{ loan.expected_return|date:"d/m/Y" }}
+    {% if loan.is_overdue %}<span class="badge badge-red" style="margin-left:6px;">Atrasado</span>{% endif %}
+    {% endif %}
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+
+      <div class="vf-field">
+        <label class="vf-label" for="{{ form.returned_at.id_for_label }}">Data/hora de devolução <span class="req">*</span></label>
+        {{ form.returned_at }}
+        {% if form.returned_at.errors %}<span class="vf-error">{{ form.returned_at.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="vf-field">
+        <label class="vf-label" for="{{ form.notes.id_for_label }}">Observações</label>
+        {{ form.notes }}
+      </div>
+
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;">
+      <a href="{% url 'equipment:detail' equipment.pk %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary">📥 Confirmar devolução</button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .vf-field { display:flex; flex-direction:column; gap:5px; }
+  .vf-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.7px; color:var(--text3); font-family:sans-serif; }
+  .vf-label .req { color:var(--accent); margin-left:2px; }
+  .vf-error { font-size:11px; color:var(--red); font-family:sans-serif; }
+  .card input, .card select, .card textarea {
+    width:100%; padding:9px 12px; border:1px solid var(--border2); border-radius:var(--radius);
+    font-size:14px; font-family:inherit; color:var(--text); background:var(--surface);
+  }
+  .card input:focus, .card textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light); }
+</style>
+{% endblock %}

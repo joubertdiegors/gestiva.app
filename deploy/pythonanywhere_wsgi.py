@@ -8,7 +8,7 @@ import os
 import sys
 
 # Pasta que contém manage.py e o pacote "core/"
-PROJECT_HOME = "/home/joubertdiegors/gestiva.app"
+PROJECT_HOME = "/home/SEU_USUARIO/SEU_PROJETO"
 if PROJECT_HOME not in sys.path:
     sys.path.insert(0, PROJECT_HOME)
 

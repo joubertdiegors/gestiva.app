@@ -13,17 +13,6 @@
 
 {% block extra_head %}
 <style>
-.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
-.dt{width:100%;border-collapse:collapse;font-size:13px}
-.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
-.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
-.dt tbody tr:hover{background:var(--surface2)}
-.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
-.dt td.muted{color:var(--text3)}
-.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
-.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
-.btn-icon:hover{background:var(--surface2);color:var(--accent)}
-.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal-box{background:var(--surface);border-radius:var(--radius-lg,10px);width:420px;max-width:96vw;box-shadow:0 8px 32px rgba(0,0,0,.18)}
@@ -32,9 +21,6 @@
 .modal-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
 .modal-body{padding:22px;display:flex;flex-direction:column;gap:16px}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
-.form-group{display:flex;flex-direction:column;gap:6px}
-.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
-.form-label .req{color:var(--accent)}
 .modal-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
 .row-new{animation:rowIn .25s ease}
 @keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
@@ -42,23 +28,59 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">{% trans "Unidades de Medida" %}</h1>
-    <p class="page-sub">{% trans "Unidades base utilizadas em produtos e serviços." %}</p>
-  </div>
-  <button type="button" class="btn btn-primary" id="btn-nova-unidade">+ {% trans "Nova unidade" %}</button>
-</div>
 
-<div class="card" style="padding:0;overflow:hidden">
-  <table class="dt">
+<div class="ca-table-wrap" data-ca-table="units">
+
+  <div class="ca-table-actions">
+    <div class="ca-table-actions-title">
+      <h1>{% trans "Unidades de Medida" %}</h1>
+      <span><strong data-ca-row-count>{{ units|length }}</strong> {% trans "resultados" %}</span>
+    </div>
+    <div class="ca-table-actions-btns">
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters" data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="refresh" data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="columns" data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      </button>
+      <span class="ca-tbl-sep"></span>
+      <button type="button" class="ca-tbl-btn-primary" id="btn-nova-unidade" data-tip="{% trans 'Nova unidade' %}">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {% trans "Nova unidade" %}
+      </button>
+    </div>
+  </div>
+
+  <div class="ca-table-scroll">
+  <table class="ca-table">
     <thead>
       <tr>
-        <th>{% trans "Símbolo" %}</th>
-        <th>{% trans "Nome" %}</th>
-        <th>{% trans "Descrição" %}</th>
-        <th style="text-align:right">{% trans "Produtos" %}</th>
-        <th style="width:72px"></th>
+        <th data-col="simbolo" data-col-label="{% trans 'Símbolo' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Símbolo" %}</span>
+            <div class="ca-th-search"><input data-col="simbolo" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="nome" data-col-label="{% trans 'Nome' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Nome" %}</span>
+            <div class="ca-th-search"><input data-col="nome" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="descricao" data-col-label="{% trans 'Descrição' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Descrição" %}</span>
+            <div class="ca-th-search"><input data-col="descricao" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="produtos" data-col-label="{% trans 'Produtos' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Produtos" %}</span>
+            <div class="ca-th-search"><input data-col="produtos" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
       </tr>
     </thead>
     <tbody id="units-tbody">
@@ -68,19 +90,17 @@
           data-name="{{ unit.name|escapejs }}"
           data-desc="{{ unit.description|escapejs }}"
           data-count="{{ unit.product_count }}">
-        <td><strong>{{ unit.symbol }}</strong></td>
-        <td>{{ unit.name }}</td>
-        <td class="muted">{{ unit.description|default:"—" }}</td>
-        <td style="text-align:right">
-          <span class="badge {% if unit.product_count %}badge-accent{% else %}badge-gray{% endif %}">
-            {{ unit.product_count }}
-          </span>
+        <td data-col="simbolo"><strong>{{ unit.symbol }}</strong></td>
+        <td data-col="nome" style="color:var(--text2);font-size:13px;">{{ unit.name }}</td>
+        <td data-col="descricao" style="color:var(--text2);font-size:13px;">{{ unit.description|default:"—" }}</td>
+        <td data-col="produtos" style="text-align:right;">
+          <span class="ca-badge {% if unit.product_count %}blue{% else %}gray{% endif %}">{{ unit.product_count }}</span>
         </td>
-        <td>
-          <div class="actions">
-            <button type="button" class="btn-icon btn-edit" title="{% trans "Editar" %}">✏️</button>
+        <td style="text-align:right;">
+          <div class="ca-row-actions">
+            <button type="button" class="btn-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans 'Editar' %}">✏️</button>
             {% if not unit.product_count %}
-            <button type="button" class="btn-icon danger btn-del" title="{% trans "Eliminar" %}" data-id="{{ unit.pk }}">🗑</button>
+            <button type="button" class="btn-del" data-id="{{ unit.pk }}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans 'Eliminar' %}">🗑</button>
             {% endif %}
           </div>
         </td>
@@ -94,6 +114,8 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
+
 </div>
 
 <div class="modal-overlay" id="unit-overlay">
@@ -105,11 +127,11 @@
     <div class="modal-body">
       <div class="modal-error" id="unit-error"></div>
       <div class="form-group">
-        <label class="form-label" for="u-symbol">{% trans "Símbolo" %} <span class="req">*</span></label>
+        <label class="form-label" for="u-symbol">{% trans "Símbolo" %} <span style="color:var(--accent)">*</span></label>
         <input type="text" id="u-symbol" class="form-control" placeholder="kg, m², m³, un, h…" maxlength="20" autocomplete="off">
       </div>
       <div class="form-group">
-        <label class="form-label" for="u-name">{% trans "Nome" %} <span class="req">*</span></label>
+        <label class="form-label" for="u-name">{% trans "Nome" %} <span style="color:var(--accent)">*</span></label>
         <input type="text" id="u-name" class="form-control" placeholder="{% trans "Quilograma, Metro quadrado…" %}" maxlength="100">
       </div>
       <div class="form-group">
@@ -154,74 +176,45 @@
     overlay.classList.add('open');
     setTimeout(function () { fSymbol.focus(); }, 60);
   }
-
-  function closeModal() {
-    overlay.classList.remove('open');
-    editingPk = null;
-  }
-
-  function setError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = msg ? 'block' : 'none';
-  }
-
-  function setBusy(busy) {
-    btnSave.disabled = busy;
-    btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}';
-  }
+  function closeModal() { overlay.classList.remove('open'); editingPk = null; }
+  function setError(msg) { errorEl.textContent = msg; errorEl.style.display = msg ? 'block' : 'none'; }
+  function setBusy(busy) { btnSave.disabled = busy; btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}'; }
 
   function postData(url, data) {
     var params = new URLSearchParams({ csrfmiddlewaretoken: CSRF });
     Object.keys(data).forEach(function (k) { params.append(k, data[k]); });
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': CSRF },
-      body: params,
-    }).then(function (r) { return r.json(); });
+    return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: params }).then(function (r) { return r.json(); });
   }
-
-  function escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
+  function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   function buildRow(u) {
     var canDelete = u.product_count === 0;
     var delBtn = canDelete
-      ? '<button type="button" class="btn-icon danger btn-del" title="{% trans "Eliminar" %}" data-id="' + u.id + '">🗑</button>'
+      ? '<button type="button" class="btn-del" data-id="' + u.id + '" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans "Eliminar" %}">🗑</button>'
       : '';
+    var prodBadge = '<span class="ca-badge ' + (u.product_count ? 'blue' : 'gray') + '">' + u.product_count + '</span>';
     return '<tr data-id="' + u.id + '"' +
       ' data-symbol="' + String(u.symbol).replace(/"/g, '&quot;') + '"' +
       ' data-name="' + String(u.name).replace(/"/g, '&quot;') + '"' +
       ' data-desc="' + String(u.description || '').replace(/"/g, '&quot;') + '"' +
       ' data-count="' + u.product_count + '">' +
-      '<td><strong>' + escapeHtml(u.symbol) + '</strong></td>' +
-      '<td>' + escapeHtml(u.name) + '</td>' +
-      '<td class="muted">' + escapeHtml(u.description || '—') + '</td>' +
-      '<td style="text-align:right"><span class="badge ' + (u.product_count ? 'badge-accent' : 'badge-gray') + '">' + u.product_count + '</span></td>' +
-      '<td><div class="actions">' +
-      '<button type="button" class="btn-icon btn-edit" title="{% trans "Editar" %}">✏️</button>' +
-      delBtn +
-      '</div></td></tr>';
+      '<td data-col="simbolo"><strong>' + escapeHtml(u.symbol) + '</strong></td>' +
+      '<td data-col="nome" style="color:var(--text2);font-size:13px;">' + escapeHtml(u.name) + '</td>' +
+      '<td data-col="descricao" style="color:var(--text2);font-size:13px;">' + escapeHtml(u.description || '—') + '</td>' +
+      '<td data-col="produtos" style="text-align:right;">' + prodBadge + '</td>' +
+      '<td style="text-align:right;"><div class="ca-row-actions">' +
+      '<button type="button" class="btn-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans "Editar" %}">✏️</button>' +
+      delBtn + '</div></td></tr>';
   }
 
   function saveUnit() {
-    var symbol = fSymbol.value.trim();
-    var name = fName.value.trim();
-    var desc = fDesc.value.trim();
-    if (!symbol || !name) {
-      setError('{% trans "Símbolo e Nome são obrigatórios." %}');
-      return;
-    }
+    var symbol = fSymbol.value.trim(), name = fName.value.trim(), desc = fDesc.value.trim();
+    if (!symbol || !name) { setError('{% trans "Símbolo e Nome são obrigatórios." %}'); return; }
     setBusy(true);
     postData(editingPk ? urlUpd(editingPk) : URL_SAVE, { symbol: symbol, name: name, description: desc })
       .then(function (json) {
         setBusy(false);
-        if (!json.ok) {
-          setError(Object.values(json.errors).flat().join(' '));
-          return;
-        }
+        if (!json.ok) { setError(Object.values(json.errors).flat().join(' ')); return; }
         var u = json.unit;
         var emptyRow = document.getElementById('empty-row');
         if (emptyRow) emptyRow.remove();
@@ -234,25 +227,19 @@
           if (newRow) newRow.classList.add('row-new');
         }
         closeModal();
-      })
-      .catch(function () {
-        setBusy(false);
-        setError('{% trans "Erro de ligação. Tente novamente." %}');
-      });
+      }).catch(function () { setBusy(false); setError('{% trans "Erro de ligação. Tente novamente." %}'); });
   }
 
   function deleteUnit(pk) {
     if (!confirm('{% trans "Eliminar esta unidade de medida?" %}')) return;
-    postData(urlDel(pk), {})
-      .then(function (json) {
-        if (!json.ok) { alert(json.error); return; }
-        var row = tbody.querySelector('tr[data-id="' + pk + '"]');
-        if (row) row.remove();
-        if (!tbody.querySelector('tr')) {
-          tbody.innerHTML = '<tr id="empty-row"><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">' +
-            '{% trans "Nenhuma unidade registada." %}</td></tr>';
-        }
-      });
+    postData(urlDel(pk), {}).then(function (json) {
+      if (!json.ok) { alert(json.error); return; }
+      var row = tbody.querySelector('tr[data-id="' + pk + '"]');
+      if (row) row.remove();
+      if (!tbody.querySelector('tr[data-id]')) {
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">{% trans "Nenhuma unidade registada." %}</td></tr>';
+      }
+    });
   }
 
   document.getElementById('btn-nova-unidade').addEventListener('click', function () { openModal(null); });
@@ -261,16 +248,12 @@
   btnSave.addEventListener('click', saveUnit);
 
   tbody.addEventListener('click', function (e) {
-    var editBtn = e.target.closest('.btn-edit');
-    var delBtn = e.target.closest('.btn-del');
+    var editBtn = e.target.closest('.btn-edit'), delBtn = e.target.closest('.btn-del');
     if (editBtn) openModal(editBtn.closest('tr'));
     if (delBtn) deleteUnit(parseInt(delBtn.dataset.id, 10));
   });
 
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) closeModal();
-  });
-
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', function (e) {
     if (!overlay.classList.contains('open')) return;
     if (e.key === 'Escape') closeModal();

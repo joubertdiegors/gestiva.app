@@ -16,5 +16,8 @@ class CurrentUserMiddleware:
 
     def __call__(self, request):
         _thread_locals.user = request.user
-        response = self.get_response(request)
+        try:
+            response = self.get_response(request)
+        finally:
+            _thread_locals.user = None
         return response

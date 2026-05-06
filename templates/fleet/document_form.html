@@ -10,66 +10,82 @@
   <span class="current">{{ title }}</span>
 {% endblock %}
 
-{% block extra_head %}
-<style>
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-grid .span-2 { grid-column: span 2; }
-  @media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-header">
-  <div><h1 class="page-title">{{ title }}</h1>
-  <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p></div>
-  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Back" %}</a>
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-sub">{{ vehicle.license_plate }} — {{ vehicle.brand }} {{ vehicle.model }}</p>
+  </div>
+  <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">← {% trans "Voltar" %}</a>
 </div>
-<div class="card">
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">{{ form.doc_type.label }}</label>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="info-card" style="margin-bottom:16px;">
+    <div class="card-title">{% trans "Documento" %}</div>
+    <div class="info-grid">
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.doc_type.label }}</div>
         {{ form.doc_type }}
-        {% if form.doc_type.errors %}<div class="form-error">{{ form.doc_type.errors }}</div>{% endif %}
+        {% if form.doc_type.errors %}<div class="field-error">{{ form.doc_type.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group span-2">
-        <label class="form-label">{{ form.description.label }}</label>
-        {{ form.description }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.insurer_or_entity.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.insurer_or_entity.label }}</div>
         {{ form.insurer_or_entity }}
+        {% if form.insurer_or_entity.errors %}<div class="field-error">{{ form.insurer_or_entity.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.reference.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.reference.label }}</div>
         {{ form.reference }}
+        {% if form.reference.errors %}<div class="field-error">{{ form.reference.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.issue_date.label }}</label>
-        {{ form.issue_date }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.expiry_date.label }}</label>
-        {{ form.expiry_date }}
-      </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.cost.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.cost.label }}</div>
         {{ form.cost }}
+        {% if form.cost.errors %}<div class="field-error">{{ form.cost.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group">
-        <label class="form-label">{{ form.file.label }}</label>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.issue_date.label }}</div>
+        {{ form.issue_date }}
+        {% if form.issue_date.errors %}<div class="field-error">{{ form.issue_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell">
+        <div class="info-label">{{ form.expiry_date.label }}</div>
+        {{ form.expiry_date }}
+        {% if form.expiry_date.errors %}<div class="field-error">{{ form.expiry_date.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label">{{ form.description.label }}</div>
+        {{ form.description }}
+        {% if form.description.errors %}<div class="field-error">{{ form.description.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="info-cell full">
+        <div class="info-label">{{ form.file.label }}</div>
         {{ form.file }}
+        {% if form.file.errors %}<div class="field-error">{{ form.file.errors.0 }}</div>{% endif %}
       </div>
-      <div class="form-group span-2">
-        <label class="form-label">{{ form.notes.label }}</label>
+
+      <div class="info-cell full" style="border-bottom:none;">
+        <div class="info-label">{{ form.notes.label }}</div>
         {{ form.notes }}
+        {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
       </div>
+
     </div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
-      <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancel" %}</a>
-      <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
-    </div>
-  </form>
-</div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end;">
+    <a href="{% url 'fleet:vehicle_detail' vehicle.pk %}" class="btn btn-ghost">{% trans "Cancelar" %}</a>
+    <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+  </div>
+</form>
 {% endblock %}

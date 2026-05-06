@@ -25,16 +25,16 @@
     width: 120px; height: 120px; border-radius: 50%;
     background: var(--accent-light); color: var(--accent);
     display: flex; align-items: center; justify-content: center;
-    font-size: 46px; font-weight: 700; font-family: sans-serif;
+    font-size: 46px; font-weight: 700; font-family: var(--font);
     overflow: hidden; flex-shrink: 0; border: 3px solid var(--border);
     cursor: pointer; position: relative;
   }
   .avatar-xl img { width: 100%; height: 100%; object-fit: cover; display: none; }
   .avatar-xl:hover::after { content: '📷'; position: absolute; inset: 0; background: rgba(0,0,0,.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
   .profile-name { font-size: 18px; font-weight: 600; text-align: center; color: var(--text); }
-  .profile-role { font-size: 13px; color: var(--text3); font-family: sans-serif; text-align: center; min-height: 18px; }
+  .profile-role { font-size: 13px; color: var(--text3); font-family: var(--font); text-align: center; min-height: 18px; }
 
-  .status-switch-row { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-family: sans-serif; }
+  .status-switch-row { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-family: var(--font); }
   .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
   .toggle-switch input { opacity: 0; width: 0; height: 0; }
   .toggle-slider { position: absolute; inset: 0; border-radius: 24px; background: var(--border2); cursor: pointer; transition: .2s; }
@@ -48,7 +48,7 @@
   /* ── Cartão de secção ── */
   /* overflow: visible — senão o dropdown de nacionalidades/idiomas fica cortado pelo cartão */
   .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: visible; }
-  .card-title { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: sans-serif; font-weight: 600; }
+  .card-title { padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); font-family: var(--font); font-weight: 600; }
 
   /* ── Grade de células ── */
   .info-grid { display: grid; grid-template-columns: 1fr 1fr; }
@@ -73,22 +73,28 @@
   /* célula que ocupa 2 colunas na grade de 4 */
   .info-cell.span-2 { grid-column: span 2; }
 
-  .info-label { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-  .field-hint  { font-size: 11px; color: var(--text3); font-family: sans-serif; margin-top: 3px; }
-  .field-error { font-size: 11px; color: var(--red); margin-top: 3px; font-family: sans-serif; }
+  .info-label { font-size: 11px; color: var(--text3); font-family: var(--font); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .field-hint  { font-size: 11px; color: var(--text3); font-family: var(--font); margin-top: 3px; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 3px; font-family: var(--font); }
 
   /* ── Inputs inline ── */
   .field-input {
     width: 100%; border: none; background: transparent;
-    font-size: 14px; color: var(--text); font-family: 'Georgia', serif;
+    font-size: 14px; color: var(--text); font-family: var(--font);
     padding: 0; outline: none;
     border-bottom: 1px dashed transparent; transition: border-color .15s;
     box-sizing: border-box;
   }
   .field-input:hover, .field-input:focus { border-bottom-color: var(--accent); }
   .field-input::placeholder { color: var(--text3); font-style: italic; }
-  select.field-input { font-family: sans-serif; cursor: pointer; -webkit-appearance: auto; }
+  select.field-input { font-family: var(--font); cursor: pointer; -webkit-appearance: auto; }
   textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  /* ── Estado de erro ── */
+  .info-cell.cell-error { background: rgba(229,62,62,.04); }
+  .info-cell.cell-error .info-label { color: var(--red); }
+  .info-cell.cell-error .field-input { border-bottom-color: var(--red) !important; }
+  .info-cell.cell-error .tags-container { border-bottom: 1px dashed var(--red); }
 
   /* ── Autocomplete tags ── */
   .tags-container {
@@ -99,7 +105,7 @@
     display: inline-flex; align-items: center; gap: 4px;
     background: var(--accent-light); color: var(--accent);
     border: 1px solid var(--accent); border-radius: 20px;
-    padding: 2px 10px 2px 10px; font-size: 12px; font-family: sans-serif;
+    padding: 2px 10px 2px 10px; font-size: 12px; font-family: var(--font);
   }
   .tag button {
     background: none; border: none; color: var(--accent); cursor: pointer;
@@ -108,7 +114,7 @@
   .autocomplete-wrap { position: relative; flex: 1; min-width: 120px; }
   .autocomplete-input {
     width: 100%; border: none; background: transparent; outline: none;
-    font-size: 13px; color: var(--text); font-family: sans-serif;
+    font-size: 13px; color: var(--text); font-family: var(--font);
     border-bottom: 1px dashed var(--border2); padding: 2px 0;
   }
   .autocomplete-input:focus { border-bottom-color: var(--accent); }
@@ -120,13 +126,13 @@
   }
   .autocomplete-dropdown.open { display: block; }
   .autocomplete-option {
-    padding: 8px 14px; font-size: 13px; font-family: sans-serif;
+    padding: 8px 14px; font-size: 13px; font-family: var(--font);
     cursor: pointer; color: var(--text);
   }
   .autocomplete-option:hover { background: var(--surface2); color: var(--accent); }
 
   /* ── Switch de bloqueio de seguro ── */
-  .block-switch-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-family: sans-serif; }
+  .block-switch-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-family: var(--font); }
   .block-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
   .block-toggle input { opacity: 0; width: 0; height: 0; }
   .block-slider { position: absolute; inset: 0; border-radius: 24px; background: var(--border2); cursor: pointer; transition: .2s; }
@@ -135,7 +141,7 @@
   .block-toggle input:checked + .block-slider:before { transform: translateX(20px); }
 
   /* ── Tabela de notas de seguro ── */
-  .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--font); }
   .hist-table thead th { padding: 8px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); background: var(--surface2); }
   .hist-table tbody tr { border-bottom: 1px solid var(--border); }
   .hist-table tbody tr:last-child { border-bottom: none; }
@@ -143,7 +149,7 @@
   .hist-table td.muted { color: var(--text3); white-space: nowrap; }
 
   /* ── Histórico valor/hora ── */
-  .rate-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-family: sans-serif; }
+  .rate-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-family: var(--font); }
   .rate-row:last-child { border-bottom: none; }
 
   /* ── Modais ── */
@@ -158,9 +164,74 @@
   .popup-footer { display:flex; gap:10px; justify-content:flex-end; padding:14px 22px; border-top:1px solid var(--border); }
   .popup-error { display:none; padding:10px 14px; border-radius:var(--radius); font-size:13px; background:#fdecea; color:var(--red); border:1px solid #f5c6cb; }
 </style>
+<script>
+// ── Máscaras de campos ────────────────────────────────────────────────────────
+
+function applyIdNumberMask(el) {
+  // Formato: 00.00.00-000.00  (11 dígitos)
+  const digits = el.value.replace(/\D/g, '').slice(0, 11);
+  const p = (s, n) => s.slice(0, n);
+  let out = '';
+  if (digits.length > 0)  out  = p(digits, 2);
+  if (digits.length > 2)  out += '.' + p(digits.slice(2), 2);
+  if (digits.length > 4)  out += '.' + p(digits.slice(4), 2);
+  if (digits.length > 6)  out += '-' + p(digits.slice(6), 3);
+  if (digits.length > 9)  out += '.' + p(digits.slice(9), 2);
+  el.value = out;
+}
+
+function applyPhoneMobileMask(el) {
+  // Formato: +32 471 84 6113  (prefixo +32, depois 9 dígitos: 3-2-4)
+  let raw = el.value;
+  // Extrair dígitos excluindo o prefixo fixo "+32"
+  const stripped = raw.replace(/^\+32\s?/, '').replace(/\D/g, '').slice(0, 9);
+  if (!stripped) { el.value = ''; return; }
+  let out = '+32 ';
+  out += stripped.slice(0, 3);
+  if (stripped.length > 3) out += ' ' + stripped.slice(3, 5);
+  if (stripped.length > 5) out += ' ' + stripped.slice(5, 9);
+  el.value = out;
+}
+
+function applyPhoneFixedMask(el) {
+  // Formato: +32 0 XXX XX XX  (prefixo +32 0, depois 7 dígitos: 3-2-2)
+  let raw = el.value;
+  const stripped = raw.replace(/^\+32\s?0?\s?/, '').replace(/\D/g, '').slice(0, 7);
+  if (!stripped) { el.value = ''; return; }
+  let out = '+32 0 ';
+  out += stripped.slice(0, 3);
+  if (stripped.length > 3) out += ' ' + stripped.slice(3, 5);
+  if (stripped.length > 5) out += ' ' + stripped.slice(5, 7);
+  el.value = out;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-mask="id_number"]').forEach(function (el) {
+    el.addEventListener('input', function () { applyIdNumberMask(this); });
+    el.addEventListener('blur',  function () { applyIdNumberMask(this); });
+    if (el.value) applyIdNumberMask(el);
+  });
+  document.querySelectorAll('[data-mask="phone_mobile"]').forEach(function (el) {
+    el.addEventListener('input', function () { applyPhoneMobileMask(this); });
+    el.addEventListener('blur',  function () { applyPhoneMobileMask(this); });
+    if (el.value) applyPhoneMobileMask(el);
+  });
+  document.querySelectorAll('[data-mask="phone_fixed"]').forEach(function (el) {
+    el.addEventListener('input', function () { applyPhoneFixedMask(this); });
+    el.addEventListener('blur',  function () { applyPhoneFixedMask(this); });
+    if (el.value) applyPhoneFixedMask(el);
+  });
+});
+</script>
 {% endblock %}
 
 {% block content %}
+{% if duplicate_source %}
+<div style="background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-family:var(--font);font-size:13px;color:var(--text);">
+  <strong>Duplicação de cadastro</strong> — Os dados básicos de <a href="{% url 'workforce:detail' duplicate_source.pk %}" style="color:var(--accent);">{{ duplicate_source.name }}</a> foram copiados.
+  Preencha a empresa, função e restantes dados obrigatórios antes de guardar.
+</div>
+{% endif %}
 <div class="page-header">
   <div>
     <h1 class="page-title">{{ title }}</h1>
@@ -199,7 +270,7 @@
       </div>
       <input type="file" name="photo" id="id_photo" accept="image/*" style="display:none;">
       {% if collaborator and collaborator.photo %}
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-family:sans-serif;color:var(--red);cursor:pointer;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-family:var(--font);color:var(--red);cursor:pointer;">
         <input type="checkbox" name="photo-clear" id="photo-clear-id" onchange="clearPhoto(this)"> Remover foto
       </label>
       {% endif %}
@@ -223,7 +294,7 @@
       <div style="display:none;">{{ form.status }}</div>
 
       {% if collaborator %}
-      <div style="font-size:12px;color:var(--text3);font-family:sans-serif;text-align:center;">
+      <div style="font-size:12px;color:var(--text3);font-family:var(--font);text-align:center;">
         Registado em {{ collaborator.created_at|date:"d/m/Y" }}<br>
         Atualizado em {{ collaborator.updated_at|date:"d/m/Y" }}
       </div>
@@ -246,7 +317,7 @@
         </div>
         {% endfor %}
       {% else %}
-        <div style="padding:14px 16px;font-size:13px;color:var(--text3);font-family:sans-serif;">Sem valores registados.</div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--text3);font-family:var(--font);">Sem valores registados.</div>
       {% endif %}
     </div>
     {% endif %}
@@ -261,25 +332,28 @@
       <div class="card-title">Dados pessoais</div>
       <div class="info-grid">
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.name.errors %} cell-error{% endif %}">
           <div class="info-label">Nome completo *</div>
           {{ form.name }}
-          {% if form.name.errors %}<div class="field-error">{{ form.name.errors.0 }}</div>{% endif %}
+          {% if form.name.errors %}<div class="field-error">Campo obrigatório</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.birth_date.errors %} cell-error{% endif %}">
           <div class="info-label">Data de nascimento</div>
           {{ form.birth_date }}
+          {% if form.birth_date.errors %}<div class="field-error">{{ form.birth_date.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.id_number.errors %} cell-error{% endif %}">
           <div class="info-label">Nº de identidade</div>
           {{ form.id_number }}
+          {% if form.id_number.errors %}<div class="field-error">{{ form.id_number.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.id_expiry.errors %} cell-error{% endif %}">
           <div class="info-label">Validade do documento</div>
           {{ form.id_expiry }}
+          {% if form.id_expiry.errors %}<div class="field-error">{{ form.id_expiry.errors.0 }}</div>{% endif %}
         </div>
 
         <!-- Nacionalidade (autocomplete multi) -->
@@ -334,25 +408,28 @@
       <div class="card-title">Contactos</div>
       <div class="info-grid">
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.phone.errors %} cell-error{% endif %}">
           <div class="info-label">Telefone principal</div>
           {{ form.phone }}
+          {% if form.phone.errors %}<div class="field-error">{{ form.phone.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.phone2.errors %} cell-error{% endif %}">
           <div class="info-label">Telefone alternativo</div>
           {{ form.phone2 }}
+          {% if form.phone2.errors %}<div class="field-error">{{ form.phone2.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.email.errors %} cell-error{% endif %}">
           <div class="info-label">Email principal</div>
           {{ form.email }}
           {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell">
+        <div class="info-cell{% if form.email2.errors %} cell-error{% endif %}">
           <div class="info-label">Email alternativo</div>
           {{ form.email2 }}
+          {% if form.email2.errors %}<div class="field-error">{{ form.email2.errors.0 }}</div>{% endif %}
         </div>
 
       </div>
@@ -363,26 +440,35 @@
       <div class="card-title">Empresa</div>
       <div class="info-grid cols-4">
 
-        <div class="info-cell span-2">
-          <div class="info-label">Empresa / Subcontratado *</div>
+        <div class="info-cell span-2{% if form.company.errors %} cell-error{% endif %}">
+          <div class="info-label">
+            Empresa / Subcontratado *
+            {% if company_locked %}
+            <span title="Este colaborador tem registos noutros módulos. A empresa não pode ser alterada." style="margin-left:6px;color:var(--text3);cursor:help;font-size:13px;">&#128274;</span>
+            {% endif %}
+          </div>
           {{ form.company }}
-          {% if form.company.errors %}<div class="field-error">{{ form.company.errors.0 }}</div>{% endif %}
+          {% if company_locked %}<div class="field-error" style="color:var(--text3);font-size:11px;margin-top:4px;">Bloqueado — colaborador com registos em outros módulos.</div>{% endif %}
+          {% if form.company.errors %}<div class="field-error">Campo obrigatório</div>{% endif %}
         </div>
 
-        <div class="info-cell span-2">
+        <div class="info-cell span-2{% if form.role.errors %} cell-error{% endif %}">
           <div class="info-label">Função / Role</div>
           {{ form.role }}
+          {% if form.role.errors %}<div class="field-error">{{ form.role.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell span-2">
+        <div class="info-cell span-2{% if form.entry_date.errors %} cell-error{% endif %}">
           <div class="info-label">Data de entrada</div>
           {{ form.entry_date }}
+          {% if form.entry_date.errors %}<div class="field-error">{{ form.entry_date.errors.0 }}</div>{% endif %}
         </div>
 
-        <div class="info-cell span-2">
+        <div class="info-cell span-2{% if form.exit_date.errors %} cell-error{% endif %}">
           <div class="info-label">Data de saída</div>
           {{ form.exit_date }}
           <div class="field-hint">Preencher inativa o colaborador automaticamente.</div>
+          {% if form.exit_date.errors %}<div class="field-error">{{ form.exit_date.errors.0 }}</div>{% endif %}
         </div>
 
       </div>
@@ -393,9 +479,10 @@
       <div class="card-title">Seguro</div>
       <div class="info-grid">
 
-        <div class="info-cell full">
+        <div class="info-cell full{% if form.insurance_fund.errors %} cell-error{% endif %}">
           <div class="info-label">Caixa de seguro</div>
           {{ form.insurance_fund }}
+          {% if form.insurance_fund.errors %}<div class="field-error">{{ form.insurance_fund.errors.0 }}</div>{% endif %}
         </div>
 
       </div>
@@ -404,7 +491,7 @@
       {% if collaborator %}
       <div style="border-top:1px solid var(--border);">
         <div style="padding:10px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-          <span style="font-size:12px;font-family:sans-serif;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Registos / pendências</span>
+          <span style="font-size:12px;font-family:var(--font);font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Registos / pendências</span>
           <button type="button" class="btn btn-ghost btn-sm" onclick="openInsuranceModal()">+ Adicionar</button>
         </div>
         {% if insurance_notes %}
@@ -437,7 +524,7 @@
           </tbody>
         </table>
         {% else %}
-        <div id="ins-empty" style="padding:14px 18px;font-size:13px;color:var(--text3);font-family:sans-serif;">Nenhum registo.</div>
+        <div id="ins-empty" style="padding:14px 18px;font-size:13px;color:var(--text3);font-family:var(--font);">Nenhum registo.</div>
         {% endif %}
       </div>
       {% endif %}
@@ -542,10 +629,11 @@
     {% endif %}
 
     <!-- 6. NOTAS -->
-    <div class="info-card">
+    <div class="info-card{% if form.notes.errors %} cell-error{% endif %}">
       <div class="card-title">Notas / Informações adicionais</div>
       <div style="padding:12px 20px;">
         {{ form.notes }}
+        {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
       </div>
     </div>
 
@@ -615,7 +703,7 @@
               <input type="checkbox" id="ins-blocked">
               <span class="block-slider"></span>
             </label>
-            <span id="ins-blocked-label" style="font-family:sans-serif;font-size:13px;">Marcar como bloqueado</span>
+            <span id="ins-blocked-label" style="font-family:var(--font);font-size:13px;">Marcar como bloqueado</span>
           </div>
           <div class="field-hint" style="margin-top:6px;">Ao marcar, o colaborador fica impedido de trabalhar até resolução.</div>
         </div>
@@ -881,5 +969,11 @@ async function saveInsuranceNote() {
 INS_DLG.addEventListener('click', e => { if (!e.target.closest('.popup-panel')) closeInsuranceModal(); });
 INS_DLG.addEventListener('cancel', e => { e.preventDefault(); closeInsuranceModal(); });
 {% endif %}
+
+// Rolar para o primeiro campo com erro após POST inválido
+(function () {
+  const first = document.querySelector('.cell-error');
+  if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+})();
 </script>
 {% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Equipamentos — Construart{% endblock %}
+{% block breadcrumb %}<span class="current">Equipamentos</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .eq-grid { display: grid; gap: 10px; }
+  .eq-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 18px;
+    display: grid; grid-template-columns: auto 1fr auto auto;
+    align-items: center; gap: 14px;
+    box-shadow: var(--shadow); transition: border-color .15s;
+  }
+  .eq-card:hover { border-color: var(--accent); }
+  .eq-code {
+    font-weight: 800; font-size: 13px; color: var(--accent);
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 4px 10px; white-space: nowrap;
+    min-width: 60px; text-align: center;
+  }
+  .eq-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
+  .eq-name a { color: var(--text); text-decoration: none; }
+  .eq-name a:hover { color: var(--accent); }
+  .eq-meta { font-size: 13px; color: var(--text3); display: flex; gap: 10px; flex-wrap: wrap; font-family: sans-serif; }
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .filter-bar form { display: flex; gap: 8px; flex: 1; min-width: 200px; }
+  .filter-bar input, .filter-bar select {
+    flex: 1; padding: 8px 12px; border: 1px solid var(--border2);
+    border-radius: var(--radius); font-size: 14px;
+    background: var(--surface); color: var(--text);
+  }
+  .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--accent); }
+  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  @media (max-width: 600px) { .eq-card { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🔧 Equipamentos</h1>
+    <p class="page-sub">Ferramentas e equipamentos da empresa</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'equipment:loan_list' %}" class="btn btn-ghost">📋 Empréstimos ativos</a>
+    <a href="{% url 'equipment:create' %}" class="btn btn-primary">+ Novo equipamento</a>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <form method="get" style="display:flex;gap:8px;flex:1;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Pesquisar nome, marca, nº série...">
+    {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <button type="submit" class="btn btn-ghost">Pesquisar</button>
+    {% if q or status_filter or category_filter %}<a href="?" class="btn btn-ghost">✕</a>{% endif %}
+  </form>
+  <select onchange="location='?status='+this.value+'{% if q %}&q={{ q }}{% endif %}'" class="sf-btn" style="border-radius:var(--radius);">
+    <option value="">Todos os estados</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select onchange="location='?category='+this.value+'{% if q %}&q={{ q }}{% endif %}'" class="sf-btn" style="border-radius:var(--radius);">
+    <option value="">Todas as categorias</option>
+    {% for cat in categories %}
+    <option value="{{ cat.pk }}" {% if category_filter == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if equipments %}
+<div class="eq-grid">
+  {% for eq in equipments %}
+  <div class="eq-card">
+    {% if eq.internal_code %}
+    <span class="eq-code">{{ eq.internal_code }}</span>
+    {% else %}
+    <span class="eq-code" style="color:var(--text4);">—</span>
+    {% endif %}
+    <div>
+      <div class="eq-name">
+        <a href="{% url 'equipment:detail' eq.pk %}">{{ eq.name }}{% if eq.brand %} — {{ eq.brand }}{% if eq.model %} {{ eq.model }}{% endif %}{% endif %}</a>
+      </div>
+      <div class="eq-meta">
+        <span>{{ eq.category }}</span>
+        <span>{{ eq.get_condition_display }}</span>
+        {% if eq.serial_number %}<span>S/N: {{ eq.serial_number }}</span>{% endif %}
+        {% if eq.status == 'loaned' and eq.active_loan %}<span>👤 {{ eq.active_loan.collaborator }}</span>{% endif %}
+      </div>
+    </div>
+    <span class="badge
+      {% if eq.status == 'available' %}badge-green
+      {% elif eq.status == 'loaned' %}badge-blue
+      {% elif eq.status == 'maintenance' %}badge-amber
+      {% else %}badge-gray{% endif %}">
+      {{ eq.get_status_display }}
+    </span>
+    <a href="{% url 'equipment:edit' eq.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
+  <p style="font-size:32px;margin-bottom:12px;">🔧</p>
+  <p>Nenhum equipamento encontrado.</p>
+  <a href="{% url 'equipment:create' %}" class="btn btn-primary" style="margin-top:16px;">Adicionar primeiro equipamento</a>
+</div>
+{% endif %}
+{% endblock %}

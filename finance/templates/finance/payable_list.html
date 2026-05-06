@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Contas a Pagar — Construart{% endblock %}
+{% block tab_parent %}/finance/{% endblock %}
+{% block tab_icon %}💸{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'finance:dashboard' %}">{% trans "Financeiro" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{% trans "Contas a pagar" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .dt-wrap { overflow-x:auto; }
+  .dt { width:100%; border-collapse:collapse; font-size:13px; font-family:sans-serif; }
+  .dt thead th { padding:9px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+  .dt tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+  .dt tbody tr:last-child { border-bottom:none; }
+  .dt tbody tr:hover { background:var(--surface2); }
+  .dt td { padding:10px 14px; color:var(--text); vertical-align:middle; }
+  .dt td.muted { color:var(--text3); }
+  .dt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dt-empty { padding:20px; text-align:center; font-size:13px; color:var(--text3); font-family:sans-serif; }
+  .overdue-row td { background:color-mix(in srgb,var(--red) 4%,transparent); }
+  .overdue-date { color:var(--red); font-weight:600; }
+
+  .btn-icon { width:28px; height:28px; border:1px solid var(--border); border-radius:var(--radius); background:none; color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .btn-icon:hover { background:var(--surface2); color:var(--accent); }
+  .btn-icon.danger:hover { background:var(--red-light); color:var(--red); }
+
+  .popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:600; align-items:center; justify-content:center; }
+  .popup-overlay.open { display:flex; }
+  .popup { background:var(--surface); border-radius:var(--radius-lg); width:560px; max-width:96vw; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-md); }
+  .popup-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--surface); z-index:1; }
+  .popup-title { font-size:15px; font-weight:500; }
+  .popup-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text3); }
+  .popup-body { padding:22px; }
+  .popup-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+  .form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-grid2 .span-2 { grid-column:span 2; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns:1fr; } .form-grid2 .span-2 { grid-column:span 1; } }
+  .field-error { color:var(--red); font-size:12px; margin-top:3px; font-family:sans-serif; }
+  .popup-alert { padding:9px 12px; border-radius:var(--radius); font-size:13px; display:none; margin-bottom:12px; font-family:sans-serif; }
+  .popup-alert.show { display:block; }
+  .popup-alert.error { background:var(--red-light); color:var(--red); }
+
+  /* Payments panel inside row */
+  .payments-panel { display:none; background:var(--surface2); padding:12px 18px 12px 40px; border-bottom:1px solid var(--border); }
+  .payments-panel.open { display:block; }
+  .payments-panel table { width:100%; font-size:12px; font-family:sans-serif; border-collapse:collapse; }
+  .payments-panel td { padding:5px 10px; border-bottom:1px solid var(--border); }
+  .payments-panel tr:last-child td { border-bottom:none; }
+  .payments-panel .num { text-align:right; font-variant-numeric:tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% trans "Contas a pagar" %}</h1>
+  <button class="btn btn-primary" onclick="openPayablePopup()">+ {% trans "Nova conta" %}</button>
+</div>
+
+<div class="filters">
+  <a href="{% url 'finance:payables' %}" class="btn {% if not status_filter %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">{% trans "Todas" %}</a>
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="btn {% if status_filter == val %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card" style="overflow:hidden;">
+  <div class="dt-wrap">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th></th>
+          <th>{% trans "Fornecedor" %}</th>
+          <th>{% trans "Descrição" %}</th>
+          <th>{% trans "Projeto" %}</th>
+          <th>{% trans "Emissão" %}</th>
+          <th>{% trans "Vencimento" %}</th>
+          <th class="num">{% trans "Valor" %}</th>
+          <th class="num">{% trans "Pago" %}</th>
+          <th class="num">{% trans "Em aberto" %}</th>
+          <th>{% trans "Estado" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="payables-tbody">
+        {% for p in payables %}
+        <tr data-id="{{ p.pk }}"
+            data-supplier-id="{{ p.supplier_id|default:'' }}"
+            data-project-id="{{ p.project_id|default:'' }}"
+            data-amount="{{ p.amount }}"
+            data-issue="{{ p.issue_date|date:'Y-m-d' }}"
+            data-due="{{ p.due_date|date:'Y-m-d'|default:'' }}"
+            data-status="{{ p.status }}"
+            data-reference="{{ p.reference|escapejs }}"
+            data-description="{{ p.description|escapejs }}"
+            data-notes="{{ p.notes|escapejs }}"
+            {% if p.is_overdue %}class="overdue-row"{% endif %}>
+          <td style="width:28px;">
+            <button class="btn-icon" title="{% trans 'Pagamentos' %}" onclick="togglePayments({{ p.pk }}, this)">▶</button>
+          </td>
+          <td style="font-weight:500;">{{ p.supplier|default:"—" }}</td>
+          <td class="muted">{{ p.description|default:"—"|truncatechars:35 }}</td>
+          <td class="muted">{{ p.project.name|default:"—" }}</td>
+          <td class="muted">{{ p.issue_date|date:"d/m/Y" }}</td>
+          <td {% if p.is_overdue %}class="overdue-date"{% else %}class="muted"{% endif %}>
+            {{ p.due_date|date:"d/m/Y"|default:"—" }}
+          </td>
+          <td class="num">€{{ p.amount|floatformat:2 }}</td>
+          <td class="num" style="color:var(--green);">€{{ p.amount_paid|floatformat:2 }}</td>
+          <td class="num" style="font-weight:500;" id="remaining-{{ p.pk }}">€{{ p.amount_remaining|floatformat:2 }}</td>
+          <td id="status-{{ p.pk }}">
+            {% include "finance/_status_badge.html" with status=p.status display=p.get_status_display %}
+          </td>
+          <td>
+            <div style="display:flex;gap:4px;justify-content:flex-end;">
+              <button class="btn-icon" title="{% trans 'Registar pagamento' %}" onclick="openPaymentPopup(null, {{ p.pk }}, null)">💳</button>
+              <button class="btn-icon" title="{% trans 'Editar' %}" onclick="openPayablePopup({{ p.pk }})">✏️</button>
+              <button class="btn-icon danger" title="{% trans 'Eliminar' %}" onclick="deletePayable({{ p.pk }})">🗑</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="payments-panel-row" id="payments-panel-{{ p.pk }}" style="display:none;">
+          <td colspan="11" style="padding:0;">
+            <div class="payments-panel open" id="payments-inner-{{ p.pk }}">
+              <table>
+                <thead><tr>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Data" %}</td>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Método" %}</td>
+                  <td style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Ref." %}</td>
+                  <td class="num" style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);">{% trans "Valor" %}</td>
+                  <td></td>
+                </tr></thead>
+                <tbody id="pmt-tbody-{{ p.pk }}">
+                  {% for pmt in p.payments.all %}
+                  <tr data-id="{{ pmt.pk }}">
+                    <td>{{ pmt.date|date:"d/m/Y" }}</td>
+                    <td>{{ pmt.get_method_display }}</td>
+                    <td>{{ pmt.reference|default:"—" }}</td>
+                    <td class="num">€{{ pmt.amount|floatformat:2 }}</td>
+                    <td style="text-align:right;">
+                      <button class="btn-icon danger" onclick="deletePayment({{ pmt.pk }}, {{ p.pk }}, null)">🗑</button>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr id="pmt-empty-{{ p.pk }}"><td colspan="5" style="padding:6px 10px;color:var(--text3);">{% trans "Sem pagamentos." %}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr id="payables-empty"><td colspan="11" class="dt-empty">{% trans "Nenhuma conta a pagar encontrada." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ POPUP CONTA A PAGAR ══ -->
+<div class="popup-overlay" id="payable-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="payable-popup-title">{% trans "Conta a pagar" %}</span>
+      <button class="popup-close" onclick="closePopup('payable-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="payable-error"></div>
+      <input type="hidden" id="payable-pk">
+      <div class="form-grid2">
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Fornecedor" %}</label>
+          <select id="pay-supplier" class="form-control">
+            <option value="">— {% trans "Selecionar" %} —</option>
+            {% for s in suppliers %}
+            <option value="{{ s.pk }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Projeto" %}</label>
+          <select id="pay-project" class="form-control">
+            <option value="">—</option>
+            {% for p in projects %}
+            <option value="{{ p.pk }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Descrição" %}</label>
+          <input type="text" id="pay-description" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Referência" %}</label>
+          <input type="text" id="pay-reference" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Valor (€)" %} *</label>
+          <input type="number" step="0.01" id="pay-amount" class="form-control">
+          <div class="field-error" id="err-pay-amount"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Data emissão" %} *</label>
+          <input type="date" id="pay-issue" class="form-control">
+          <div class="field-error" id="err-pay-issue_date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Vencimento" %}</label>
+          <input type="date" id="pay-due" class="form-control">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="pay-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="payable-save-btn" onclick="savePayable()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('payable-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP PAGAMENTO ══ -->
+<div class="popup-overlay" id="payment-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title">{% trans "Registar pagamento" %}</span>
+      <button class="popup-close" onclick="closePopup('payment-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="payment-error"></div>
+      <input type="hidden" id="pmt-payable-id">
+      <input type="hidden" id="pmt-receivable-id">
+      <div class="form-grid2">
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %} *</label>
+          <input type="date" id="pmt-date" class="form-control">
+          <div class="field-error" id="err-pmt-date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Valor (€)" %} *</label>
+          <input type="number" step="0.01" id="pmt-amount" class="form-control">
+          <div class="field-error" id="err-pmt-amount"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Método" %}</label>
+          <select id="pmt-method" class="form-control">
+            {% for val, label in method_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Referência" %}</label>
+          <input type="text" id="pmt-reference" class="form-control">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="pmt-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="payment-save-btn" onclick="savePayment()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('payment-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CSRF = '{{ csrf_token }}';
+  const URL_PAYABLE_SAVE   = "{% url 'finance:payable_save' %}";
+  const URL_PAYABLE_DELETE = (id) => "{% url 'finance:payable_delete' 0 %}".replace('/0/', `/${id}/`);
+  const URL_PAYMENT_SAVE   = "{% url 'finance:payment_save' %}";
+  const URL_PAYMENT_DELETE = (id) => "{% url 'finance:payment_delete' 0 %}".replace('/0/', `/${id}/`);
+
+  function post(url, data) {
+    return fetch(url, { method:'POST', body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }) });
+  }
+  function fmt(v) { return '€' + parseFloat(v).toFixed(2).replace('.', ','); }
+
+  function statusBadge(status, display) {
+    const map = { pending:'badge-amber', partial:'badge-amber', paid:'badge-green', cancelled:'badge-red' };
+    return `<span class="badge ${map[status]||'badge-gray'}">${display}</span>`;
+  }
+
+  function clearErrors(prefix) {
+    document.querySelectorAll(`[id^="err-${prefix}"]`).forEach(el => el.textContent = '');
+    const a = document.getElementById(`${prefix}-error`);
+    if (a) { a.textContent = ''; a.classList.remove('show'); }
+  }
+
+  window.closePopup = function (id) { document.getElementById(id).classList.remove('open'); };
+  document.querySelectorAll('.popup-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  // ── Toggle payments panel ─────────────────────────────────────────────────
+  window.togglePayments = function (pk, btn) {
+    const panelRow = document.getElementById(`payments-panel-${pk}`);
+    const open = panelRow.style.display !== 'none';
+    panelRow.style.display = open ? 'none' : '';
+    btn.textContent = open ? '▶' : '▼';
+  };
+
+  // ── Payable CRUD ──────────────────────────────────────────────────────────
+  window.openPayablePopup = function (pk) {
+    clearErrors('payable');
+    document.getElementById('payable-pk').value = pk || '';
+    document.getElementById('payable-popup-title').textContent = pk ? '{% trans "Editar conta" %}' : '{% trans "Nova conta a pagar" %}';
+    if (pk) {
+      const row = document.querySelector(`#payables-tbody tr[data-id="${pk}"]`);
+      document.getElementById('pay-supplier').value    = row.dataset.supplierId || '';
+      document.getElementById('pay-project').value     = row.dataset.projectId || '';
+      document.getElementById('pay-description').value = row.dataset.description || '';
+      document.getElementById('pay-reference').value   = row.dataset.reference || '';
+      document.getElementById('pay-amount').value      = row.dataset.amount || '';
+      document.getElementById('pay-issue').value       = row.dataset.issue || '';
+      document.getElementById('pay-due').value         = row.dataset.due || '';
+      document.getElementById('pay-notes').value       = row.dataset.notes || '';
+    } else {
+      ['pay-supplier','pay-project','pay-description','pay-reference','pay-amount','pay-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('pay-issue').value = new Date().toISOString().slice(0,10);
+      document.getElementById('pay-due').value   = '';
+    }
+    document.getElementById('payable-overlay').classList.add('open');
+  };
+
+  window.savePayable = function () {
+    clearErrors('payable');
+    const data = {
+      entry_pk:    document.getElementById('payable-pk').value,
+      supplier_id: document.getElementById('pay-supplier').value,
+      project_id:  document.getElementById('pay-project').value,
+      description: document.getElementById('pay-description').value,
+      reference:   document.getElementById('pay-reference').value,
+      amount:      document.getElementById('pay-amount').value,
+      issue_date:  document.getElementById('pay-issue').value,
+      due_date:    document.getElementById('pay-due').value,
+      notes:       document.getElementById('pay-notes').value,
+    };
+    const btn = document.getElementById('payable-save-btn');
+    btn.disabled = true;
+    post(URL_PAYABLE_SAVE, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) {
+        Object.entries(json.errors||{}).forEach(([f,m]) => {
+          const el = document.getElementById(`err-pay-${f}`); if (el) el.textContent = m[0]||m;
+        });
+        return;
+      }
+      const e = json.entry;
+      const existing = document.querySelector(`#payables-tbody tr[data-id="${e.id}"]`);
+      if (existing) {
+        existing.dataset.supplierId  = data.supplier_id;
+        existing.dataset.projectId   = data.project_id;
+        existing.dataset.description = data.description;
+        existing.dataset.reference   = data.reference;
+        existing.dataset.amount      = e.amount;
+        existing.dataset.issue       = e.issue_date;
+        existing.dataset.due         = e.due_date;
+        existing.dataset.notes       = data.notes;
+        const cells = existing.querySelectorAll('td');
+        cells[1].textContent = e.supplier;
+        cells[2].textContent = (e.description||'—').substring(0,35);
+        cells[3].textContent = e.project;
+        cells[4].textContent = e.issue_date.split('-').reverse().join('/');
+        cells[5].textContent = e.due_date ? e.due_date.split('-').reverse().join('/') : '—';
+        cells[6].textContent = fmt(e.amount);
+        cells[7].textContent = fmt(e.amount_paid);
+        document.getElementById(`remaining-${e.id}`).textContent = fmt(e.amount_remaining);
+        document.getElementById(`status-${e.id}`).innerHTML = statusBadge(e.status, e.status_display);
+      } else {
+        const emptyRow = document.getElementById('payables-empty');
+        if (emptyRow) emptyRow.remove();
+        const tbody = document.getElementById('payables-tbody');
+        const tr = document.createElement('tr');
+        tr.dataset.id = e.id; tr.dataset.supplierId = data.supplier_id; tr.dataset.projectId = data.project_id;
+        tr.dataset.description = data.description; tr.dataset.reference = data.reference;
+        tr.dataset.amount = e.amount; tr.dataset.issue = e.issue_date; tr.dataset.due = e.due_date; tr.dataset.notes = data.notes;
+        tr.innerHTML = `
+          <td style="width:28px;"><button class="btn-icon" onclick="togglePayments(${e.id},this)">▶</button></td>
+          <td style="font-weight:500;">${e.supplier}</td>
+          <td class="muted">${(e.description||'—').substring(0,35)}</td>
+          <td class="muted">${e.project}</td>
+          <td class="muted">${e.issue_date.split('-').reverse().join('/')}</td>
+          <td class="muted">${e.due_date ? e.due_date.split('-').reverse().join('/') : '—'}</td>
+          <td class="num">${fmt(e.amount)}</td>
+          <td class="num" style="color:var(--green);">${fmt(e.amount_paid)}</td>
+          <td class="num" style="font-weight:500;" id="remaining-${e.id}">${fmt(e.amount_remaining)}</td>
+          <td id="status-${e.id}">${statusBadge(e.status, e.status_display)}</td>
+          <td><div style="display:flex;gap:4px;justify-content:flex-end;">
+            <button class="btn-icon" onclick="openPaymentPopup(null,${e.id},null)">💳</button>
+            <button class="btn-icon" onclick="openPayablePopup(${e.id})">✏️</button>
+            <button class="btn-icon danger" onclick="deletePayable(${e.id})">🗑</button>
+          </div></td>`;
+        tbody.prepend(tr);
+        // add empty payments panel row
+        const panelRow = document.createElement('tr');
+        panelRow.id = `payments-panel-${e.id}`;
+        panelRow.style.display = 'none';
+        panelRow.innerHTML = `<td colspan="11" style="padding:0;"><div class="payments-panel open" id="payments-inner-${e.id}"><table><tbody id="pmt-tbody-${e.id}"><tr id="pmt-empty-${e.id}"><td colspan="5" style="padding:6px 10px;color:var(--text3);">{% trans "Sem pagamentos." %}</td></tr></tbody></table></div></td>`;
+        tr.after(panelRow);
+      }
+      closePopup('payable-overlay');
+    }).catch(() => { btn.disabled = false; });
+  };
+
+  window.deletePayable = function (pk) {
+    if (!confirm('{% trans "Eliminar esta conta a pagar?" %}')) return;
+    post(URL_PAYABLE_DELETE(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) { alert(json.error || '{% trans "Erro ao eliminar." %}'); return; }
+      document.querySelector(`#payables-tbody tr[data-id="${pk}"]`)?.remove();
+      document.getElementById(`payments-panel-${pk}`)?.remove();
+    });
+  };
+
+  // ── Payment CRUD ──────────────────────────────────────────────────────────
+  window.openPaymentPopup = function (pmtPk, payableId, receivableId) {
+    clearErrors('payment');
+    document.getElementById('pmt-payable-id').value    = payableId || '';
+    document.getElementById('pmt-receivable-id').value = receivableId || '';
+    document.getElementById('pmt-date').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('pmt-amount').value    = '';
+    document.getElementById('pmt-method').value    = 'transfer';
+    document.getElementById('pmt-reference').value = '';
+    document.getElementById('pmt-notes').value     = '';
+
+    // Pre-fill amount with remaining
+    if (payableId) {
+      const rem = document.getElementById(`remaining-${payableId}`);
+      if (rem) document.getElementById('pmt-amount').value = rem.textContent.replace('€','').replace(',','.');
+    }
+    document.getElementById('payment-overlay').classList.add('open');
+  };
+
+  window.savePayment = function () {
+    clearErrors('payment');
+    const data = {
+      payable_id:    document.getElementById('pmt-payable-id').value,
+      receivable_id: document.getElementById('pmt-receivable-id').value,
+      date:          document.getElementById('pmt-date').value,
+      amount:        document.getElementById('pmt-amount').value,
+      method:        document.getElementById('pmt-method').value,
+      reference:     document.getElementById('pmt-reference').value,
+      notes:         document.getElementById('pmt-notes').value,
+    };
+    const btn = document.getElementById('payment-save-btn');
+    btn.disabled = true;
+    post(URL_PAYMENT_SAVE, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) {
+        Object.entries(json.errors||{}).forEach(([f,m]) => {
+          const el = document.getElementById(`err-pmt-${f}`); if (el) el.textContent = m[0]||m;
+        });
+        return;
+      }
+      const p = json.payment;
+      const e = json.parent;
+      const payableId = data.payable_id;
+
+      // Update parent row
+      document.getElementById(`remaining-${e.id}`).textContent = fmt(e.amount_remaining);
+      document.getElementById(`status-${e.id}`).innerHTML = statusBadge(e.status, e.status_display);
+      const cells = document.querySelector(`#payables-tbody tr[data-id="${e.id}"]`)?.querySelectorAll('td');
+      if (cells) cells[7].textContent = fmt(e.amount_paid);
+
+      // Add payment row in panel
+      const emptyPmt = document.getElementById(`pmt-empty-${payableId}`);
+      if (emptyPmt) emptyPmt.remove();
+      const tbody = document.getElementById(`pmt-tbody-${payableId}`);
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = p.id;
+        tr.innerHTML = `
+          <td>${p.date.split('-').reverse().join('/')}</td>
+          <td>${p.method}</td>
+          <td>${p.reference||'—'}</td>
+          <td class="num">€${parseFloat(p.amount).toFixed(2).replace('.', ',')}</td>
+          <td style="text-align:right;"><button class="btn-icon danger" onclick="deletePayment(${p.id},${payableId},null)">🗑</button></td>`;
+        tbody.appendChild(tr);
+      }
+
+      // Show panel
+      const panelRow = document.getElementById(`payments-panel-${payableId}`);
+      if (panelRow) { panelRow.style.display = ''; }
+      const expandBtn = document.querySelector(`#payables-tbody tr[data-id="${payableId}"] button.btn-icon`);
+      if (expandBtn) expandBtn.textContent = '▼';
+
+      closePopup('payment-overlay');
+    }).catch(() => { btn.disabled = false; });
+  };
+
+  window.deletePayment = function (pmtPk, payableId, receivableId) {
+    if (!confirm('{% trans "Eliminar este pagamento?" %}')) return;
+    post(URL_PAYMENT_DELETE(pmtPk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      document.querySelector(`#pmt-tbody-${payableId} tr[data-id="${pmtPk}"]`)?.remove();
+      const e = json.parent;
+      document.getElementById(`remaining-${e.id}`).textContent = fmt(e.amount_remaining);
+      document.getElementById(`status-${e.id}`).innerHTML = statusBadge(e.status, e.status_display);
+      const cells = document.querySelector(`#payables-tbody tr[data-id="${e.id}"]`)?.querySelectorAll('td');
+      if (cells) cells[7].textContent = fmt(e.amount_paid);
+      // Add empty row if no more payments
+      const tbody = document.getElementById(`pmt-tbody-${payableId}`);
+      if (tbody && !tbody.querySelector('tr[data-id]')) {
+        const tr = document.createElement('tr');
+        tr.id = `pmt-empty-${payableId}`;
+        tr.innerHTML = `<td colspan="5" style="padding:6px 10px;color:var(--text3);">{% trans "Sem pagamentos." %}</td>`;
+        tbody.appendChild(tr);
+      }
+    });
+  };
+})();
+</script>
+{% endblock %}

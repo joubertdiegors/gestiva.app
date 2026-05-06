@@ -1,0 +1,40 @@
+{% load i18n %}
+<div class="info-grid">
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.expense_type.label }}</div>
+    {{ form.expense_type }}
+    {% if form.expense_type.errors %}<div class="field-error">{{ form.expense_type.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.date.label }}</div>
+    {{ form.date }}
+    {% if form.date.errors %}<div class="field-error">{{ form.date.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.amount.label }}</div>
+    {{ form.amount }}
+    {% if form.amount.errors %}<div class="field-error">{{ form.amount.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell">
+    <div class="info-label">{{ form.driver.label }}</div>
+    {{ form.driver }}
+    {% if form.driver.errors %}<div class="field-error">{{ form.driver.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full">
+    <div class="info-label">{{ form.description.label }}</div>
+    {{ form.description }}
+    {% if form.description.errors %}<div class="field-error">{{ form.description.errors.0 }}</div>{% endif %}
+  </div>
+
+  <div class="info-cell full" style="border-bottom:none;">
+    <div class="info-label">{{ form.notes.label }}</div>
+    {{ form.notes }}
+    {% if form.notes.errors %}<div class="field-error">{{ form.notes.errors.0 }}</div>{% endif %}
+  </div>
+
+</div>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if is_create %}Novo Contrato{% else %}Editar Contrato{% endif %} — {{ supplier.name }} — Construart{% endblock %}
+{% block tab_parent %}suppliers{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.form-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:640px){.form-grid-2,.form-grid-3{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <p class="page-sub" style="margin-bottom:4px">
+      <a href="{% url 'contracts:supplier_contracts' supplier_pk=supplier.pk %}" style="color:var(--accent);text-decoration:none">{{ supplier.name }}</a>
+    </p>
+    <h1 class="page-title">{% if is_create %}Novo Contrato de Fornecedor{% else %}Editar Contrato{% endif %}</h1>
+  </div>
+  <a href="{% url 'contracts:supplier_contracts' supplier_pk=supplier.pk %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="form-section">
+    <div class="form-section-title">Identificação</div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Título <span style="color:var(--danger)">*</span></label>{{ form.title }}{% if form.title.errors %}<div class="form-error">{{ form.title.errors.0 }}</div>{% endif %}</div>
+      <div class="form-group"><label class="form-label">Referência</label>{{ form.reference }}</div>
+    </div>
+    <div class="form-grid-3">
+      <div class="form-group"><label class="form-label">Data de Assinatura</label>{{ form.signed_date }}</div>
+      <div class="form-group"><label class="form-label">Válido de</label>{{ form.valid_from }}</div>
+      <div class="form-group"><label class="form-label">Válido até</label>{{ form.valid_until }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Estado e Notas</div>
+    <div style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Estado</label>{{ form.status }}</div>
+    </div>
+    <div class="form-group"><label class="form-label">Notas</label>{{ form.notes }}</div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="{% url 'contracts:supplier_contracts' supplier_pk=supplier.pk %}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+  </div>
+</form>
+{% endblock %}

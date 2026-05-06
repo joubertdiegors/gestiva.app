@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Adendos — {{ sub.name }} — Construart{% endblock %}
+{% block tab_parent %}subcontractors{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <p class="page-sub" style="margin-bottom:4px">
+      <a href="{% url 'subcontractors:detail' sub.pk %}" style="color:var(--accent);text-decoration:none">{{ sub.name }}</a>
+    </p>
+    <h1 class="page-title">Adendos do Subempreiteiro</h1>
+  </div>
+  <a href="{% url 'contracts:addendum_create' %}?sub={{ sub.pk }}" class="btn btn-primary">+ Novo Adendo</a>
+</div>
+
+{% if addenda %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border)">
+        <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3)">Nº / Título</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3)">Contrato Cliente</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3)">Projeto</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3)">Estado</th>
+        <th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3)">Total HT</th>
+        <th style="padding:10px 14px"></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for a in addenda %}
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 14px">
+        <strong><a href="{% url 'contracts:addendum_detail' a.pk %}" style="color:var(--text);text-decoration:none">{{ a.number }} — {{ a.title }}</a></strong>
+      </td>
+      <td style="padding:10px 14px;color:var(--text3)">
+        <a href="{% url 'contracts:detail' a.contract.pk %}" style="color:var(--accent);text-decoration:none">{{ a.contract.title }}</a>
+      </td>
+      <td style="padding:10px 14px;color:var(--text3)">{{ a.project.name }}</td>
+      <td style="padding:10px 14px">
+        <span class="badge badge-{{ a.status_colour }}">{{ a.get_status_display }}</span>
+      </td>
+      <td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums">{{ a.total_ht|floatformat:2 }} €</td>
+      <td style="padding:10px 14px;text-align:right">
+        <a href="{% url 'contracts:addendum_detail' a.pk %}" class="btn btn-ghost btn-sm">Ver →</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--text3)">
+  <p style="font-size:14px;margin:0 0 12px">Nenhum adendo registado para este subempreiteiro.</p>
+  <a href="{% url 'contracts:addendum_create' %}?sub={{ sub.pk }}" class="btn btn-primary">+ Criar Primeiro Adendo</a>
+</div>
+{% endif %}
+{% endblock %}

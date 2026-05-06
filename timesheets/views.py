@@ -2,7 +2,6 @@ from datetime import datetime
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -14,6 +13,7 @@ from django.utils.translation import gettext as _
 from decimal import Decimal
 import json
 
+from accounts.decorators import perm_required
 from .models import Timesheet
 from projects.models import Project
 from workforce.models import Collaborator
@@ -82,7 +82,7 @@ def _parse_date_range(request):
 # ─────────────────────────────────────────────────────────────
 # 📋 LISTA / DASHBOARD  (filtros: projeto, trabalhador, período)
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.view_timesheet')
 def timesheet_list(request):
     import calendar as _cal
     date_from, date_to = _parse_date_range(request)
@@ -143,7 +143,7 @@ def timesheet_list(request):
     return response
 
 
-@login_required
+@perm_required('timesheets.view_timesheet_values')
 def timesheet_list_values(request):
     if not _can_view_timesheet_values(request.user):
         raise PermissionDenied
@@ -252,7 +252,7 @@ def timesheet_list_values(request):
 # ─────────────────────────────────────────────────────────────
 # ➕ CRIAR (manual ou pré-preenchido a partir do planning)
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.add_timesheet')
 def timesheet_create(request):
     projects = Project.objects.filter(status__in=['planning', 'active']).order_by('name')
     workers  = Collaborator.objects.filter(status='active').select_related('company').order_by('name')
@@ -329,7 +329,7 @@ def timesheet_create(request):
 # ─────────────────────────────────────────────────────────────
 # ✏️ EDITAR
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.change_timesheet')
 def timesheet_update(request, pk):
     ts       = get_object_or_404(Timesheet, pk=pk)
     projects = Project.objects.filter(status__in=['planning', 'active']).order_by('name')
@@ -373,7 +373,7 @@ def timesheet_update(request, pk):
 # ─────────────────────────────────────────────────────────────
 # 🗑️ APAGAR
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.delete_timesheet')
 @require_POST
 def timesheet_delete(request, pk):
     if not _can_edit_timesheets(request.user):
@@ -396,7 +396,7 @@ def timesheet_delete(request, pk):
 # ─────────────────────────────────────────────────────────────
 # 📊 RESUMO POR PROJETO  (dados para relatório / futura fatura)
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.view_timesheet')
 def timesheet_project_summary(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
     timesheets = Timesheet.objects.filter(project=project).select_related(
@@ -428,7 +428,7 @@ def timesheet_project_summary(request, project_pk):
 # ─────────────────────────────────────────────────────────────
 # ⚡ API — preencher timesheets em bulk a partir do planning do dia
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.add_timesheet')
 @require_POST
 def timesheet_bulk_from_planning(request, planning_pk):
     """
@@ -476,7 +476,7 @@ def timesheet_bulk_from_planning(request, planning_pk):
 # ─────────────────────────────────────────────────────────────
 # 📅 BOARD DIÁRIO — lista editável gerada a partir do planning
 # ─────────────────────────────────────────────────────────────
-@login_required
+@perm_required('timesheets.view_timesheet')
 def timesheet_daily_board(request):
     if not _can_edit_timesheets(request.user):
         raise PermissionDenied
@@ -600,7 +600,7 @@ def timesheet_daily_board(request):
     return response
 
 
-@login_required
+@perm_required('timesheets.view_timesheet')
 def timesheet_calendar_days(request):
     """Retorna os dias do mês que têm planning, para o calendário JS."""
     import calendar as _cal
@@ -619,7 +619,7 @@ def timesheet_calendar_days(request):
     return JsonResponse({'active_days': days})
 
 
-@login_required
+@perm_required('timesheets.change_timesheet')
 @require_POST
 def timesheet_daily_board_save(request):
     """Salva em bulk as linhas do board diário."""

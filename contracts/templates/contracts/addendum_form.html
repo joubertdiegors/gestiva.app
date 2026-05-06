@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if is_create %}Novo Adendo{% else %}Editar Adendo{% endif %} — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.form-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:768px){.form-grid-2,.form-grid-3{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    {% if contract %}<p class="page-sub" style="margin-bottom:4px"><a href="{% url 'contracts:detail' contract.pk %}" style="color:var(--accent);text-decoration:none">{{ contract.title }}</a></p>{% endif %}
+    <h1 class="page-title">{% if is_create %}Novo Adendo{% else %}Editar Adendo {{ addendum.number }}{% endif %}</h1>
+  </div>
+  <a href="{% if not is_create %}{% url 'contracts:addendum_detail' addendum.pk %}{% elif contract %}{% url 'contracts:detail' contract.pk %}{% else %}{% url 'contracts:addendum_list' %}{% endif %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="form-section">
+    <div class="form-section-title">Identificação</div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Número do Adendo <span style="color:var(--danger)">*</span></label>{{ form.number }}{% if form.number.errors %}<div class="form-error">{{ form.number.errors.0 }}</div>{% endif %}</div>
+      <div class="form-group"><label class="form-label">Estado</label>{{ form.status }}</div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px"><label class="form-label">Título <span style="color:var(--danger)">*</span></label>{{ form.title }}{% if form.title.errors %}<div class="form-error">{{ form.title.errors.0 }}</div>{% endif %}</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Subempreiteiro <span style="color:var(--danger)">*</span></label>{{ form.subcontractor }}</div>
+      <div class="form-group"><label class="form-label">Projeto <span style="color:var(--danger)">*</span></label>{{ form.project }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Datas</div>
+    <div class="form-grid-3">
+      <div class="form-group"><label class="form-label">Assinatura</label>{{ form.signed_date }}</div>
+      <div class="form-group"><label class="form-label">Início</label>{{ form.start_date }}</div>
+      <div class="form-group"><label class="form-label">Prazo de Conclusão</label>{{ form.end_date }}{% if form.end_date.errors %}<div class="form-error">{{ form.end_date.errors.0 }}</div>{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Valores</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Desconto global (%)</label>{{ form.discount_percent }}</div>
+      <div class="form-group"><label class="form-label">Taxa IVA (%)</label>{{ form.vat_rate }}</div>
+    </div>
+  </div>
+
+  {% if is_create and contract %}
+  <div class="form-section" style="background:var(--accent-light);border-color:var(--accent)">
+    <div class="form-section-title" style="color:var(--accent)">Copiar Linhas do Contrato</div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer">
+      <input type="checkbox" name="copy_lines" value="1" style="width:16px;height:16px">
+      Copiar automaticamente as linhas do contrato <strong>{{ contract.title }}</strong> para este adendo
+    </label>
+    <p style="font-size:12px;color:var(--text3);margin:8px 0 0">Poderás editar, remover ou adicionar linhas depois.</p>
+  </div>
+  {% endif %}
+
+  <div class="form-section">
+    <div class="form-section-title">Notas</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Notas Internas</label>{{ form.notes_internal }}</div>
+      <div class="form-group"><label class="form-label">Notas para o Subempreiteiro</label>{{ form.notes_sub }}</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="{% if not is_create %}{% url 'contracts:addendum_detail' addendum.pk %}{% elif contract %}{% url 'contracts:detail' contract.pk %}{% else %}{% url 'contracts:addendum_list' %}{% endif %}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">{% if is_create %}Criar Adendo{% else %}Guardar{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

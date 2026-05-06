@@ -2,111 +2,313 @@
 {% load i18n %}
 
 {% block title %}{% trans "Clientes" %} — Construart{% endblock %}
-{% block breadcrumb %}<span class="current">{% trans "Clientes" %}</span>{% endblock %}
+{% block tab_parent %}/clients/{% endblock %}
+{% block tab_icon %}👤{% endblock %}
 
-{% block extra_head %}
-<style>
-  .client-grid { display: grid; gap: 12px; }
-  .client-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 22px;
-    display: grid; grid-template-columns: 1fr auto auto;
-    align-items: center; gap: 20px; box-shadow: var(--shadow);
-    text-decoration: none; color: var(--text); transition: all .15s;
-  }
-  .client-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(200,98,42,.1); }
-  .client-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-  .client-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text3); font-family: sans-serif; }
-  .filter-bar { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-  .filter-bar input {
-    flex: 1; min-width: 200px; padding: 8px 14px;
-    border: 1px solid var(--border2); border-radius: var(--radius);
-    font-size: 14px; font-family: 'Georgia', serif;
-    background: var(--surface); color: var(--text);
-  }
-  .filter-bar input:focus { outline: none; border-color: var(--accent); }
-  .sf-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .15s; font-family: sans-serif; }
-  .sf-btn.active, .sf-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-  /* ── Responsivo ── */
-  @media (max-width: 640px) {
-    .client-card {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .client-card > span.badge { justify-self: start; }
-    .client-card > div:last-child { display: flex; gap: 8px; }
-    .filter-bar input { min-width: 0; width: 100%; }
-  }
-</style>
+{% block breadcrumb %}
+<span>{% trans "Clientes" %}</span>
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">{% trans "Clientes" %}</h1>
-    <p class="page-sub">{% trans "Donos de obra e empresas clientes" %}</p>
-  </div>
-  <a href="{% url 'clients:create' %}" class="btn btn-primary">+ {% trans "Novo cliente" %}</a>
-</div>
-
-<div class="filter-bar">
-  <input type="text" id="search" placeholder="{% trans 'Pesquisar por nome, VAT...' %}" oninput="filterCards()">
-  <div style="display:flex; gap:6px;">
-    <button class="sf-btn active" onclick="setStatus('all', this)">{% trans "Todos" %}</button>
-    <button class="sf-btn" onclick="setStatus('active', this)">{% trans "Ativos" %}</button>
-    <button class="sf-btn" onclick="setStatus('inactive', this)">{% trans "Inativos" %}</button>
-  </div>
-</div>
 
 {% if clients %}
-<div class="client-grid" id="client-grid">
-  {% for c in clients %}
-  <div class="client-card" data-status="{% if c.is_active %}active{% else %}inactive{% endif %}"
-       data-search="{{ c.name|lower }} {{ c.vat_number|default:''|lower }} {{ c.responsible|default:''|lower }}">
-    <div>
-      <div class="client-name">{{ c.name }}</div>
-      <div class="client-meta">
-        {% if c.category %}<span>{{ c.get_category_display }}</span>{% endif %}
-        {% if c.vat_number %}<span>🔢 {{ c.vat_number }}</span>{% endif %}
-        {% if c.responsible %}<span>👤 {{ c.responsible }}</span>{% endif %}
-        <span>📁 {% blocktrans count counter=c.projects.count %}{{ counter }} projeto{% plural %}{{ counter }} projetos{% endblocktrans %}</span>
-      </div>
+
+<!-- ── Tabela ────────────────────────────────────────────────── -->
+<div class="ca-table-wrap" data-ca-table="clients">
+
+  <!-- ── Barra de título + botões de acção ── -->
+  <div class="ca-table-actions">
+
+    <!-- Título + contador -->
+    <div class="ca-table-actions-title">
+      <h1>{% trans "Clientes" %}</h1>
+      <span><strong data-ca-row-count>{{ clients|length }}</strong> {% trans "resultados" %}</span>
     </div>
-    <span class="badge {% if c.is_active %}badge-green{% else %}badge-gray{% endif %}">
-      {% if c.is_active %}{% trans "Ativo" %}{% else %}{% trans "Inativo" %}{% endif %}
-    </span>
-    <div style="display:flex;gap:8px;">
-      <a href="{% url 'clients:detail' c.pk %}" class="btn btn-ghost btn-sm">{% trans "Ver" %}</a>
-      <a href="{% url 'clients:update' c.pk %}" class="btn btn-ghost btn-sm">✏️</a>
+
+    <!-- Botões de acção -->
+    <div class="ca-table-actions-btns">
+
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters"
+              data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+      </button>
+
+      <button class="ca-tbl-btn" data-ca-action="toggle-totals"
+              data-tip="{% trans 'Mostrar/ocultar totais' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+        </svg>
+      </button>
+
+      <button class="ca-tbl-btn" data-ca-action="refresh"
+              data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+
+      <span class="ca-tbl-sep"></span>
+
+      {% if perms.clients.add_client %}
+      <button class="ca-tbl-btn" data-ca-action="export"
+              data-tip="{% trans 'Exportar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+      {% else %}
+      <button class="ca-tbl-btn" disabled aria-disabled="true"
+              data-tip="{% trans 'Exportar (sem permissão)' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+      {% endif %}
+
+      <button class="ca-tbl-btn" data-ca-action="columns"
+              data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="18" rx="1"/>
+          <rect x="14" y="3" width="7" height="18" rx="1"/>
+        </svg>
+      </button>
+
+      <span class="ca-tbl-sep"></span>
+
+      {% if perms.clients.add_client %}
+      <a href="{% url 'clients:create' %}" class="ca-tbl-btn-primary"
+         data-tip="{% trans 'Novo cliente' %}">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        {% trans "Novo cliente" %}
+      </a>
+      {% endif %}
+
     </div>
   </div>
-  {% endfor %}
-</div>
+
+  <!-- Bulk-bar (oculta até haver selecção) -->
+  <div class="ca-bulk-bar" hidden>
+    <strong><span data-ca-bulk-count>0</span> {% trans "selecionado(s)" %}</strong>
+    <div class="ca-bulk-actions">
+      <button class="btn btn-sm btn-ghost">{% trans "Exportar" %}</button>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="ca-table-scroll">
+  <table class="ca-table">
+    <thead>
+      <tr>
+        <th data-col-required style="width:40px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;">
+            <input type="checkbox" class="ca-checkbox" data-ca-select-all>
+          </div>
+        </th>
+
+        <th data-col="nome" data-col-label="{% trans 'Nome' %}" data-col-required>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Nome" %}</span>
+            <div class="ca-th-search">
+              <input data-col="nome" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="nome_comercial" data-col-label="{% trans 'Nome Comercial' %}" data-col-hidden>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Nome Comercial" %}</span>
+            <div class="ca-th-search">
+              <input data-col="nome_comercial" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="categoria" data-col-label="{% trans 'Categoria' %}">
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Categoria" %}</span>
+            <div class="ca-th-search">
+              <input data-col="categoria" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="forma_juridica" data-col-label="{% trans 'Forma Jurídica' %}" data-col-hidden>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Forma Jurídica" %}</span>
+            <div class="ca-th-search">
+              <input data-col="forma_juridica" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="nif" data-col-label="{% trans 'NIF / VAT' %}">
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "NIF / VAT" %}</span>
+            <div class="ca-th-search">
+              <input data-col="nif" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="taxa_iva" data-col-label="{% trans 'Taxa IVA' %}" data-col-hidden>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Taxa IVA" %}</span>
+            <div class="ca-th-search">
+              <input data-col="taxa_iva" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="responsavel" data-col-label="{% trans 'Responsável' %}" data-col-hidden>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Responsável" %}</span>
+            <div class="ca-th-search">
+              <input data-col="responsavel" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="estado" data-col-label="{% trans 'Estado' %}">
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Estado" %}</span>
+            <div class="ca-th-search">
+              <input data-col="estado" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col="criado_em" data-col-label="{% trans 'Criado em' %}" data-col-hidden>
+          <div class="ca-th-cell">
+            <span class="ca-th-label">{% trans "Criado em" %}</span>
+            <div class="ca-th-search">
+              <input data-col="criado_em" placeholder="{% trans 'Filtrar…' %}">
+            </div>
+          </div>
+        </th>
+
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for c in clients %}
+      <tr style="cursor:pointer" onclick="window.location='{% url 'clients:detail' c.pk %}'">
+
+        <td style="padding:0 8px;text-align:center;" onclick="event.stopPropagation()">
+          <input type="checkbox" class="ca-checkbox" data-ca-row-select>
+        </td>
+
+        <td data-col="nome">
+          <a href="{% url 'clients:detail' c.pk %}"
+             style="color:var(--accent);font-weight:600;text-decoration:none"
+             onclick="event.stopPropagation()">{{ c.name }}</a>
+        </td>
+
+        <td data-col="nome_comercial" style="color:var(--text2);font-size:13px;">
+          {{ c.trade_name|default:"—" }}
+        </td>
+
+        <td data-col="categoria" style="color:var(--text2);font-size:13px;">
+          {{ c.get_category_display|default:"—" }}
+        </td>
+
+        <td data-col="forma_juridica" style="color:var(--text2);font-size:13px;">
+          {{ c.legal_form|default:"—" }}
+        </td>
+
+        <td data-col="nif" style="color:var(--text2);font-size:13px;">
+          {{ c.vat_number|default:"—" }}
+        </td>
+
+        <td data-col="taxa_iva" style="color:var(--text2);font-size:13px;">
+          {{ c.vat_rate|default:"—" }}%
+        </td>
+
+        <td data-col="responsavel" style="color:var(--text2);font-size:13px;">
+          {{ c.responsible|default:"—" }}
+        </td>
+
+        <td data-col="estado" onclick="event.stopPropagation()">
+          {% if c.is_active %}
+            <span class="ca-badge green"><span class="dot"></span>{% trans "Ativo" %}</span>
+          {% else %}
+            <span class="ca-badge gray"><span class="dot"></span>{% trans "Inativo" %}</span>
+          {% endif %}
+        </td>
+
+        <td data-col="criado_em" style="color:var(--text2);font-size:13px;">
+          {{ c.created_at|date:"d/m/Y" }}
+        </td>
+
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div style="display:flex;gap:4px;justify-content:flex-end;opacity:0;transition:opacity .12s;" class="ca-row-actions">
+            <a href="{% url 'clients:update' c.pk %}"
+               style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;transition:all .12s;"
+               title="{% trans 'Editar' %}">✏️</a>
+          </div>
+        </td>
+
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div><!-- /.ca-table-scroll -->
+
+  <!-- Paginação Django -->
+  {% if page_obj.has_other_pages %}
+  <div class="ca-pagination">
+    <span style="font-size:12px;color:var(--text2);">
+      {% trans "Página" %} {{ page_obj.number }} {% trans "de" %} {{ page_obj.paginator.num_pages }}
+      — {{ page_obj.paginator.count }} {% trans "resultados" %}
+    </span>
+    <div class="ca-toolbar-spacer"></div>
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" class="btn btn-sm">‹</a>
+    {% else %}
+      <button class="btn btn-sm" disabled style="opacity:.4;">‹</button>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <button class="btn btn-sm btn-primary">{{ num }}</button>
+      {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+        <a href="?page={{ num }}{% if q %}&q={{ q }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" class="btn btn-sm">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if is_active %}&is_active={{ is_active }}{% endif %}" class="btn btn-sm">›</a>
+    {% else %}
+      <button class="btn btn-sm" disabled style="opacity:.4;">›</button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div><!-- /.ca-table-wrap -->
+
 {% else %}
-<div class="empty-state card">
-  <div class="icon">👤</div>
-  <h3>{% trans "Sem clientes" %}</h3>
-  <p>{% trans "Adicione o primeiro cliente para começar." %}</p>
-  <a href="{% url 'clients:create' %}" class="btn btn-primary" style="margin-top:16px">+ {% trans "Novo cliente" %}</a>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="empty-state">
+    <div class="icon">👤</div>
+    <h3>{% trans "Sem clientes" %}</h3>
+    <p>{% trans "Adicione o primeiro cliente para começar." %}</p>
+    {% if perms.clients.add_client %}
+    <a href="{% url 'clients:create' %}" class="btn btn-primary" style="margin-top:16px">
+      {% trans "Criar primeiro cliente →" %}
+    </a>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 
-<script>
-let currentStatus = 'all';
-function filterCards() {
-  const q = document.getElementById('search').value.toLowerCase();
-  document.querySelectorAll('.client-card').forEach(card => {
-    const ms = !q || card.dataset.search.includes(q);
-    const mst = currentStatus === 'all' || card.dataset.status === currentStatus;
-    card.style.display = (ms && mst) ? '' : 'none';
-  });
-}
-function setStatus(s, btn) {
-  currentStatus = s;
-  document.querySelectorAll('.sf-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  filterCards();
-}
-</script>
 {% endblock %}

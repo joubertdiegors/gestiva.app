@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if invoice %}Editar fatura {{ invoice.number }}{% else %}Nova fatura{% endif %} — Construart{% endblock %}
+{% block tab_parent %}/invoicing/{% endblock %}
+{% block tab_icon %}🧾{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'invoicing:list' %}">Faturas</a>
+  <span class="sep">›</span>
+  <span class="current">{% if invoice %}{{ invoice.number }}{% else %}Nova fatura{% endif %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Layout ── */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.inv-grid.two   { grid-template-columns: repeat(2, 1fr); }
+.inv-grid.four  { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .inv-grid { grid-template-columns: repeat(2,1fr); } .inv-grid.four { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 680px)  { .inv-grid, .inv-grid.two, .inv-grid.four { grid-template-columns: 1fr; } }
+
+/* ── Info card ── */
+.icard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.icard-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.icard-head-icon {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.icard-head-icon.blue   { background: #dbeafe; }
+.icard-head-icon.green  { background: #dcfce7; }
+.icard-head-icon.amber  { background: #fef3c7; }
+.icard-head-icon.purple { background: #ede9fe; }
+.icard-head-icon.slate  { background: var(--surface2); border: 1px solid var(--border); }
+.icard-title  { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: .2px; }
+.icard-sub    { font-size: 11px; color: var(--text3); margin-left: auto; }
+.icard-body   { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Preview rows (read-only info) ── */
+.pv-row { display: flex; flex-direction: column; gap: 2px; }
+.pv-label { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+.pv-value { font-size: 13px; color: var(--text); line-height: 1.4; }
+.pv-value.muted { color: var(--text3); font-style: italic; }
+.pv-value a { color: var(--accent); text-decoration: none; }
+.pv-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+}
+.pv-contacts { display: flex; flex-direction: column; gap: 6px; }
+.pv-contact-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.pv-contact-name { font-weight: 600; color: var(--text); }
+.pv-contact-detail { color: var(--text3); }
+
+/* ── Form fields inside cards ── */
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; }
+.fg .form-control { font-size: 13px; padding: 7px 10px; }
+.fg textarea.form-control { resize: vertical; min-height: 54px; }
+.fg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fg-row.three { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 480px) { .fg-row, .fg-row.three { grid-template-columns: 1fr; } }
+
+/* ── Status badge in header ── */
+.inv-status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+}
+.inv-status-badge.draft  { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.inv-type-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* ── Section divider ── */
+.section-div {
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 12px;
+}
+.section-div-line { flex: 1; height: 1px; background: var(--border); }
+.section-div-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
+
+/* ── Footer bar ── */
+.form-footer-bar {
+  position: sticky; bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  display: flex; justify-content: flex-end; gap: 8px;
+  z-index: 10;
+  margin-top: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Page header ── -->
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <h1 class="page-title" style="margin:0;">
+      {% if invoice %}{{ invoice.number }}{% else %}Nova fatura{% endif %}
+    </h1>
+    <span class="inv-type-chip">
+      {% if invoice %}{{ invoice.get_invoice_type_display }}
+      {% else %}{% for val,label in type_choices %}{% if val == invoice.invoice_type|default:pre_type %}{{ label }}{% endif %}{% endfor %}
+      {% endif %}
+    </span>
+    {% if invoice %}<span class="inv-status-badge draft">Rascunho</span>{% endif %}
+  </div>
+  <a href="{% url 'invoicing:list' %}" class="btn btn-ghost btn-sm">← Voltar</a>
+</div>
+
+<form method="post" action="" id="inv-form">
+{% csrf_token %}
+<input type="hidden" name="invoice_type" value="{% if invoice %}{{ invoice.invoice_type }}{% else %}{{ pre_type }}{% endif %}">
+
+<!-- ════════════════════════════════════════════════════════
+     ROW 1 — Cliente · Projeto · Autorização
+════════════════════════════════════════════════════════ -->
+<div class="inv-grid">
+
+  <!-- Card 1 · Cliente -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon blue">👤</div>
+      <span class="icard-title">Cliente</span>
+      {% if pre_client %}<span class="icard-sub">{{ pre_client.name }}</span>{% endif %}
+    </div>
+    <div class="icard-body">
+      {% if pre_client and not invoice %}
+        <!-- Show info + hidden input when coming from wizard -->
+        <input type="hidden" name="client_id" value="{{ pre_client.pk }}">
+        <div class="pv-row">
+          <span class="pv-label">Razão social</span>
+          <span class="pv-value" style="font-weight:600;">{{ pre_client.name }}</span>
+        </div>
+        {% if pre_client.trade_name %}
+        <div class="pv-row">
+          <span class="pv-label">Nome comercial</span>
+          <span class="pv-value">{{ pre_client.trade_name }}</span>
+        </div>
+        {% endif %}
+        {% if pre_client.vat_number %}
+        <div class="pv-row">
+          <span class="pv-label">NIF / VAT</span>
+          <span class="pv-value">{{ pre_client.vat_number }}</span>
+        </div>
+        {% endif %}
+        {% if pre_client_address %}
+        <div class="pv-row">
+          <span class="pv-label">Morada</span>
+          <span class="pv-value">{{ pre_client_address.name }}{% if pre_client_address.address %}<br><span style="color:var(--text3);font-size:12px;">{{ pre_client_address.address }}</span>{% endif %}</span>
+        </div>
+        {% endif %}
+        {% if pre_client_contacts %}
+        <div class="pv-row">
+          <span class="pv-label">Contactos</span>
+          <div class="pv-contacts">
+            {% for ct in pre_client_contacts %}
+            <div class="pv-contact-row">
+              <span class="pv-contact-name">{{ ct.name }}</span>
+              {% if ct.phone %}<span class="pv-contact-detail">{{ ct.phone }}</span>{% endif %}
+              {% if ct.email %}<span class="pv-contact-detail">{{ ct.email }}</span>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div style="margin-top:4px;">
+          <a href="{% url 'invoicing:create' %}?type={% if invoice %}{{ invoice.invoice_type }}{% else %}{{ pre_type }}{% endif %}" style="font-size:12px;color:var(--accent);">↩ Alterar cliente</a>
+        </div>
+      {% else %}
+        <!-- Editable select (edit mode or no wizard data) -->
+        <div class="fg">
+          <label>Cliente *</label>
+          <select name="client_id" id="sel-client" class="form-control" required>
+            <option value="">— Selecionar —</option>
+            {% for c in clients %}
+            <option value="{{ c.pk }}"
+              {% if invoice.client_id == c.pk %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Nome p/ fatura</label>
+            <input type="text" name="billing_name" class="form-control" value="{{ invoice.billing_name|default:'' }}" placeholder="Razão social">
+          </div>
+          <div class="fg">
+            <label>NIF / VAT</label>
+            <input type="text" name="billing_vat" class="form-control" value="{{ invoice.billing_vat|default:'' }}">
+          </div>
+        </div>
+        <div class="fg">
+          <label>Endereço de faturação</label>
+          <textarea name="billing_address" class="form-control" rows="2">{{ invoice.billing_address|default:'' }}</textarea>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Card 2 · Projeto -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon green">🏗️</div>
+      <span class="icard-title">Projeto</span>
+      {% if pre_project %}<span class="icard-sub">{{ pre_project.name }}</span>{% endif %}
+    </div>
+    <div class="icard-body">
+      {% if pre_project and not invoice %}
+        <input type="hidden" name="project_id" value="{{ pre_project.pk }}">
+        <div class="pv-row">
+          <span class="pv-label">Nome</span>
+          <span class="pv-value" style="font-weight:600;">{{ pre_project.name }}</span>
+        </div>
+        {% if pre_project.address %}
+        <div class="pv-row">
+          <span class="pv-label">Endereço</span>
+          <span class="pv-value">{{ pre_project.address }}</span>
+        </div>
+        {% endif %}
+        {% if pre_project.work_registration_number %}
+        <div class="pv-row">
+          <span class="pv-label">Registo de obra</span>
+          <span class="pv-value"><span class="pv-pill">🔖 {{ pre_project.work_registration_number }}</span></span>
+        </div>
+        {% endif %}
+        {% if pre_project.status %}
+        <div class="pv-row">
+          <span class="pv-label">Estado</span>
+          <span class="pv-value">
+            {% if pre_project.status == 'active' %}<span class="pv-pill" style="background:#dcfce7;color:#16a34a;border-color:#bbf7d0;">● Ativo</span>
+            {% elif pre_project.status == 'completed' %}<span class="pv-pill" style="background:#f0fdf4;color:#15803d;">✓ Concluído</span>
+            {% elif pre_project.status == 'on_hold' %}<span class="pv-pill" style="background:#fef9c3;color:#854d0e;">⏸ Em pausa</span>
+            {% else %}{{ pre_project.status }}{% endif %}
+          </span>
+        </div>
+        {% endif %}
+        {% if pre_project.start_date %}
+        <div class="pv-row">
+          <span class="pv-label">Período</span>
+          <span class="pv-value">{{ pre_project.start_date|date:"d/m/Y" }}{% if pre_project.end_date %} → {{ pre_project.end_date|date:"d/m/Y" }}{% endif %}</span>
+        </div>
+        {% endif %}
+        <div style="margin-top:4px;">
+          <a href="{% url 'invoicing:create' %}?type={% if invoice %}{{ invoice.invoice_type }}{% else %}{{ pre_type }}{% endif %}&client={% if invoice %}{{ invoice.client_id }}{% else %}{{ pre_client_id }}{% endif %}" style="font-size:12px;color:var(--accent);">↩ Alterar projeto</a>
+        </div>
+      {% else %}
+        <div class="fg">
+          <label>Projeto</label>
+          <select name="project_id" id="sel-project" class="form-control">
+            <option value="">— Sem projeto —</option>
+            {% for p in projects %}
+            <option value="{{ p.pk }}" data-client="{{ p.client_id }}"
+              {% if invoice.project_id == p.pk %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="pv-row" style="margin-top:4px;">
+          <span class="pv-value muted" style="font-size:12px;">Selecione um cliente para filtrar os projetos.</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Card 3 · Autorização -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon amber">📋</div>
+      <span class="icard-title">Autorização de faturamento</span>
+    </div>
+    <div class="icard-body">
+      <div class="fg-row">
+        <div class="fg">
+          <label>N° autorização (BF)</label>
+          <input type="text" name="bon_de_facturation" class="form-control" value="{{ invoice.bon_de_facturation|default:'' }}" placeholder="Ex: BF-2025-001">
+        </div>
+        <div class="fg">
+          <label>Data da autorização</label>
+          <input type="date" name="authorization_date" class="form-control" value="{{ invoice.authorization_date|date:'Y-m-d'|default:'' }}">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Contato que autorizou</label>
+        <input type="text" name="authorization_contact" class="form-control" value="{{ invoice.authorization_contact|default:'' }}" placeholder="Nome do responsável">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Início dos trabalhos</label>
+          <input type="date" name="work_start_date" class="form-control" value="{{ invoice.work_start_date|date:'Y-m-d'|default:'' }}">
+        </div>
+        <div class="fg">
+          <label>Fim dos trabalhos</label>
+          <input type="date" name="work_end_date" class="form-control" value="{{ invoice.work_end_date|date:'Y-m-d'|default:'' }}">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Notas de execução</label>
+        <textarea name="execution_notes" class="form-control" rows="2" placeholder="Informações sobre a execução…">{{ invoice.execution_notes|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     ROW 2 — Identificação · Pagamento · Notas
+════════════════════════════════════════════════════════ -->
+<div class="inv-grid">
+
+  <!-- Card 4 · Identificação da fatura -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon slate">🧾</div>
+      <span class="icard-title">Identificação</span>
+    </div>
+    <div class="icard-body">
+      <div class="fg">
+        <label>Título / Descrição</label>
+        <input type="text" name="title" class="form-control" value="{{ invoice.title|default:'' }}" placeholder="Ex: Construção — Março 2025">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Data de emissão *</label>
+          <input type="date" name="issue_date" class="form-control" value="{{ invoice.issue_date|date:'Y-m-d'|default:today }}" required>
+        </div>
+        <div class="fg">
+          <label>Data de vencimento</label>
+          <input type="date" name="due_date" class="form-control" value="{{ invoice.due_date|date:'Y-m-d'|default:'' }}">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 5 · Pagamento -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon purple">💳</div>
+      <span class="icard-title">Condições de pagamento</span>
+    </div>
+    <div class="icard-body">
+      <div class="fg">
+        <label>Condições gerais</label>
+        <input type="text" name="payment_terms" class="form-control" value="{{ invoice.payment_terms|default:'' }}" placeholder="Ex: 30 dias após emissão">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>IVA padrão (%)</label>
+          <input type="number" step="0.01" name="vat_rate" class="form-control" value="{{ invoice.vat_rate|default:'21.00' }}">
+        </div>
+        <div class="fg">
+          <label>Desconto global (%)</label>
+          <input type="number" step="0.01" name="discount_percent" class="form-control" value="{{ invoice.discount_percent|default:'0.00' }}">
+        </div>
+      </div>
+      {% if pre_client and not invoice %}
+      <div class="fg">
+        <label>Nome p/ fatura</label>
+        <input type="text" name="billing_name" class="form-control" value="{{ pre_client.name }}" placeholder="Razão social">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>NIF / VAT</label>
+          <input type="text" name="billing_vat" class="form-control" value="{{ pre_client.vat_number|default:'' }}">
+        </div>
+        <div class="fg" style="grid-column:span 1;">
+          <label>Endereço faturação</label>
+          <input type="text" name="billing_address" class="form-control" value="{% if pre_client_address %}{{ pre_client_address.address }}{% endif %}">
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Card 6 · Notas -->
+  <div class="icard">
+    <div class="icard-head">
+      <div class="icard-head-icon slate">📝</div>
+      <span class="icard-title">Notas</span>
+    </div>
+    <div class="icard-body">
+      <div class="fg">
+        <label>Notas para o cliente</label>
+        <textarea name="notes_client" class="form-control" rows="3" placeholder="Aparece no documento enviado ao cliente…">{{ invoice.notes_client|default:'' }}</textarea>
+      </div>
+      <div class="fg">
+        <label>Notas internas</label>
+        <textarea name="notes_internal" class="form-control" rows="3" placeholder="Visível apenas internamente…">{{ invoice.notes_internal|default:'' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Footer ── -->
+<div class="form-footer-bar">
+  <a href="{% url 'invoicing:list' %}" class="btn btn-ghost">Cancelar</a>
+  <button type="submit" class="btn btn-primary">
+    {% if invoice %}💾 Guardar alterações{% else %}✓ Criar fatura{% endif %}
+  </button>
+</div>
+
+</form>
+
+<script>
+(function () {
+  const selClient  = document.getElementById('sel-client');
+  const selProject = document.getElementById('sel-project');
+  if (!selClient || !selProject) return;
+
+  function filterProjects() {
+    const clientId = selClient.value;
+    let hasVisible = false;
+    Array.from(selProject.options).forEach(opt => {
+      if (!opt.value) return;
+      const hide = clientId && opt.dataset.client !== clientId;
+      opt.hidden = hide;
+      if (!hide) hasVisible = true;
+    });
+    if (selProject.selectedOptions[0]?.hidden) selProject.value = '';
+  }
+
+  selClient.addEventListener('change', filterProjects);
+  filterProjects();
+})();
+</script>
+{% endblock %}

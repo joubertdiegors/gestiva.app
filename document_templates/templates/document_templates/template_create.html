@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Novo Modelo — Construart{% endblock %}
+{% block tab_parent %}document_templates{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block extra_head %}
+<style>
+.create-card{max-width:560px;margin:32px auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow)}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.type-option{border:2px solid var(--border);border-radius:var(--radius);padding:13px 16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;user-select:none}
+.type-option:hover{border-color:var(--accent);background:var(--accent-light)}
+.type-option.selected{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.type-option .type-icon{font-size:18px;width:24px;text-align:center}
+.type-error{color:var(--danger);font-size:12px;margin-top:6px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Novo Modelo de Documento</h1>
+  <a href="{% url 'document_templates:list' %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div class="create-card">
+  <form method="post" id="createForm">
+    {% csrf_token %}
+    {{ form.document_type }}{# hidden input — updated by JS #}
+
+    <div class="form-group" style="margin-bottom:22px">
+      <label class="form-label">Nome do modelo <span style="color:var(--danger)">*</span></label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="form-error">{{ form.name.errors.0 }}</div>{% endif %}
+    </div>
+
+    <div class="form-group" style="margin-bottom:26px">
+      <label class="form-label">Tipo de documento <span style="color:var(--danger)">*</span></label>
+      <div class="type-grid" id="typeGrid">
+        {% for val, label in type_choices %}
+        {% with icons="quote:📝,invoice:🧾,contract:📄,addendum:📋,statement:📨,supplier_order:🏭,sub_order:🏢,credit_note:💳,other:📁" %}
+        <div class="type-option {% if selected_type == val %}selected{% endif %}"
+             data-val="{{ val }}"
+             onclick="selectType('{{ val }}', this)">
+          <span class="type-icon">{% if val == 'quote' %}📝{% elif val == 'invoice' %}🧾{% elif val == 'contract' %}📄{% elif val == 'addendum' %}📋{% elif val == 'statement' %}📨{% elif val == 'supplier_order' %}🏭{% elif val == 'sub_order' %}🏢{% elif val == 'credit_note' %}💳{% else %}📁{% endif %}</span>
+          {{ label }}
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      {% if form.document_type.errors %}<div class="type-error">{{ form.document_type.errors.0 }}</div>{% endif %}
+      <div class="type-error" id="typeError" style="display:none">Selecione um tipo de documento.</div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <a href="{% url 'document_templates:list' %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Criar e Abrir Editor →</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const hiddenType = document.getElementById('id_document_type');
+
+function selectType(val, el) {
+  document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  hiddenType.value = val;
+  document.getElementById('typeError').style.display = 'none';
+}
+
+// Guard: ensure a type is selected before submit
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  if (!hiddenType.value) {
+    e.preventDefault();
+    document.getElementById('typeError').style.display = 'block';
+  }
+});
+</script>
+{% endblock %}

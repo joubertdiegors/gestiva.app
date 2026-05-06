@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from django.db.models.signals import pre_save, post_save, post_delete
@@ -8,13 +9,15 @@ from django.apps import apps
 from .utils import serialize_dict
 from audit.middleware import get_current_user
 
+logger = logging.getLogger(__name__)
+
 
 # Apps que NÃO devem ser auditados
 EXCLUDED_APPS = ['audit', 'admin']
 
 
 def is_migration_running():
-    return any(cmd in sys.argv for cmd in ['makemigrations', 'migrate'])
+    return any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'test'])
 
 
 def get_audit_model():
@@ -105,8 +108,7 @@ def log_post_save(sender, instance, created, **kwargs):
                     changes=changes
                 )
     except Exception:
-        # evita quebrar o sistema por erro de auditoria
-        pass
+        logger.exception('Audit failed on post_save for %s pk=%s', sender.__name__, instance.pk)
 
 
 @receiver(post_delete)
@@ -129,4 +131,4 @@ def log_post_delete(sender, instance, **kwargs):
             changes=serialize_dict(model_to_dict(instance))
         )
     except Exception:
-        pass
+        logger.exception('Audit failed on post_delete for %s pk=%s', sender.__name__, instance.pk)

@@ -4,6 +4,7 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils.translation import gettext_lazy as _
+from accounts.decorators import perm_required
 from .models import Subcontractor, SubcontractorAddress
 from .forms import SubcontractorForm, SubcontractorAddressForm
 from workforce.models import Collaborator
@@ -11,7 +12,7 @@ from workforce.models import Collaborator
 
 # ── List / Create / Update / Detail ─────────────────────────────────────────
 
-@login_required
+@perm_required('subcontractors.view_subcontractor')
 def subcontractor_list(request):
     subcontractors = (
         Subcontractor.objects
@@ -22,7 +23,7 @@ def subcontractor_list(request):
     return render(request, 'subcontractors/list.html', {'subcontractors': subcontractors})
 
 
-@login_required
+@perm_required('subcontractors.add_subcontractor')
 def subcontractor_create(request):
     form = SubcontractorForm(request.POST or None)
     if form.is_valid():
@@ -34,7 +35,7 @@ def subcontractor_create(request):
     })
 
 
-@login_required
+@perm_required('subcontractors.change_subcontractor')
 def subcontractor_update(request, pk):
     sub = get_object_or_404(Subcontractor, pk=pk)
     form = SubcontractorForm(request.POST or None, instance=sub)
@@ -48,7 +49,7 @@ def subcontractor_update(request, pk):
     })
 
 
-@login_required
+@perm_required('subcontractors.view_subcontractor')
 def subcontractor_detail(request, pk):
     team = (
         Collaborator.objects
@@ -69,7 +70,7 @@ def subcontractor_detail(request, pk):
 
 # ── Address AJAX endpoints ───────────────────────────────────────────────────
 
-@login_required
+@perm_required('subcontractors.change_subcontractor')
 @require_POST
 def address_save(request, sub_pk, pk=None):
     sub = get_object_or_404(Subcontractor, pk=sub_pk)
@@ -83,7 +84,7 @@ def address_save(request, sub_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('subcontractors.change_subcontractor')
 @require_POST
 def address_delete(request, sub_pk, pk):
     addr = get_object_or_404(SubcontractorAddress, pk=pk, subcontractor_id=sub_pk)

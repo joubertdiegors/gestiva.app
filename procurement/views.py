@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 from catalog.models import Product
 from suppliers.models import Supplier, SupplierContact
 
+from accounts.decorators import perm_required
 from .forms import ProductSupplierForm
 from .models import (
     ProductSupplier,
@@ -98,7 +99,7 @@ def _save_offer(request, *, fixed_product=None, fixed_supplier=None, instance=No
     return JsonResponse({'ok': True, 'offer': _offer_to_dict(offer)})
 
 
-@login_required
+@perm_required('procurement.change_productsupplier')
 @require_POST
 def product_offer_save(request, product_pk, pk=None):
     product = get_object_or_404(Product, pk=product_pk)
@@ -108,7 +109,7 @@ def product_offer_save(request, product_pk, pk=None):
     return _save_offer(request, fixed_product=product, instance=instance)
 
 
-@login_required
+@perm_required('procurement.delete_productsupplier')
 @require_POST
 def product_offer_delete(request, product_pk, pk):
     product = get_object_or_404(Product, pk=product_pk)
@@ -117,7 +118,7 @@ def product_offer_delete(request, product_pk, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('procurement.change_productsupplier')
 @require_POST
 def supplier_offer_save(request, supplier_pk, pk=None):
     supplier = get_object_or_404(Supplier, pk=supplier_pk)
@@ -127,7 +128,7 @@ def supplier_offer_save(request, supplier_pk, pk=None):
     return _save_offer(request, fixed_supplier=supplier, instance=instance)
 
 
-@login_required
+@perm_required('procurement.delete_productsupplier')
 @require_POST
 def supplier_offer_delete(request, supplier_pk, pk):
     supplier = get_object_or_404(Supplier, pk=supplier_pk)
@@ -136,7 +137,7 @@ def supplier_offer_delete(request, supplier_pk, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('procurement.view_productsupplier')
 def offer_price_history(request, pk):
     offer = get_object_or_404(
         ProductSupplier.objects.select_related('product', 'supplier'),
@@ -177,7 +178,7 @@ def offer_price_history(request, pk):
 PAGE_SIZE = 30
 
 
-@login_required
+@perm_required('procurement.view_rfq')
 def rfq_list(request):
     qs = RFQ.objects.select_related('requested_by').order_by('-created_at')
     status = request.GET.get('status', '').strip()
@@ -200,13 +201,13 @@ def rfq_list(request):
     })
 
 
-@login_required
+@perm_required('procurement.add_rfq')
 def rfq_create(request):
     rfq = RFQ.objects.create(requested_by=request.user)
     return redirect('procurement:rfq_detail', pk=rfq.pk)
 
 
-@login_required
+@perm_required('procurement.view_rfq')
 def rfq_detail(request, pk):
     rfq = get_object_or_404(
         RFQ.objects
@@ -274,7 +275,7 @@ def rfq_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('procurement.view_rfq')
 def supplier_contact_json(request, supplier_pk, contact_pk):
     supplier = get_object_or_404(Supplier, pk=supplier_pk)
     contact = get_object_or_404(SupplierContact, pk=contact_pk, supplier=supplier)
@@ -300,7 +301,7 @@ def _rfq_item_to_dict(item: RFQItem):
     }
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_item_save(request, rfq_pk, pk=None):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -342,7 +343,7 @@ def rfq_item_save(request, rfq_pk, pk=None):
     return JsonResponse({'ok': True, 'item': _rfq_item_to_dict(item)})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_item_batch_add(request, rfq_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -391,7 +392,7 @@ def rfq_item_batch_add(request, rfq_pk):
     return JsonResponse({'ok': True, 'created': created, 'skipped': skipped})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_item_delete(request, rfq_pk, pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -413,7 +414,7 @@ def _rfq_vendor_to_dict(v: RFQVendor):
     }
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_vendor_add(request, rfq_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -435,7 +436,7 @@ def rfq_vendor_add(request, rfq_pk):
     return JsonResponse({'ok': True, 'vendor': _rfq_vendor_to_dict(vendor)})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_vendor_batch_add(request, rfq_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -478,7 +479,7 @@ def rfq_vendor_batch_add(request, rfq_pk):
     return JsonResponse({'ok': True, 'created': created, 'skipped': skipped})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_vendor_remove(request, rfq_pk, pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -489,7 +490,7 @@ def rfq_vendor_remove(request, rfq_pk, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_send(request, rfq_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -548,7 +549,7 @@ def _sync_vendor_and_rfq_status(rfq: RFQ, vendor: RFQVendor):
         rfq.save(update_fields=['status'])
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_vendor_header_save(request, rfq_pk, pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -592,7 +593,7 @@ def rfq_vendor_header_save(request, rfq_pk, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_answer_save(request, rfq_pk, vendor_pk, item_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -645,7 +646,7 @@ def rfq_answer_save(request, rfq_pk, vendor_pk, item_pk):
     })
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_select_vendor(request, rfq_pk, item_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)
@@ -662,7 +663,7 @@ def rfq_select_vendor(request, rfq_pk, item_pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('procurement.change_rfq')
 @require_POST
 def rfq_apply_selected(request, rfq_pk):
     rfq = get_object_or_404(RFQ, pk=rfq_pk)

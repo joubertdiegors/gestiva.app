@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if is_create %}Novo Contrato{% else %}Editar Contrato{% endif %} — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.form-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:768px){.form-grid-2,.form-grid-3{grid-template-columns:1fr}}
+.counterpart-block{transition:opacity .2s}
+.counterpart-block.hidden{display:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% if is_create %}Novo Contrato{% else %}Editar — {{ contract.title }}{% endif %}</h1>
+  </div>
+  <a href="{% if not is_create %}{% url 'contracts:detail' contract.pk %}{% else %}{% url 'contracts:list' %}{% endif %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<form method="post" id="contract-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger" style="margin-bottom:12px">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="form-section">
+    <div class="form-section-title">Tipo e Identificação</div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div class="form-group">
+        <label class="form-label">Tipo de Contrato <span style="color:var(--danger)">*</span></label>
+        {{ form.contract_type }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        {{ form.status }}
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Título <span style="color:var(--danger)">*</span></label>
+      {{ form.title }}
+      {% if form.title.errors %}<div class="form-error">{{ form.title.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Referência / Número</label>
+        {{ form.reference }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Projeto</label>
+        {{ form.project }}
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section" id="counterpart-section">
+    <div class="form-section-title">Contraparte</div>
+    <div id="block-client" class="counterpart-block">
+      <div class="form-group">
+        <label class="form-label">Cliente</label>
+        {{ form.client }}
+      </div>
+    </div>
+    <div id="block-subcontractor" class="counterpart-block hidden">
+      <div class="form-group">
+        <label class="form-label">Subempreiteiro</label>
+        {{ form.subcontractor }}
+      </div>
+    </div>
+    <div id="block-supplier" class="counterpart-block hidden">
+      <div class="form-group">
+        <label class="form-label">Fornecedor</label>
+        {{ form.supplier }}
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Datas</div>
+    <div class="form-grid-3">
+      <div class="form-group"><label class="form-label">Assinatura</label>{{ form.signed_date }}</div>
+      <div class="form-group"><label class="form-label">Início</label>{{ form.start_date }}</div>
+      <div class="form-group"><label class="form-label">Fim</label>{{ form.end_date }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Valores</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Desconto global (%)</label>{{ form.discount_percent }}</div>
+      <div class="form-group"><label class="form-label">Taxa IVA (%)</label>{{ form.vat_rate }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Notas</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Notas Internas</label>{{ form.notes_internal }}</div>
+      <div class="form-group"><label class="form-label">Notas para a Contraparte</label>{{ form.notes_client }}</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="{% if not is_create %}{% url 'contracts:detail' contract.pk %}{% else %}{% url 'contracts:list' %}{% endif %}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">{% if is_create %}Criar Contrato{% else %}Guardar{% endif %}</button>
+  </div>
+</form>
+
+<script>
+(function(){
+  var sel = document.getElementById('id_contract_type');
+  function toggle(){
+    ['client','subcontractor','supplier'].forEach(function(t){
+      var el = document.getElementById('block-'+t);
+      if(el) el.classList.toggle('hidden', sel.value !== t);
+    });
+    var other = document.getElementById('block-other');
+  }
+  toggle();
+  sel.addEventListener('change', toggle);
+})();
+</script>
+{% endblock %}

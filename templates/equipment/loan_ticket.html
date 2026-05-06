@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ticket de empréstimo #{{ loan.pk }}</title>
+<style>
+  /* Otimizado para impressora térmica 58mm / 80mm */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    width: 72mm;
+    padding: 4mm 3mm;
+    color: #000;
+    background: #fff;
+  }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .big { font-size: 15px; }
+  .line { border-top: 1px dashed #000; margin: 5px 0; }
+  .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .label { color: #444; }
+  .signature-area {
+    border: 1px solid #000;
+    height: 24mm;
+    margin-top: 6px;
+    display: flex;
+    align-items: flex-end;
+    padding: 3px 6px;
+    font-size: 10px;
+    color: #555;
+  }
+  .no-print { margin-top: 14px; display: flex; gap: 8px; width: 100%; }
+  .no-print button, .no-print a {
+    flex: 1; padding: 8px; cursor: pointer;
+    border: 1px solid #000; background: #fff;
+    font-size: 13px; text-align: center;
+    text-decoration: none; color: #000;
+    font-family: sans-serif;
+  }
+  .no-print .btn-print { background: #111; color: #fff; border-color: #111; }
+  @media print {
+    .no-print { display: none; }
+    body { width: 100%; padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="center bold big">CONSTRUART</div>
+<div class="center" style="font-size:10px;margin-bottom:4px;">Comprovativo de empréstimo</div>
+
+<div class="line"></div>
+
+<div class="row">
+  <span class="label">Ticket nº</span>
+  <span class="bold">{{ loan.pk }}</span>
+</div>
+<div class="row">
+  <span class="label">Data</span>
+  <span>{{ loan.loaned_at|date:"d/m/Y H:i" }}</span>
+</div>
+
+<div class="line"></div>
+
+<div style="margin-bottom:3px;"><span class="label">Equipamento:</span></div>
+<div class="bold big" style="word-break:break-word;">{{ loan.equipment.display_name }}</div>
+{% if loan.equipment.brand or loan.equipment.model %}
+<div style="font-size:11px;">{{ loan.equipment.brand }} {{ loan.equipment.model }}</div>
+{% endif %}
+{% if loan.equipment.serial_number %}
+<div style="font-size:11px;"><span class="label">S/N:</span> {{ loan.equipment.serial_number }}</div>
+{% endif %}
+{% if loan.equipment.internal_code %}
+<div style="font-size:11px;"><span class="label">Cód.:</span> {{ loan.equipment.internal_code }}</div>
+{% endif %}
+
+<div class="line"></div>
+
+<div style="margin-bottom:3px;"><span class="label">Colaborador:</span></div>
+<div class="bold big">{{ loan.collaborator }}</div>
+
+{% if loan.expected_return %}
+<div class="line"></div>
+<div class="row">
+  <span class="label">Devolução prevista:</span>
+  <span class="bold">{{ loan.expected_return|date:"d/m/Y" }}</span>
+</div>
+{% endif %}
+
+{% if loan.notes %}
+<div class="line"></div>
+<div style="font-size:11px;word-break:break-word;">{{ loan.notes }}</div>
+{% endif %}
+
+<div class="line"></div>
+
+<div style="font-size:10px;text-align:center;margin-bottom:4px;">
+  Declaro ter recebido o equipamento acima em bom estado.
+</div>
+
+<div class="signature-area">Assinatura</div>
+
+<div style="margin-top:3px;font-size:9px;text-align:center;color:#555;">
+  {{ loan.loaned_at|date:"d/m/Y H:i" }} — construart.be
+</div>
+
+<div class="no-print">
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+  <a href="{% url 'equipment:detail' loan.equipment.pk %}">← Voltar</a>
+</div>
+
+</body>
+</html>

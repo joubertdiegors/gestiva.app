@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}Faturas — Construart{% endblock %}
+{% block tab_parent %}/invoicing/{% endblock %}
+{% block tab_icon %}🧾{% endblock %}
+{% block breadcrumb %}<span class="current">Faturas</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .dt-wrap { overflow-x:auto; }
+  .dt { width:100%; border-collapse:collapse; font-size:13px; font-family:sans-serif; }
+  .dt thead th { padding:9px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+  .dt tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+  .dt tbody tr:last-child { border-bottom:none; }
+  .dt tbody tr:hover { background:var(--surface2); }
+  .dt td { padding:10px 14px; color:var(--text); vertical-align:middle; }
+  .dt td.muted { color:var(--text3); }
+  .dt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .dt-empty { padding:20px; text-align:center; font-size:13px; color:var(--text3); font-family:sans-serif; }
+  .overdue-row td { background:color-mix(in srgb, var(--red) 4%, transparent); }
+
+  /* ── Wizard popup ── */
+  .wiz-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+  .wiz-overlay.open { display:flex; }
+  /* overflow:visible is critical so dropdown escapes the box */
+  .wiz-box { background:var(--surface); border-radius:12px; width:500px; max-width:95vw; box-shadow:0 12px 48px rgba(0,0,0,.3); overflow:visible; position:relative; }
+  .wiz-header { padding:18px 20px 0; display:flex; justify-content:space-between; align-items:center; border-radius:12px 12px 0 0; background:var(--surface); }
+  .wiz-header h2 { font-size:16px; font-weight:700; color:var(--text); margin:0; }
+  .wiz-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text3); line-height:1; padding:0 2px; }
+  .wiz-close:hover { color:var(--text); }
+
+  /* Progress bar */
+  .wiz-progress { display:flex; padding:14px 20px 0; gap:4px; }
+  .wiz-prog-seg { flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .25s; }
+  .wiz-prog-seg.done  { background:var(--green,#16a34a); }
+  .wiz-prog-seg.active{ background:var(--accent); }
+
+  /* Step label */
+  .wiz-step-label { padding:6px 20px 0; font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; }
+
+  /* Body / footer */
+  .wiz-body  { padding:16px 20px 0; }
+  .wiz-footer{ padding:16px 20px 20px; display:flex; justify-content:space-between; align-items:center; gap:8px; border-radius:0 0 12px 12px; background:var(--surface); }
+  .wiz-footer-right { display:flex; gap:8px; }
+
+  /* ── Type cards ── */
+  .type-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .type-card { border:2px solid var(--border); border-radius:8px; padding:12px 14px; cursor:pointer; transition:border-color .12s, background .12s, transform .1s; }
+  .type-card:hover { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 5%,transparent); transform:translateY(-1px); }
+  .type-card.selected { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 9%,transparent); }
+  .type-card-icon  { font-size:20px; margin-bottom:5px; }
+  .type-card-label { font-size:13px; font-weight:600; color:var(--text); }
+  .type-card-desc  { font-size:11px; color:var(--text3); margin-top:2px; }
+
+  /* ── Combobox ── */
+  .cmb-wrap { position:relative; }
+  .cmb-input-row { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:8px; background:var(--surface); transition:border-color .15s; }
+  .cmb-input-row:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent); }
+  .cmb-icon { padding:0 10px; color:var(--text3); font-size:14px; flex-shrink:0; pointer-events:none; }
+  .cmb-input { flex:1; padding:10px 6px; border:none; background:transparent; font-size:13px; color:var(--text); outline:none; min-width:0; }
+  .cmb-input::placeholder { color:var(--text3); }
+  .cmb-clear { padding:0 10px; background:none; border:none; cursor:pointer; color:var(--text3); font-size:18px; line-height:1; display:none; flex-shrink:0; }
+  .cmb-clear.show { display:block; }
+  /* Dropdown escapes overflow:hidden of any parent via fixed positioning trick */
+  .cmb-dropdown {
+    position:fixed; /* ← key: escapes modal clipping */
+    background:var(--surface);
+    border:1.5px solid var(--accent);
+    border-radius:8px;
+    box-shadow:0 8px 32px rgba(0,0,0,.2);
+    z-index:2000;
+    max-height:240px;
+    overflow-y:auto;
+    display:none;
+    min-width:200px;
+  }
+  .cmb-dropdown.open { display:block; }
+  .cmb-section-hdr { padding:8px 14px 5px; font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); }
+  .cmb-item { padding:10px 14px; cursor:pointer; transition:background .08s; border-bottom:1px solid var(--border); }
+  .cmb-item:last-child { border-bottom:none; }
+  .cmb-item:hover,.cmb-item.focused { background:var(--surface2); }
+  .cmb-item.selected { background:color-mix(in srgb,var(--accent) 8%,transparent); }
+  .cmb-item-name { font-size:13px; font-weight:600; color:var(--text); }
+  .cmb-item-tags { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+  .cmb-tag { display:inline-flex; align-items:center; gap:3px; font-size:11px; padding:2px 7px; border-radius:4px; background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+  .cmb-empty { padding:16px 14px; font-size:13px; color:var(--text3); text-align:center; }
+  /* Pill shown after selection */
+  .cmb-pill { display:none; margin-top:8px; padding:8px 12px; border-radius:8px; background:color-mix(in srgb,var(--accent) 7%,transparent); border:1.5px solid color-mix(in srgb,var(--accent) 30%,transparent); align-items:center; justify-content:space-between; gap:8px; }
+  .cmb-pill.show { display:flex; }
+  .cmb-pill-name { font-size:13px; font-weight:600; color:var(--text); }
+  .cmb-pill-change { font-size:12px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; white-space:nowrap; }
+
+  /* ── Confirmation step ── */
+  .wiz-confirm-rows { display:flex; flex-direction:column; gap:0; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; }
+  .wiz-confirm-row  { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+  .wiz-confirm-row:last-child { border-bottom:none; }
+  .wiz-confirm-icon { font-size:16px; flex-shrink:0; width:22px; text-align:center; }
+  .wiz-confirm-label{ color:var(--text3); font-size:12px; width:72px; flex-shrink:0; }
+  .wiz-confirm-value{ font-weight:600; color:var(--text); flex:1; }
+  .wiz-confirm-edit { font-size:12px; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; }
+
+  .wiz-label { font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .wiz-field { margin-bottom:14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">Faturas</h1></div>
+  <button class="btn btn-primary" id="btn-nova-fatura">+ Nova fatura</button>
+</div>
+
+<!-- Filtros de status -->
+<div class="filters">
+  <a href="{% url 'invoicing:list' %}" class="btn {% if not status_filter %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">Todas</a>
+  {% for val, label in status_choices %}
+  <a href="?status={{ val }}" class="btn {% if status_filter == val %}btn-secondary{% else %}btn-ghost{% endif %} btn-sm">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card" style="overflow:hidden;">
+  <div class="dt-wrap">
+    <table class="dt">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Tipo</th>
+          <th>Cliente</th>
+          <th>Projeto</th>
+          <th>Emissão</th>
+          <th>Vencimento</th>
+          <th class="num">Total TTC</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr {% if inv.is_overdue %}class="overdue-row"{% endif %}>
+          <td style="font-weight:600;">
+            <a href="{% url 'invoicing:detail' inv.pk %}" style="color:var(--text);text-decoration:none;">{{ inv.number }}</a>
+          </td>
+          <td class="muted" style="font-size:12px;">{{ inv.get_invoice_type_display }}</td>
+          <td>{{ inv.client.name }}</td>
+          <td class="muted">{{ inv.project.name|default:"—" }}</td>
+          <td class="muted">{{ inv.issue_date|date:"d/m/Y" }}</td>
+          <td class="muted {% if inv.is_overdue %}" style="color:var(--red);font-weight:600;{% endif %}">
+            {{ inv.due_date|date:"d/m/Y"|default:"—" }}
+            {% if inv.is_overdue %}<span style="font-size:11px;"> ⚠ vencida</span>{% endif %}
+          </td>
+          <td class="num">€{{ inv.total_ttc_cached|floatformat:2 }}</td>
+          <td>
+            {% if inv.status == 'draft' %}     <span class="badge badge-gray">Rascunho</span>
+            {% elif inv.status == 'sent' %}    <span class="badge badge-blue">Enviada</span>
+            {% elif inv.status == 'partial' %} <span class="badge badge-amber">Parcial</span>
+            {% elif inv.status == 'paid' %}    <span class="badge badge-green">Paga</span>
+            {% else %}                         <span class="badge badge-red">Cancelada</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;justify-content:flex-end;">
+              <a href="{% url 'invoicing:detail' inv.pk %}" class="btn btn-ghost btn-sm">Ver</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="dt-empty">Nenhuma fatura encontrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── WIZARD POPUP ───────────────────────────────────────────────────────── -->
+<div class="wiz-overlay" id="wiz-overlay">
+  <div class="wiz-box">
+
+    <!-- Header -->
+    <div class="wiz-header">
+      <h2 id="wiz-title">Nova fatura</h2>
+      <button class="wiz-close" id="wiz-close">×</button>
+    </div>
+
+    <!-- Progress bar (3 segments) -->
+    <div class="wiz-progress">
+      <div class="wiz-prog-seg active" id="prog-1"></div>
+      <div class="wiz-prog-seg" id="prog-2"></div>
+      <div class="wiz-prog-seg" id="prog-3"></div>
+      <div class="wiz-prog-seg" id="prog-4"></div>
+    </div>
+    <div class="wiz-step-label" id="wiz-step-label">Passo 1 de 4 — Tipo de fatura</div>
+
+    <!-- ── STEP 1: tipo ── -->
+    <div class="wiz-body" id="wiz-step-1">
+      <div class="type-cards">
+        <div class="type-card" data-type="direct">
+          <div class="type-card-icon">📄</div>
+          <div class="type-card-label">Fatura direta</div>
+          <div class="type-card-desc">Serviços prestados</div>
+        </div>
+        <div class="type-card" data-type="advance">
+          <div class="type-card-icon">💰</div>
+          <div class="type-card-label">Adiantamento</div>
+          <div class="type-card-desc">Acompte / antecipada</div>
+        </div>
+        <div class="type-card" data-type="from_budget">
+          <div class="type-card-icon">📋</div>
+          <div class="type-card-label">De orçamento</div>
+          <div class="type-card-desc">A partir de orçamento aprovado</div>
+        </div>
+        <div class="type-card" data-type="credit_note">
+          <div class="type-card-icon">↩️</div>
+          <div class="type-card-label">Nota de crédito</div>
+          <div class="type-card-desc">Avoir / devolução</div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-footer" id="wiz-footer-1">
+      <button class="btn btn-ghost btn-sm" id="wiz-cancel-1">Cancelar</button>
+      <div class="wiz-footer-right">
+        <span style="font-size:12px;color:var(--text3);align-self:center;">Clique num tipo para avançar</span>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: cliente ── -->
+    <div class="wiz-body" id="wiz-step-2" style="display:none;">
+      <div class="wiz-field">
+        <div class="wiz-label">Cliente *</div>
+        <div class="cmb-wrap" id="cmb-client-wrap">
+          <div class="cmb-input-row">
+            <span class="cmb-icon">🔍</span>
+            <input type="text" class="cmb-input" id="cmb-client-input" placeholder="Pesquisar um cliente…" autocomplete="off">
+            <button type="button" class="cmb-clear" id="cmb-client-clear">×</button>
+          </div>
+          <!-- dropdown is positioned via JS (fixed) -->
+          <div class="cmb-dropdown" id="cmb-client-dropdown">
+            <div class="cmb-section-hdr">Cliente</div>
+            <div id="cmb-client-list"></div>
+          </div>
+          <div class="cmb-pill" id="cmb-client-pill">
+            <span class="cmb-pill-name" id="cmb-client-pill-name"></span>
+            <button type="button" class="cmb-pill-change" id="cmb-client-change">Alterar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-footer" id="wiz-footer-2" style="display:none;">
+      <button class="btn btn-ghost btn-sm" id="wiz-back-2">← Voltar</button>
+      <div class="wiz-footer-right">
+        <span style="font-size:12px;color:var(--text3);align-self:center;">Selecione um cliente para avançar</span>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: projeto ── -->
+    <div class="wiz-body" id="wiz-step-3" style="display:none;">
+      <div class="wiz-field">
+        <div class="wiz-label">Projeto <span style="font-weight:400;color:var(--text3);">(opcional)</span></div>
+        <div class="cmb-wrap" id="cmb-project-wrap">
+          <div class="cmb-input-row">
+            <span class="cmb-icon">🔍</span>
+            <input type="text" class="cmb-input" id="cmb-project-input" placeholder="Pesquisar um projeto…" autocomplete="off">
+            <button type="button" class="cmb-clear" id="cmb-project-clear">×</button>
+          </div>
+          <div class="cmb-dropdown" id="cmb-project-dropdown">
+            <div class="cmb-section-hdr">Projeto</div>
+            <div id="cmb-project-list"></div>
+          </div>
+          <div class="cmb-pill" id="cmb-project-pill">
+            <span class="cmb-pill-name" id="cmb-project-pill-name"></span>
+            <button type="button" class="cmb-pill-change" id="cmb-project-change">Alterar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-footer" id="wiz-footer-3" style="display:none;">
+      <button class="btn btn-ghost btn-sm" id="wiz-back-3">← Voltar</button>
+      <div class="wiz-footer-right">
+        <button class="btn btn-ghost btn-sm" id="wiz-skip-project">Sem projeto →</button>
+        <span style="font-size:12px;color:var(--text3);align-self:center;">ou selecione para avançar</span>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: confirmação ── -->
+    <div class="wiz-body" id="wiz-step-4" style="display:none;">
+      <div class="wiz-confirm-rows">
+        <div class="wiz-confirm-row">
+          <span class="wiz-confirm-icon">📄</span>
+          <span class="wiz-confirm-label">Tipo</span>
+          <span class="wiz-confirm-value" id="conf-type">—</span>
+          <button class="wiz-confirm-edit" data-goto="1">Editar</button>
+        </div>
+        <div class="wiz-confirm-row">
+          <span class="wiz-confirm-icon">👤</span>
+          <span class="wiz-confirm-label">Cliente</span>
+          <span class="wiz-confirm-value" id="conf-client">—</span>
+          <button class="wiz-confirm-edit" data-goto="2">Editar</button>
+        </div>
+        <div class="wiz-confirm-row">
+          <span class="wiz-confirm-icon">🏗️</span>
+          <span class="wiz-confirm-label">Projeto</span>
+          <span class="wiz-confirm-value" id="conf-project">—</span>
+          <button class="wiz-confirm-edit" data-goto="3">Editar</button>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-footer" id="wiz-footer-4" style="display:none;">
+      <button class="btn btn-ghost btn-sm" id="wiz-back-4">← Voltar</button>
+      <div class="wiz-footer-right">
+        <button class="btn btn-primary" id="wiz-confirm">Criar fatura →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Data for wizard JS -->
+<script>
+const ALL_CLIENTS  = [{% for c in clients %}{"id":{{ c.pk }},"name":"{{ c.name|escapejs }}","legal_form":"{{ c.legal_form|default:''|escapejs }}","category":"{{ c.category|default:''|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}];
+const ALL_PROJECTS = [{% for p in projects %}{"id":{{ p.id }},"name":"{{ p.name|escapejs }}","client":{{ p.client_id }},"status":"{{ p.status|default:''|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}];
+const CREATE_URL   = "{% url 'invoicing:create' %}";
+</script>
+<script>
+(function () {
+  /* ── state ── */
+  let selType = null, selTypeLabel = null;
+  let selClientId = null, selClientName = null;
+  let selProjectId = null, selProjectName = null;
+
+  /* ── DOM ── */
+  const overlay = document.getElementById('wiz-overlay');
+  const steps   = [1,2,3,4].map(i => document.getElementById(`wiz-step-${i}`));
+  const footers = [1,2,3,4].map(i => document.getElementById(`wiz-footer-${i}`));
+  const progs   = [1,2,3,4].map(i => document.getElementById(`prog-${i}`));
+  const stepLabel = document.getElementById('wiz-step-label');
+  const LABELS = ['Passo 1 de 4 — Tipo de fatura','Passo 2 de 4 — Cliente','Passo 3 de 4 — Projeto','Passo 4 de 4 — Confirmação'];
+  const TYPE_LABELS = {direct:'Fatura direta', advance:'Adiantamento', from_budget:'De orçamento', credit_note:'Nota de crédito'};
+
+  /* ── helpers ── */
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function catLabel(c){ return {professional:'Profissional',individual:'Particular',public:'Público'}[c]||c; }
+  function stLabel(s){ return {active:'Ativo',completed:'Concluído',on_hold:'Em pausa',cancelled:'Cancelado'}[s]||s; }
+
+  function goTo(n) {
+    steps.forEach((s,i)   => s.style.display   = i===n-1 ? '' : 'none');
+    footers.forEach((f,i) => f.style.display   = i===n-1 ? '' : 'none');
+    progs.forEach((p,i)   => p.className = 'wiz-prog-seg' + (i<n-1?' done': i===n-1?' active':''));
+    stepLabel.textContent = LABELS[n-1];
+    // auto-focus
+    const inp = {2:'cmb-client-input', 3:'cmb-project-input'}[n];
+    if (inp) setTimeout(()=>document.getElementById(inp).focus(), 60);
+  }
+
+  /* ── Combobox factory (dropdown uses fixed positioning — no clipping) ── */
+  function makeCombobox({ wrapId, inputId, clearId, dropId, listId, pillId, pillNameId, changeId, items, renderItem, onSelect, onClear }) {
+    const wrap    = document.getElementById(wrapId);
+    const input   = document.getElementById(inputId);
+    const clearBtn= document.getElementById(clearId);
+    const drop    = document.getElementById(dropId);
+    const list    = document.getElementById(listId);
+    const pill    = document.getElementById(pillId);
+    const pillName= document.getElementById(pillNameId);
+    const changeBtn= document.getElementById(changeId);
+
+    let filtered = [], focusIdx = -1, selVal = null;
+
+    function positionDrop() {
+      const r = input.getBoundingClientRect();
+      drop.style.top   = (r.bottom + 4) + 'px';
+      drop.style.left  = r.left + 'px';
+      drop.style.width = r.width + 'px';
+    }
+
+    function renderList(q) {
+      const lc = (q||'').toLowerCase().trim();
+      filtered = lc ? items.filter(i=>i.name.toLowerCase().includes(lc)) : items;
+      focusIdx = -1;
+      if (!filtered.length) {
+        list.innerHTML = `<div class="cmb-empty">Sem resultados${q?` para "${esc(q)}"`:''}</div>`;
+      } else {
+        list.innerHTML = filtered.map((it,i)=>
+          `<div class="cmb-item${it.id==selVal?' selected':''}" data-i="${i}">${renderItem(it)}</div>`
+        ).join('');
+        list.querySelectorAll('.cmb-item').forEach(el=>
+          el.addEventListener('mousedown', e=>{ e.preventDefault(); pick(filtered[+el.dataset.i]); })
+        );
+      }
+    }
+
+    function openDrop() { positionDrop(); renderList(input.value); drop.classList.add('open'); }
+    function closeDrop(){ drop.classList.remove('open'); }
+
+    function pick(item) {
+      selVal = item.id;
+      closeDrop();
+      input.style.display = 'none';
+      clearBtn.classList.remove('show');
+      pillName.textContent = item.name;
+      pill.classList.add('show');
+      onSelect(item);
+    }
+
+    function reset() {
+      selVal = null;
+      input.value = ''; input.style.display = '';
+      clearBtn.classList.remove('show');
+      pill.classList.remove('show');
+      closeDrop(); onClear();
+      setTimeout(()=>input.focus(), 30);
+    }
+
+    input.addEventListener('focus', openDrop);
+    input.addEventListener('input', ()=>{
+      clearBtn.classList.toggle('show', input.value.length>0);
+      renderList(input.value);
+      if (!drop.classList.contains('open')) openDrop();
+      else positionDrop();
+    });
+    input.addEventListener('keydown', e=>{
+      const els = list.querySelectorAll('.cmb-item');
+      if (e.key==='ArrowDown'){ e.preventDefault(); focusIdx=Math.min(focusIdx+1,els.length-1); els.forEach((el,i)=>el.classList.toggle('focused',i===focusIdx)); els[focusIdx]?.scrollIntoView({block:'nearest'}); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); focusIdx=Math.max(focusIdx-1,0); els.forEach((el,i)=>el.classList.toggle('focused',i===focusIdx)); els[focusIdx]?.scrollIntoView({block:'nearest'}); }
+      else if(e.key==='Enter'&&focusIdx>=0&&filtered[focusIdx]){ e.preventDefault(); pick(filtered[focusIdx]); }
+      else if(e.key==='Escape') closeDrop();
+    });
+    input.addEventListener('blur', ()=>setTimeout(closeDrop,160));
+    clearBtn.addEventListener('click',()=>{ input.value=''; clearBtn.classList.remove('show'); renderList(''); input.focus(); });
+    changeBtn.addEventListener('click', reset);
+    // Reposition on scroll/resize
+    window.addEventListener('scroll', ()=>{ if(drop.classList.contains('open')) positionDrop(); }, {passive:true});
+    window.addEventListener('resize', ()=>{ if(drop.classList.contains('open')) positionDrop(); }, {passive:true});
+
+    return { reset, getValue(){ return selVal; } };
+  }
+
+  /* ── Project combobox (items populated dynamically via projItems ref) ── */
+  let projItems = [];
+  const projectCmb = makeCombobox({
+    wrapId:'cmb-project-wrap', inputId:'cmb-project-input', clearId:'cmb-project-clear',
+    dropId:'cmb-project-dropdown', listId:'cmb-project-list',
+    pillId:'cmb-project-pill', pillNameId:'cmb-project-pill-name', changeId:'cmb-project-change',
+    items: projItems,  // array mutated in-place before step 3 opens
+    renderItem(p){
+      const tags=[];
+      if(p.status) tags.push(`<span class="cmb-tag">📋 ${esc(stLabel(p.status))}</span>`);
+      return `<div class="cmb-item-name">${esc(p.name)}</div>${tags.length?`<div class="cmb-item-tags">${tags.join('')}</div>`:''}`;
+    },
+    onSelect(p){ selProjectId=p.id; selProjectName=p.name; goToConfirm(); },
+    onClear(){ selProjectId=null; selProjectName=null; }
+  });
+
+  /* ── Client combobox ── */
+  const clientCmb = makeCombobox({
+    wrapId:'cmb-client-wrap', inputId:'cmb-client-input', clearId:'cmb-client-clear',
+    dropId:'cmb-client-dropdown', listId:'cmb-client-list',
+    pillId:'cmb-client-pill', pillNameId:'cmb-client-pill-name', changeId:'cmb-client-change',
+    items: ALL_CLIENTS,
+    renderItem(c){
+      const tags=[];
+      if(c.legal_form) tags.push(`<span class="cmb-tag">🏢 ${esc(c.legal_form)}</span>`);
+      if(c.category)   tags.push(`<span class="cmb-tag">🏷 ${esc(catLabel(c.category))}</span>`);
+      return `<div class="cmb-item-name">${esc(c.name)}</div>${tags.length?`<div class="cmb-item-tags">${tags.join('')}</div>`:''}`;
+    },
+    onSelect(c){
+      selClientId=c.id; selClientName=c.name;
+      projItems.length = 0;
+      ALL_PROJECTS.filter(p=>p.client==c.id).forEach(p=>projItems.push(p));
+      projectCmb.reset();
+      goTo(3);
+    },
+    onClear(){ selClientId=null; selClientName=null; }
+  });
+
+  function goToConfirm() {
+    document.getElementById('conf-type').textContent    = selTypeLabel || '—';
+    document.getElementById('conf-client').textContent  = selClientName || '—';
+    document.getElementById('conf-project').textContent = selProjectName || 'Sem projeto';
+    goTo(4);
+  }
+
+  /* ── Wizard flow ── */
+  function openWizard() {
+    selType=null; selTypeLabel=null; selClientId=null; selClientName=null;
+    selProjectId=null; selProjectName=null;
+    document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('selected'));
+    clientCmb.reset(); projectCmb.reset();
+    goTo(1);
+    overlay.classList.add('open');
+  }
+  function closeWizard(){ overlay.classList.remove('open'); }
+
+  /* ── Type card click → go step 2 immediately ── */
+  document.querySelectorAll('.type-card').forEach(card=>{
+    card.addEventListener('click',()=>{
+      document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      selType = card.dataset.type;
+      selTypeLabel = TYPE_LABELS[selType] || selType;
+      // brief visual feedback, then advance
+      setTimeout(()=>{ clientCmb.reset(); goTo(2); }, 120);
+    });
+  });
+
+  /* ── Back buttons ── */
+  document.getElementById('wiz-back-2').addEventListener('click', ()=>goTo(1));
+  document.getElementById('wiz-back-3').addEventListener('click', ()=>{ projectCmb.reset(); goTo(2); });
+  document.getElementById('wiz-back-4').addEventListener('click', ()=>goTo(3));
+
+  /* ── Skip project ── */
+  document.getElementById('wiz-skip-project').addEventListener('click',()=>{
+    selProjectId=null; selProjectName=null; goToConfirm();
+  });
+
+  /* ── Confirm edit links ── */
+  document.querySelectorAll('.wiz-confirm-edit').forEach(btn=>{
+    btn.addEventListener('click',()=>goTo(+btn.dataset.goto));
+  });
+
+  /* ── Final confirm ── */
+  document.getElementById('wiz-confirm').addEventListener('click',()=>{
+    let url = `${CREATE_URL}?type=${selType}&client=${selClientId}`;
+    if (selProjectId) url += `&project=${selProjectId}`;
+    window.location.href = url;
+  });
+
+  /* ── Open / close ── */
+  document.getElementById('btn-nova-fatura').addEventListener('click', openWizard);
+  document.getElementById('wiz-close').addEventListener('click', closeWizard);
+  document.getElementById('wiz-cancel-1').addEventListener('click', closeWizard);
+  // Clicar fora do modal não fecha — apenas o × fecha
+  // overlay.addEventListener('click', e=>{ if(e.target===overlay) closeWizard(); });
+
+})();
+</script>
+{% endblock %}

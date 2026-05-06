@@ -13,55 +13,17 @@
 
 {% block extra_head %}
 <style>
-.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
-.dt{width:100%;border-collapse:collapse;font-size:13px}
-.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
-.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
-.dt tbody tr:hover{background:var(--surface2)}
-.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
-.dt td.muted{color:var(--text3);font-size:12px}
-.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
-.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
-.btn-icon:hover{background:var(--surface2);color:var(--accent)}
-.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
-/* Não usar display:flex no próprio <dialog>: em vários browsers isso quebra o top layer e o modal fica no fluxo da página ("congelado" na lista). */
 dialog.cat-dialog{
-  margin:0;
-  padding:0;
-  border:none;
-  width:100vw;
-  max-width:none;
-  height:100vh;
-  max-height:none;
-  background:transparent;
-  box-sizing:border-box;
+  margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box;
 }
 dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
-.cat-dialog-flex{
-  width:100%;
-  height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  box-sizing:border-box;
-}
-.cat-dialog .popup-panel{
-  background:var(--surface);
-  border-radius:var(--radius-lg,10px);
-  width:460px;
-  max-width:min(460px,calc(100vw - 40px));
-  flex-shrink:0;
-  box-shadow:0 8px 32px rgba(0,0,0,.18);
-}
+.cat-dialog-flex{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.cat-dialog .popup-panel{background:var(--surface);border-radius:var(--radius-lg,10px);width:460px;max-width:min(460px,calc(100vw - 40px));flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,.18)}
 .popup-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
 .popup-title{font-weight:600;font-size:15px;color:var(--text)}
 .popup-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
 .popup-body{padding:22px;display:flex;flex-direction:column;gap:16px}
 .popup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
-.form-group{display:flex;flex-direction:column;gap:6px}
-.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
-.form-label .req{color:var(--accent)}
 .popup-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
 .check-row{display:flex;align-items:center;gap:10px}
 .check-row label{font-size:13px;color:var(--text2);cursor:pointer;margin:0}
@@ -72,23 +34,59 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
 {% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">{% trans "Categorias de Produtos" %}</h1>
-    <p class="page-sub">{% trans "Hierarquia de categorias para organizar o catálogo." %}</p>
-  </div>
-  <button type="button" class="btn btn-primary" id="btn-nova-categoria">+ {% trans "Nova categoria" %}</button>
-</div>
 
-<div class="card" style="padding:0;overflow:hidden">
-  <table class="dt">
+<div class="ca-table-wrap" data-ca-table="categories">
+
+  <div class="ca-table-actions">
+    <div class="ca-table-actions-title">
+      <h1>{% trans "Categorias de Produtos" %}</h1>
+      <span><strong data-ca-row-count>{{ categories|length }}</strong> {% trans "resultados" %}</span>
+    </div>
+    <div class="ca-table-actions-btns">
+      <button class="ca-tbl-btn" data-ca-action="toggle-filters" data-tip="{% trans 'Limpar filtros' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="refresh" data-tip="{% trans 'Actualizar dados' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+      <button class="ca-tbl-btn" data-ca-action="columns" data-tip="{% trans 'Personalizar colunas' %}">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      </button>
+      <span class="ca-tbl-sep"></span>
+      <button type="button" class="ca-tbl-btn-primary" id="btn-nova-categoria" data-tip="{% trans 'Nova categoria' %}">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {% trans "Nova categoria" %}
+      </button>
+    </div>
+  </div>
+
+  <div class="ca-table-scroll">
+  <table class="ca-table">
     <thead>
       <tr>
-        <th>{% trans "Nome" %}</th>
-        <th>{% trans "Categoria pai" %}</th>
-        <th style="text-align:right">{% trans "Produtos" %}</th>
-        <th>{% trans "Estado" %}</th>
-        <th style="width:72px"></th>
+        <th data-col="nome" data-col-label="{% trans 'Nome' %}" data-col-required>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Nome" %}</span>
+            <div class="ca-th-search"><input data-col="nome" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="categoria_pai" data-col-label="{% trans 'Categoria pai' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Categoria pai" %}</span>
+            <div class="ca-th-search"><input data-col="categoria_pai" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="produtos" data-col-label="{% trans 'Produtos' %}" data-col-hidden>
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Produtos" %}</span>
+            <div class="ca-th-search"><input data-col="produtos" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col="estado" data-col-label="{% trans 'Estado' %}">
+          <div class="ca-th-cell"><span class="ca-th-label">{% trans "Estado" %}</span>
+            <div class="ca-th-search"><input data-col="estado" placeholder="{% trans 'Filtrar…' %}"></div>
+          </div>
+        </th>
+        <th data-col-required style="width:80px">
+          <div class="ca-th-cell" style="min-height:auto;padding:10px 8px;"></div>
+        </th>
       </tr>
     </thead>
     <tbody id="cat-tbody">
@@ -101,30 +99,28 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
           data-is-active="{{ cat.is_active|lower }}"
           data-count="{{ cat.product_count }}"
           data-has-children="{% if cat.children_count %}true{% else %}false{% endif %}">
-        <td>
+        <td data-col="nome">
           {% if node.level %}
             <span class="cat-sub" style="margin-right:6px;">{{ node.indent }}</span>
           {% endif %}
           <strong>{{ cat.name }}</strong>
         </td>
-        <td class="muted">{{ cat.parent.name|default:"—" }}</td>
-        <td style="text-align:right">
-          <span class="badge {% if cat.product_count %}badge-accent{% else %}badge-gray{% endif %}">
-            {{ cat.product_count }}
-          </span>
+        <td data-col="categoria_pai" style="color:var(--text2);font-size:13px;">{{ cat.parent.name|default:"—" }}</td>
+        <td data-col="produtos" style="text-align:right;">
+          <span class="ca-badge {% if cat.product_count %}blue{% else %}gray{% endif %}">{{ cat.product_count }}</span>
         </td>
-        <td>
+        <td data-col="estado">
           {% if cat.is_active %}
-            <span class="badge badge-green">{% trans "Activa" %}</span>
+            <span class="ca-badge green"><span class="dot"></span>{% trans "Activa" %}</span>
           {% else %}
-            <span class="badge badge-gray">{% trans "Inactiva" %}</span>
+            <span class="ca-badge gray"><span class="dot"></span>{% trans "Inactiva" %}</span>
           {% endif %}
         </td>
-        <td>
-          <div class="actions">
-            <button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>
+        <td style="text-align:right;">
+          <div class="ca-row-actions">
+            <button type="button" class="btn-cat-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans 'Editar' %}">✏️</button>
             {% if not cat.product_count and not cat.children_count %}
-            <button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="{{ cat.pk }}">🗑</button>
+            <button type="button" class="btn-cat-del" data-id="{{ cat.pk }}" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans 'Eliminar' %}">🗑</button>
             {% endif %}
           </div>
         </td>
@@ -139,6 +135,8 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
       {% endfor %}
     </tbody>
   </table>
+  </div>
+
 </div>
 
 <dialog id="cat-dialog" class="cat-dialog" aria-labelledby="cat-popup-title">
@@ -151,7 +149,7 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
     <div class="popup-body">
       <div class="popup-error" id="cat-error"></div>
       <div class="form-group">
-        <label class="form-label" for="c-name">{% trans "Nome" %} <span class="req">*</span></label>
+        <label class="form-label" for="c-name">{% trans "Nome" %} <span style="color:var(--accent)">*</span></label>
         <input type="text" id="c-name" class="form-control" maxlength="100" autocomplete="off">
       </div>
       <div class="form-group">
@@ -205,9 +203,7 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
   function showCatDialog() {
     if (typeof dlg.showModal === 'function') {
       try { if (!dlg.open) dlg.showModal(); } catch (e) {}
-    } else {
-      dlg.setAttribute('open', '');
-    }
+    } else { dlg.setAttribute('open', ''); }
   }
   function hideCatDialog() {
     try { if (dlg.open) dlg.close(); } catch (e) {}
@@ -228,44 +224,30 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
     setTimeout(function () { nameInput.focus(); }, 60);
   }
 
-  function closeCategoryModal() {
-    hideCatDialog();
-    editingPk = null;
-  }
+  function closeCategoryModal() { hideCatDialog(); editingPk = null; }
 
-  function setError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = msg ? 'block' : 'none';
-  }
-
-  function setBusy(busy) {
-    btnSave.disabled = busy;
-    btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}';
-  }
+  function setError(msg) { errorEl.textContent = msg; errorEl.style.display = msg ? 'block' : 'none'; }
+  function setBusy(busy) { btnSave.disabled = busy; btnSave.textContent = busy ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}'; }
 
   function post(url, data) {
     return fetch(url, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': CSRF },
+      method: 'POST', headers: { 'X-CSRFToken': CSRF },
       body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }),
     }).then(function (r) { return r.json(); });
   }
 
-  function escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
+  function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   function buildRow(c) {
     var canDel = c.product_count === 0 && !c.has_children;
     var isSubcat = !!c.parent_id;
     var activeBadge = c.is_active
-      ? '<span class="badge badge-green">{% trans "Activa" %}</span>'
-      : '<span class="badge badge-gray">{% trans "Inactiva" %}</span>';
+      ? '<span class="ca-badge green"><span class="dot"></span>{% trans "Activa" %}</span>'
+      : '<span class="ca-badge gray"><span class="dot"></span>{% trans "Inactiva" %}</span>';
     var delBtn = canDel
-      ? '<button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="' + c.id + '">🗑</button>'
+      ? '<button type="button" class="btn-cat-del" data-id="' + c.id + '" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans "Eliminar" %}">🗑</button>'
       : '';
+    var prodBadge = '<span class="ca-badge ' + (c.product_count ? 'blue' : 'gray') + '">' + c.product_count + '</span>';
     return (
       '<tr data-id="' + c.id + '"' +
       ' data-name="' + String(c.name).replace(/"/g, '&quot;') + '"' +
@@ -274,12 +256,12 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
       ' data-is-active="' + c.is_active + '"' +
       ' data-count="' + c.product_count + '"' +
       ' data-has-children="' + c.has_children + '">' +
-      '<td>' + (isSubcat ? '<span class="cat-sub">↳</span>' : '') + '<strong>' + escapeHtml(c.name) + '</strong></td>' +
-      '<td class="muted">' + escapeHtml(c.parent_name || '—') + '</td>' +
-      '<td style="text-align:right"><span class="badge ' + (c.product_count ? 'badge-accent' : 'badge-gray') + '">' + c.product_count + '</span></td>' +
-      '<td>' + activeBadge + '</td>' +
-      '<td><div class="actions">' +
-      '<button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>' +
+      '<td data-col="nome">' + (isSubcat ? '<span class="cat-sub">↳</span>' : '') + '<strong>' + escapeHtml(c.name) + '</strong></td>' +
+      '<td data-col="categoria_pai" style="color:var(--text2);font-size:13px;">' + escapeHtml(c.parent_name || '—') + '</td>' +
+      '<td data-col="produtos" style="text-align:right;">' + prodBadge + '</td>' +
+      '<td data-col="estado">' + activeBadge + '</td>' +
+      '<td style="text-align:right;"><div class="ca-row-actions">' +
+      '<button type="button" class="btn-cat-edit" style="width:27px;height:27px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);display:inline-flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" title="{% trans "Editar" %}">✏️</button>' +
       delBtn +
       '</div></td></tr>'
     );
@@ -294,22 +276,13 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
 
   function saveCategory() {
     var name = nameInput.value.trim();
-    if (!name) {
-      setError('{% trans "O nome é obrigatório." %}');
-      nameInput.focus();
-      return;
-    }
+    if (!name) { setError('{% trans "O nome é obrigatório." %}'); nameInput.focus(); return; }
     setBusy(true);
     post(editingPk ? urlUpd(editingPk) : URL_SAVE, {
-      name: name,
-      parent: parentSel.value,
-      is_active: activeChk.checked ? 'on' : '',
+      name: name, parent: parentSel.value, is_active: activeChk.checked ? 'on' : '',
     }).then(function (json) {
       setBusy(false);
-      if (!json.ok) {
-        setError(Object.values(json.errors).flat().join(' '));
-        return;
-      }
+      if (!json.ok) { setError(Object.values(json.errors).flat().join(' ')); return; }
       var c = json.category;
       var emptyRow = document.getElementById('empty-row');
       if (emptyRow) emptyRow.remove();
@@ -324,10 +297,7 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
         if (nr) nr.classList.add('row-new');
       }
       closeCategoryModal();
-    }).catch(function () {
-      setBusy(false);
-      setError('{% trans "Erro de ligação. Tente novamente." %}');
-    });
+    }).catch(function () { setBusy(false); setError('{% trans "Erro de ligação. Tente novamente." %}'); });
   }
 
   function deleteCategory(pk) {
@@ -338,7 +308,7 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
       if (row) row.remove();
       var opt = parentSel.querySelector('option[value="' + pk + '"]');
       if (opt) opt.remove();
-      if (!tbody.querySelector('tr')) {
+      if (!tbody.querySelector('tr[data-id]')) {
         tbody.innerHTML = '<tr id="empty-row"><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">' +
           '{% trans "Nenhuma categoria registada." %}</td></tr>';
       }
@@ -360,10 +330,7 @@ dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
   dlg.addEventListener('click', function (e) {
     if (!e.target.closest('.popup-panel')) closeCategoryModal();
   });
-  dlg.addEventListener('cancel', function (e) {
-    e.preventDefault();
-    closeCategoryModal();
-  });
+  dlg.addEventListener('cancel', function (e) { e.preventDefault(); closeCategoryModal(); });
   document.addEventListener('keydown', function (e) {
     if (!dlg.open) return;
     if (e.key === 'Enter') { e.preventDefault(); saveCategory(); }

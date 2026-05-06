@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if is_create %}Novo EA{% else %}Editar EA{% endif %} — Construart{% endblock %}
+{% block tab_parent %}contracts{% endblock %}
+{% block tab_icon %}📨{% endblock %}
+
+{% block extra_head %}
+<style>
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.form-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:768px){.form-grid-2,.form-grid-3{grid-template-columns:1fr}}
+.ref-block{transition:opacity .2s}.ref-block.hidden{display:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    {% if contract %}<p class="page-sub" style="margin-bottom:4px"><a href="{% url 'contracts:detail' contract.pk %}" style="color:var(--accent);text-decoration:none">{{ contract.title }}</a></p>{% endif %}
+    {% if addendum %}<p class="page-sub" style="margin-bottom:4px"><a href="{% url 'contracts:addendum_detail' addendum.pk %}" style="color:var(--accent);text-decoration:none">Adendo {{ addendum.number }} — {{ addendum.title }}</a></p>{% endif %}
+    <h1 class="page-title">{% if is_create %}Novo EA{% else %}Editar EA {{ statement.number }}{% endif %}</h1>
+  </div>
+  <a href="{% if not is_create %}{% url 'contracts:statement_detail' statement.pk %}{% elif contract %}{% url 'contracts:detail' contract.pk %}{% elif addendum %}{% url 'contracts:addendum_detail' addendum.pk %}{% else %}{% url 'contracts:statement_list' %}{% endif %}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<form method="post" id="statement-form">
+  {% csrf_token %}
+
+  <div class="form-section">
+    <div class="form-section-title">Tipo e Identificação</div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Tipo de EA <span style="color:var(--danger)">*</span></label>{{ form.statement_type }}</div>
+      <div class="form-group"><label class="form-label">Número (ex: EA-1) <span style="color:var(--danger)">*</span></label>{{ form.number }}{% if form.number.errors %}<div class="form-error">{{ form.number.errors.0 }}</div>{% endif %}</div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group ref-block" id="block-contract">
+        <label class="form-label">Contrato do Cliente</label>
+        {{ form.contract }}
+        {% if form.contract.errors %}<div class="form-error">{{ form.contract.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group ref-block hidden" id="block-addendum">
+        <label class="form-label">Adendo (subempreiteiro)</label>
+        {{ form.addendum }}
+        {% if form.addendum.errors %}<div class="form-error">{{ form.addendum.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        {{ form.status }}
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Período e Datas</div>
+    <div class="form-grid-2" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Período — Início</label>{{ form.period_start }}</div>
+      <div class="form-group"><label class="form-label">Período — Fim</label>{{ form.period_end }}</div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Data de Emissão <span style="color:var(--danger)">*</span></label>{{ form.issue_date }}{% if form.issue_date.errors %}<div class="form-error">{{ form.issue_date.errors.0 }}</div>{% endif %}</div>
+      <div class="form-group"><label class="form-label">Data de Vencimento</label>{{ form.due_date }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Notas</div>
+    <div class="form-grid-2">
+      <div class="form-group"><label class="form-label">Notas Internas</label>{{ form.notes_internal }}</div>
+      <div class="form-group"><label class="form-label">Notas para o Destinatário</label>{{ form.notes_external }}</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="{% if not is_create %}{% url 'contracts:statement_detail' statement.pk %}{% elif contract %}{% url 'contracts:detail' contract.pk %}{% elif addendum %}{% url 'contracts:addendum_detail' addendum.pk %}{% else %}{% url 'contracts:statement_list' %}{% endif %}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">{% if is_create %}Criar EA{% else %}Guardar{% endif %}</button>
+  </div>
+</form>
+
+<script>
+(function(){
+  var sel=document.getElementById('id_statement_type');
+  function toggle(){
+    var isClient=sel.value==='client';
+    document.getElementById('block-contract').classList.toggle('hidden',!isClient);
+    document.getElementById('block-addendum').classList.toggle('hidden',isClient);
+  }
+  toggle();
+  sel.addEventListener('change',toggle);
+})();
+</script>
+{% endblock %}

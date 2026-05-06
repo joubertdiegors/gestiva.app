@@ -1,13 +1,13 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from django.utils.translation import gettext_lazy as _
+from accounts.decorators import perm_required
 
 from clients.models import ClientContact
 from suppliers.models import SupplierContact
 from workforce.models import Collaborator
 
 
-@login_required
+@perm_required('clients.view_client')
 def contacts_list(request):
     source = request.GET.get('source', 'all')
 

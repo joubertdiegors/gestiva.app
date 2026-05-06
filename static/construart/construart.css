@@ -1,0 +1,666 @@
+/* ================================================================
+   CONSTRUART · Sistema de Design
+   ----------------------------------------------------------------
+   Tokens de tema centralizados via CSS custom properties.
+   Light = padrão · Dark = [data-theme="dark"] no <html>.
+
+   Para criar um novo tema, basta adicionar um bloco:
+     [data-theme="nome"] { --ca-bg: ...; --ca-accent: ...; }
+
+   Todos os componentes do sistema apenas lêem estas variáveis.
+   ================================================================ */
+
+
+/* ── TEMA LIGHT (padrão) ─────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  /* Fundos */
+  --ca-bg:        #f6f7f9;
+  --ca-surface:   #ffffff;
+  --ca-surface-2: #fafbfc;
+  --ca-surface-3: #f0f2f5;
+
+  /* Bordas */
+  --ca-border:    #e7eaf0;
+  --ca-border-2:  #d8dce6;
+
+  /* Texto */
+  --ca-text:      #0f172a;
+  --ca-text-2:    #475569;
+  --ca-text-3:    #94a3b8;
+
+  /* Accent — verde construção */
+  --ca-accent:      oklch(0.52 0.13 158);
+  --ca-accent-2:    oklch(0.46 0.13 158);
+  --ca-accent-50:   oklch(0.97 0.025 158);
+  --ca-accent-100:  oklch(0.93 0.05 158);
+  --ca-on-accent:   #ffffff;
+
+  /* Sidebar */
+  --ca-side-bg:          #1e2638;
+  --ca-side-bg-2:        #19202f;
+  --ca-side-bg-3:        #2a3346;
+  --ca-side-text:        #cfd5e0;
+  --ca-side-text-mute:   #8b94a7;
+  --ca-side-hover:       rgba(255,255,255,0.05);
+  --ca-side-active-bg:   rgba(255,255,255,0.07);
+  --ca-side-active-bar:  oklch(0.62 0.16 158);
+  --ca-side-border:      rgba(255,255,255,0.07);
+
+  /* Status / Badges */
+  --ca-amber:        #f59e0b;
+  --ca-amber-bg:     #fef3c7;
+  --ca-amber-text:   #92400e;
+  --ca-blue:         #3b82f6;
+  --ca-blue-bg:      #dbeafe;
+  --ca-blue-text:    #1e40af;
+  --ca-violet:       #8b5cf6;
+  --ca-violet-bg:    #ede9fe;
+  --ca-violet-text:  #5b21b6;
+  --ca-green:        #10b981;
+  --ca-green-bg:     #d1fae5;
+  --ca-green-text:   #065f46;
+  --ca-rose:         #f43f5e;
+  --ca-rose-bg:      #ffe4e6;
+  --ca-rose-text:    #9f1239;
+  --ca-gray:         #9ca3af;
+  --ca-gray-bg:      #f3f4f6;
+  --ca-gray-text:    #4b5563;
+
+  /* Sombras */
+  --ca-shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --ca-shadow:    0 4px 12px -2px rgba(15,23,42,.08);
+  --ca-shadow-md: 0 8px 24px -4px rgba(15,23,42,.12);
+
+  /* Raios */
+  --ca-r-sm: 6px;
+  --ca-r:    8px;
+  --ca-r-lg: 12px;
+
+  /* Tipografia — herda do base.html mas pode ser sobrescrita */
+  --ca-font:  'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --ca-font-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+}
+
+
+/* ── TEMA DARK ───────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --ca-bg:        #0e1014;
+  --ca-surface:   #15181f;
+  --ca-surface-2: #1a1e26;
+  --ca-surface-3: #20252e;
+
+  --ca-border:    #262b35;
+  --ca-border-2:  #2e3540;
+
+  --ca-text:      #e8eaee;
+  --ca-text-2:    #a0a6b1;
+  --ca-text-3:    #6b7280;
+
+  /* Accent — âmbar para melhor contraste no dark */
+  --ca-accent:     oklch(0.72 0.16 62);
+  --ca-accent-2:   oklch(0.66 0.17 62);
+  --ca-accent-50:  rgba(245,158,11,.10);
+  --ca-accent-100: rgba(245,158,11,.22);
+  --ca-on-accent:  #0a0c10;
+
+  --ca-side-bg:         #0a0c10;
+  --ca-side-bg-2:       #14171d;
+  --ca-side-bg-3:       #262b35;
+  --ca-side-active-bg:  rgba(245,158,11,.10);
+  --ca-side-active-bar: var(--ca-accent);
+
+  --ca-amber:       oklch(0.72 0.16 62);
+  --ca-amber-bg:    rgba(245,158,11,.12);
+  --ca-amber-text:  oklch(0.72 0.16 62);
+  --ca-blue:        oklch(0.70 0.13 240);
+  --ca-blue-bg:     rgba(96,165,250,.12);
+  --ca-blue-text:   oklch(0.70 0.13 240);
+  --ca-violet:      oklch(0.70 0.16 295);
+  --ca-violet-bg:   rgba(168,85,247,.10);
+  --ca-violet-text: oklch(0.70 0.16 295);
+  --ca-green:       oklch(0.72 0.15 155);
+  --ca-green-bg:    rgba(34,197,94,.12);
+  --ca-green-text:  oklch(0.72 0.15 155);
+  --ca-rose:        oklch(0.70 0.17 20);
+  --ca-rose-bg:     rgba(244,63,94,.12);
+  --ca-rose-text:   oklch(0.70 0.17 20);
+  --ca-gray:        #6b7280;
+  --ca-gray-bg:     rgba(107,114,128,.12);
+  --ca-gray-text:   #9ca3af;
+
+  --ca-shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+  --ca-shadow:    0 4px 12px -2px rgba(0,0,0,.45);
+  --ca-shadow-md: 0 8px 24px -4px rgba(0,0,0,.55);
+}
+
+
+/* ── UTILITÁRIO: sem transição durante troca de tema ─────────── */
+.ca-no-transition,
+.ca-no-transition * { transition: none !important; }
+
+
+/* ================================================================
+   COMPONENTES — apenas lêem tokens, nunca valores fixos de cor
+   ================================================================ */
+
+/* ── Número tabular ──────────────────────────────────────────── */
+.ca-num {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--ca-font-mono);
+}
+
+/* ── Toggle de tema (sol / lua) ─────────────────────────────── */
+.ca-theme-toggle {
+  display: flex;
+  align-items: center;
+  background: var(--ca-bg);
+  border: 1px solid var(--ca-border);
+  border-radius: var(--ca-r);
+  padding: 2px;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.ca-theme-toggle button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: var(--ca-text-3);
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background .12s, color .12s;
+}
+.ca-theme-toggle button.is-active {
+  background: var(--ca-surface);
+  color: var(--ca-accent);
+  box-shadow: var(--ca-shadow-sm);
+}
+
+/* ── Card base ───────────────────────────────────────────────── */
+.ca-card {
+  background: var(--ca-surface);
+  border: 1px solid var(--ca-border);
+  border-radius: var(--ca-r);
+  box-shadow: var(--ca-shadow-sm);
+}
+
+/* ── Botão base ──────────────────────────────────────────────── */
+.ca-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--ca-r-sm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--ca-border);
+  background: var(--ca-surface);
+  color: var(--ca-text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.ca-btn:hover { background: var(--ca-surface-2); border-color: var(--ca-border-2); }
+
+.ca-btn-primary {
+  background: var(--ca-accent);
+  border-color: var(--ca-accent);
+  color: var(--ca-on-accent);
+  font-weight: 600;
+}
+.ca-btn-primary:hover { background: var(--ca-accent-2); border-color: var(--ca-accent-2); }
+
+.ca-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ca-text-2);
+}
+.ca-btn-ghost:hover { background: var(--ca-bg); border-color: transparent; }
+
+.ca-btn-sm { padding: 4px 9px; font-size: 12px; }
+
+/* ── Badges de status ────────────────────────────────────────── */
+.ca-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ca-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ca-badge.amber  { background: var(--ca-amber-bg);  color: var(--ca-amber-text); }
+.ca-badge.amber  .dot { background: var(--ca-amber); }
+.ca-badge.blue   { background: var(--ca-blue-bg);   color: var(--ca-blue-text); }
+.ca-badge.blue   .dot { background: var(--ca-blue); }
+.ca-badge.violet { background: var(--ca-violet-bg); color: var(--ca-violet-text); }
+.ca-badge.violet .dot { background: var(--ca-violet); }
+.ca-badge.green  { background: var(--ca-green-bg);  color: var(--ca-green-text); }
+.ca-badge.green  .dot { background: var(--ca-green); }
+.ca-badge.rose   { background: var(--ca-rose-bg);   color: var(--ca-rose-text); }
+.ca-badge.rose   .dot { background: var(--ca-rose); }
+.ca-badge.gray   { background: var(--ca-gray-bg);   color: var(--ca-gray-text); }
+.ca-badge.gray   .dot { background: var(--ca-gray); }
+
+
+/* ================================================================
+   CA-TABLE — tabela de dados (sistema do handoff)
+   ----------------------------------------------------------------
+   Usa border-collapse: separate para que as bordas entre linhas
+   funcionem correctamente e não colidam com .st-wrapper table
+   que usa border-collapse: collapse.
+   ================================================================ */
+
+/* Wrapper externo — overflow:visible para os tooltips não serem cortados */
+.ca-table-wrap {
+  background: var(--ca-surface);
+  border: 1px solid var(--ca-border);
+  border-radius: var(--ca-r);
+  overflow: visible;
+  box-shadow: var(--ca-shadow-sm);
+}
+/* Garante que os cantos arredondados ficam visíveis sem overflow:hidden */
+.ca-table-wrap > *:first-child { border-radius: var(--ca-r) var(--ca-r) 0 0; }
+.ca-table-wrap > *:last-child  { border-radius: 0 0 var(--ca-r) var(--ca-r); }
+.ca-table-wrap > table.ca-table,
+.ca-table-wrap > div > table.ca-table { border-radius: 0; }
+
+/* Toolbar: contador + chips */
+.ca-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ca-border);
+  background: var(--ca-surface);
+  flex-wrap: wrap;
+}
+.ca-toolbar-spacer { flex: 1; }
+.ca-toolbar-count  { font-size: 12.5px; color: var(--ca-text-2); }
+.ca-toolbar-count strong { color: var(--ca-text); font-weight: 600; }
+
+/* Bulk-bar */
+.ca-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--ca-accent-50);
+  border-bottom: 1px solid var(--ca-accent-100);
+  font-size: 13px;
+  color: var(--ca-text);
+}
+.ca-bulk-bar[hidden] { display: none; }
+.ca-bulk-actions { margin-left: auto; display: flex; gap: 4px; }
+
+/* Div de scroll — envolve apenas a tabela, deixando o wrapper com overflow:visible */
+.ca-table-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* A tabela em si */
+.ca-table {
+  width: 100%;
+  min-width: max-content; /* não encolhe abaixo do conteúdo */
+  border-collapse: separate;   /* CRÍTICO: separate permite border-bottom nas linhas */
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--ca-text);
+}
+
+/* Header */
+.ca-table thead th {
+  background: var(--ca-surface-2);
+  border-bottom: 2px solid var(--ca-border);
+  text-align: left;
+  padding: 0;
+  font-weight: 500;
+  color: var(--ca-text-2);
+  vertical-align: top;
+}
+
+/* Célula de header: label em cima, filtro em baixo */
+.ca-th-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 12px 10px;
+  min-height: 62px;
+}
+.ca-th-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ca-text-3);
+  white-space: nowrap;
+}
+
+/* Input de filtro no header */
+.ca-th-search {
+  display: flex;
+  align-items: center;
+  background: var(--ca-surface);
+  border: 1px solid var(--ca-border-2);
+  border-radius: var(--ca-r-sm);
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--ca-text-2);
+}
+.ca-th-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--ca-text);
+  font-size: 12px;
+}
+.ca-th-search input::placeholder { color: var(--ca-text-3); }
+.ca-th-search:focus-within {
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 2px var(--ca-accent-50);
+}
+
+/* Separador vertical entre th */
+.ca-table thead th + th { border-left: 1px solid var(--ca-border); }
+
+/* Linhas do corpo */
+.ca-table tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--ca-border-2);
+  vertical-align: middle;
+  color: var(--ca-text);
+}
+.ca-table tbody tr:last-child td { border-bottom: none; }
+.ca-table tbody tr { transition: background .08s; }
+.ca-table tbody tr:hover { background: var(--ca-surface-2); }
+.ca-table tbody tr:hover .ca-row-actions { opacity: 1 !important; }
+.ca-table tbody tr.is-selected { background: var(--ca-accent-50); }
+
+/* Checkbox ca-table */
+.ca-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--ca-text-3);
+  border-radius: 4px;
+  background: var(--ca-surface);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: border-color .12s, background .12s;
+  flex-shrink: 0;
+}
+.ca-checkbox:hover { border-color: var(--ca-accent); }
+.ca-checkbox:checked {
+  background: var(--ca-accent);
+  border-color: var(--ca-accent);
+}
+.ca-checkbox:checked::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  border: 2px solid var(--ca-on-accent);
+  border-top: 0;
+  border-right: 0;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.ca-checkbox.is-indeterminate {
+  background: var(--ca-accent);
+  border-color: var(--ca-accent);
+}
+.ca-checkbox.is-indeterminate::after {
+  content: '';
+  width: 7px;
+  height: 2px;
+  background: var(--ca-on-accent);
+  border-radius: 1px;
+}
+
+/* Paginação ca-table */
+.ca-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ca-border);
+  background: var(--ca-surface-2);
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+
+/* Ações da linha (aparecem no hover via CSS) */
+.ca-row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.ca-table tbody tr:hover .ca-row-actions { opacity: 1; }
+
+
+/* ================================================================
+   CA-TABLE-ACTIONS — barra de título + botões acima da tabela
+   ----------------------------------------------------------------
+   Estrutura:
+     .ca-table-actions          ← linha com título à esq, botões à dir
+       .ca-table-actions-title  ← h1/h2 + subtítulo
+       .ca-table-actions-btns   ← grupo de botões icon
+         .ca-tbl-btn            ← botão icon individual
+         .ca-tbl-btn-primary    ← variante de destaque (Novo)
+         .ca-tbl-btn[disabled]  ← bloqueado por permissão
+   ================================================================ */
+
+.ca-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--ca-border);
+  background: var(--ca-surface);
+  flex-wrap: wrap;
+}
+
+.ca-table-actions-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.ca-table-actions-title h1,
+.ca-table-actions-title h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ca-text);
+  letter-spacing: -.01em;
+  margin: 0;
+  line-height: 1.2;
+}
+.ca-table-actions-title span {
+  font-size: 11.5px;
+  color: var(--ca-text-3);
+}
+
+/* Grupo de botões à direita */
+.ca-table-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* Separador vertical entre grupos de botões */
+.ca-tbl-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--ca-border);
+  margin: 0 2px;
+}
+
+/* Botão icon base */
+.ca-tbl-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ca-r-sm);
+  border: 1px solid var(--ca-border);
+  background: var(--ca-surface);
+  color: var(--ca-text-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s, border-color .12s, color .12s;
+  flex-shrink: 0;
+}
+.ca-tbl-btn:hover {
+  background: var(--ca-surface-2);
+  border-color: var(--ca-border-2);
+  color: var(--ca-text);
+}
+.ca-tbl-btn.is-active {
+  background: var(--ca-accent-50);
+  border-color: var(--ca-accent-100);
+  color: var(--ca-accent);
+}
+.ca-tbl-btn[disabled],
+.ca-tbl-btn[aria-disabled="true"] {
+  opacity: .38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Variante primária: Novo registo */
+.ca-tbl-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--ca-r-sm);
+  border: 1px solid var(--ca-accent);
+  background: var(--ca-accent);
+  color: var(--ca-on-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s, border-color .12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ca-tbl-btn-primary:hover {
+  background: var(--ca-accent-2);
+  border-color: var(--ca-accent-2);
+}
+
+/* Tooltip acima do botão */
+.ca-tbl-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ca-text);
+  color: var(--ca-surface);
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: var(--ca-r-sm);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s;
+  z-index: 200;
+}
+.ca-tbl-btn:hover::after { opacity: 1; }
+
+/* ── Painel de personalização de colunas ───────────────────────── */
+.ca-col-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  background: var(--ca-surface);
+  border: 1px solid var(--ca-border);
+  border-radius: var(--ca-r);
+  box-shadow: var(--ca-shadow);
+  min-width: 210px;
+  font-size: 13px;
+  color: var(--ca-text);
+}
+.ca-col-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--ca-border);
+  font-size: 12px;
+  color: var(--ca-text-2);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.ca-col-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ca-text-3);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.ca-col-panel-close:hover { color: var(--ca-text); }
+.ca-col-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.ca-col-panel-item {
+  padding: 0;
+}
+.ca-col-panel-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.ca-col-panel-item label:hover { background: var(--ca-surface-2); }
+.ca-col-panel-item input[type="checkbox"]:disabled + * { opacity: .45; }
+.ca-col-panel-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--ca-border);
+}
+.ca-col-panel-reset {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ca-accent);
+  font-size: 12px;
+  padding: 0;
+}
+.ca-col-panel-reset:hover { text-decoration: underline; }

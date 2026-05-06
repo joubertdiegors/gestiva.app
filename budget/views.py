@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 
 from .models import Budget, BudgetChapter, BudgetItem, BudgetItemMaterial
 from .forms import BudgetForm, BudgetChapterForm, BudgetItemForm
+from accounts.decorators import perm_required
 from clients.models import Client
 from projects.models import Project
 from services.models import Service
@@ -24,15 +25,52 @@ def _dec(val, default='0'):
 
 def _budget_totals(budget):
     budget.refresh_from_db()
+    items = list(
+        BudgetItem.objects
+        .filter(budget=budget)
+        .prefetch_related('materials')
+    )
+
+    subtotal_cost = Decimal('0')
+    subtotal_ht   = Decimal('0')
+    total_vat     = Decimal('0')
+
+    for item in items:
+        mat_cost = sum((m.quantity * m.unit_price_snapshot for m in item.materials.all()), Decimal('0'))
+        item_cost = mat_cost + item.labor_cost_per_unit * item.quantity
+
+        if item.unit_price_override and item.unit_price_override > 0:
+            unit_price = item.unit_price_override
+        elif item.quantity:
+            margin = Decimal('1') + item.margin_percent / Decimal('100')
+            unit_price = (item_cost / item.quantity) * margin
+        else:
+            unit_price = Decimal('0')
+
+        price_before_disc = unit_price * item.quantity
+        disc = (price_before_disc * item.discount_percent / Decimal('100')).quantize(Decimal('0.0001'))
+        item_price = price_before_disc - disc
+        vat = (item_price * item.vat_rate / Decimal('100')).quantize(Decimal('0.0001'))
+
+        subtotal_cost += item_cost
+        subtotal_ht   += item_price
+        total_vat     += vat
+
+    discount_amount = (subtotal_ht * budget.discount_percent / Decimal('100')).quantize(Decimal('0.01'))
+    total_ht        = subtotal_ht - discount_amount
+    total_ttc       = total_ht + total_vat
+    margin_amount   = total_ht - subtotal_cost
+    margin_pct      = (margin_amount / total_ht * Decimal('100')).quantize(Decimal('0.01')) if total_ht else Decimal('0')
+
     return {
-        'subtotal_cost':   str(budget.subtotal_cost.quantize(Decimal('0.01'))),
-        'subtotal_ht':     str(budget.subtotal_ht.quantize(Decimal('0.01'))),
-        'discount_amount': str(budget.discount_amount),
-        'total_ht':        str(budget.total_ht.quantize(Decimal('0.01'))),
-        'total_vat':       str(budget.total_vat.quantize(Decimal('0.01'))),
-        'total_ttc':       str(budget.total_ttc.quantize(Decimal('0.01'))),
-        'margin_amount':   str(budget.gross_margin_amount.quantize(Decimal('0.01'))),
-        'margin_pct':      str(budget.gross_margin_percent),
+        'subtotal_cost':   str(subtotal_cost.quantize(Decimal('0.01'))),
+        'subtotal_ht':     str(subtotal_ht.quantize(Decimal('0.01'))),
+        'discount_amount': str(discount_amount),
+        'total_ht':        str(total_ht.quantize(Decimal('0.01'))),
+        'total_vat':       str(total_vat.quantize(Decimal('0.01'))),
+        'total_ttc':       str(total_ttc.quantize(Decimal('0.01'))),
+        'margin_amount':   str(margin_amount.quantize(Decimal('0.01'))),
+        'margin_pct':      str(margin_pct),
     }
 
 
@@ -72,7 +110,7 @@ def _chapter_dict(ch):
 
 # ─── list ────────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.view_budget')
 def budget_list(request):
     qs = Budget.objects.select_related('client', 'project').order_by('-created_at')
 
@@ -102,7 +140,7 @@ def budget_list(request):
 
 # ─── create ──────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.add_budget')
 def budget_create(request):
     initial = {'number': Budget.next_number()}
     form = BudgetForm(request.POST or None, initial=initial)
@@ -125,7 +163,7 @@ def budget_create(request):
 
 # ─── detail ──────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.view_budget')
 def budget_detail(request, pk):
     budget = get_object_or_404(
         Budget.objects.select_related('client', 'project', 'created_by'),
@@ -145,7 +183,7 @@ def budget_detail(request, pk):
 
 # ─── update ──────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.change_budget')
 def budget_update(request, pk):
     budget = get_object_or_404(Budget, pk=pk)
     form   = BudgetForm(request.POST or None, instance=budget)
@@ -174,7 +212,7 @@ def budget_update(request, pk):
 
 # ─── delete ──────────────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.delete_budget')
 @require_POST
 def budget_delete(request, pk):
     budget = get_object_or_404(Budget, pk=pk)
@@ -184,7 +222,7 @@ def budget_delete(request, pk):
 
 # ─── AJAX: project list by client ────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.view_budget')
 def ajax_projects_by_client(request):
     client_id = request.GET.get('client_id')
     if not client_id:
@@ -195,7 +233,7 @@ def ajax_projects_by_client(request):
 
 # ─── AJAX: project quick-create ──────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.change_budget')
 @require_POST
 def ajax_project_create(request):
     client_id = request.POST.get('client_id')
@@ -215,7 +253,7 @@ def ajax_project_create(request):
 
 # ─── AJAX: chapter CRUD ───────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.change_budget')
 @require_POST
 def chapter_save(request, budget_pk, pk=None):
     budget = get_object_or_404(Budget, pk=budget_pk)
@@ -231,7 +269,7 @@ def chapter_save(request, budget_pk, pk=None):
     return JsonResponse({'ok': True, 'chapter': _chapter_dict(ch)})
 
 
-@login_required
+@perm_required('budget.change_budget')
 @require_POST
 def chapter_delete(request, budget_pk, pk):
     budget = get_object_or_404(Budget, pk=budget_pk)
@@ -246,7 +284,7 @@ def chapter_delete(request, budget_pk, pk):
 
 # ─── AJAX: item CRUD ─────────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.change_budget')
 @require_POST
 def item_save(request, budget_pk, pk=None):
     budget   = get_object_or_404(Budget, pk=budget_pk)
@@ -298,7 +336,7 @@ def item_save(request, budget_pk, pk=None):
     })
 
 
-@login_required
+@perm_required('budget.change_budget')
 @require_POST
 def item_delete(request, budget_pk, pk):
     budget = get_object_or_404(Budget, pk=budget_pk)
@@ -309,7 +347,7 @@ def item_delete(request, budget_pk, pk):
 
 # ─── AJAX: service info ───────────────────────────────────────────────────────
 
-@login_required
+@perm_required('budget.view_budget')
 def service_info(request, pk):
     s = get_object_or_404(Service.objects.select_related('unit', 'category'), pk=pk)
     return JsonResponse({

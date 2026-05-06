@@ -1,44 +1,222 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Vehicle Categories" %} — Construart{% endblock %}
+{% block title %}{% trans "Categorias de veículos" %} — Construart{% endblock %}
+
 {% block breadcrumb %}
   <a href="{% url 'fleet:dashboard' %}">{% trans "Fleet" %}</a>
   <span class="sep">›</span>
-  <span class="current">{% trans "Vehicle Categories" %}</span>
+  <span class="current">{% trans "Categorias" %}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt thead th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.dt tbody tr:last-child{border-bottom:none}
+.dt tbody tr:hover{background:var(--surface2)}
+.dt td{padding:10px 14px;color:var(--text);vertical-align:middle}
+.actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.btn-icon{width:28px;height:28px;border:1px solid var(--border);border-radius:var(--radius);background:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .12s,color .12s}
+.btn-icon:hover{background:var(--surface2);color:var(--accent)}
+.btn-icon.danger:hover{background:#fdecea;color:var(--red)}
+
+dialog.cat-dialog{margin:0;padding:0;border:none;width:100vw;max-width:none;height:100vh;max-height:none;background:transparent;box-sizing:border-box}
+dialog.cat-dialog::backdrop{background:rgba(0,0,0,.5)}
+.cat-dialog-flex{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.cat-dialog .popup-panel{background:var(--surface);border-radius:var(--radius-lg,10px);width:460px;max-width:min(460px,calc(100vw - 40px));flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.popup-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--border)}
+.popup-title{font-weight:600;font-size:15px;color:var(--text)}
+.popup-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 2px}
+.popup-body{padding:22px;display:flex;flex-direction:column;gap:16px}
+.popup-footer{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border)}
+.popup-form-group{display:flex;flex-direction:column;gap:6px}
+.popup-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.popup-label .req{color:var(--accent)}
+.popup-error{display:none;padding:10px 14px;border-radius:var(--radius);font-size:13px;background:#fdecea;color:var(--red);border:1px solid #f5c6cb}
+.row-new{animation:rowIn .3s ease}
+@keyframes rowIn{from{background:color-mix(in srgb,var(--accent) 12%,transparent)}to{background:transparent}}
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <div><h1 class="page-title">📂 {% trans "Vehicle Categories" %}</h1></div>
-  <a href="{% url 'fleet:category_create' %}" class="btn btn-primary">+ {% trans "New Category" %}</a>
+  <div>
+    <h1 class="page-title">{% trans "Categorias de veículos" %}</h1>
+    <p class="page-sub">{% trans "Tipos utilizados para classificar os veículos da frota." %}</p>
+  </div>
+  <button type="button" class="btn btn-primary" id="btn-nova-cat">+ {% trans "Nova categoria" %}</button>
 </div>
 
-{% if categories %}
-<div class="card" style="padding:0;overflow:hidden;">
-  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="dt">
     <thead>
       <tr>
-        <th style="text-align:left;padding:8px 16px;font-size:12px;color:var(--text3);font-family:sans-serif;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.6px;">{% trans "Name" %}</th>
-        <th style="padding:8px 16px;border-bottom:1px solid var(--border);"></th>
+        <th>{% trans "Nome" %}</th>
+        <th style="text-align:right">{% trans "Veículos" %}</th>
+        <th style="width:72px"></th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="cat-tbody">
       {% for cat in categories %}
-      <tr>
-        <td style="padding:11px 16px;border-bottom:1px solid var(--border);">{{ cat.name }}</td>
-        <td style="padding:11px 16px;border-bottom:1px solid var(--border);text-align:right;">
-          <a href="{% url 'fleet:category_edit' cat.pk %}" class="btn btn-ghost btn-sm">{% trans "Edit" %}</a>
+      <tr data-id="{{ cat.pk }}"
+          data-name="{{ cat.name|escapejs }}"
+          data-count="{{ cat.vehicle_count }}">
+        <td style="font-weight:500;">{{ cat.name }}</td>
+        <td style="text-align:right">
+          <span class="badge {% if cat.vehicle_count %}badge-accent{% else %}badge-gray{% endif %}">
+            {{ cat.vehicle_count }}
+          </span>
+        </td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>
+            {% if not cat.vehicle_count %}
+            <button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="{{ cat.pk }}">🗑</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="empty-row">
+        <td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">
+          {% trans "Nenhuma categoria registada. Clique em «Nova categoria» para começar." %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-{% else %}
-<div class="card" style="text-align:center;padding:48px;color:var(--text3);">
-  <p>{% trans "No categories yet." %}</p>
-  <a href="{% url 'fleet:category_create' %}" class="btn btn-primary" style="margin-top:16px;">{% trans "Add Category" %}</a>
-</div>
-{% endif %}
+
+<dialog id="cat-dialog" class="cat-dialog" aria-labelledby="cat-popup-title">
+  <div class="cat-dialog-flex">
+    <div class="popup-panel" role="document">
+      <div class="popup-header">
+        <span class="popup-title" id="cat-popup-title">{% trans "Nova categoria" %}</span>
+        <button type="button" class="popup-close" id="btn-popup-close" aria-label="{% trans "Fechar" %}">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-error" id="cat-error"></div>
+        <div class="popup-form-group">
+          <label class="popup-label" for="c-name">{% trans "Nome" %} <span class="req">*</span></label>
+          <input type="text" id="c-name" class="form-control" maxlength="100" autocomplete="off">
+        </div>
+      </div>
+      <div class="popup-footer">
+        <button type="button" class="btn btn-ghost" id="btn-popup-cancel">{% trans "Cancelar" %}</button>
+        <button type="button" class="btn btn-primary" id="btn-save-cat">{% trans "Guardar" %}</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  const CSRF         = '{{ csrf_token }}';
+  const URL_SAVE     = '{% url "fleet:category_save" %}';
+  const URL_TMPL_UPD = '{% url "fleet:category_update" pk=0 %}';
+  const URL_TMPL_DEL = '{% url "fleet:category_delete" pk=0 %}';
+
+  function urlUpd(pk) { return URL_TMPL_UPD.replace('/0/', '/' + pk + '/'); }
+  function urlDel(pk) { return URL_TMPL_DEL.replace('/0/', '/' + pk + '/'); }
+
+  let editingPk = null;
+  const dlg       = document.getElementById('cat-dialog');
+  const titleEl   = document.getElementById('cat-popup-title');
+  const nameInput = document.getElementById('c-name');
+  const errorEl   = document.getElementById('cat-error');
+  const btnSave   = document.getElementById('btn-save-cat');
+  const tbody     = document.getElementById('cat-tbody');
+
+  function showDlg() { try { if (!dlg.open) dlg.showModal(); } catch(e) { dlg.setAttribute('open',''); } }
+  function hideDlg() { try { if (dlg.open) dlg.close(); } catch(e) {} dlg.removeAttribute('open'); }
+
+  function openModal(row) {
+    editingPk = row ? parseInt(row.dataset.id, 10) : null;
+    titleEl.textContent = editingPk ? '{% trans "Editar categoria" %}' : '{% trans "Nova categoria" %}';
+    nameInput.value = row ? row.dataset.name : '';
+    setError('');
+    showDlg();
+    setTimeout(() => nameInput.focus(), 60);
+  }
+
+  function closeModal() { hideDlg(); editingPk = null; }
+
+  function setError(msg) { errorEl.textContent = msg; errorEl.style.display = msg ? 'block' : 'none'; }
+  function setBusy(b) { btnSave.disabled = b; btnSave.textContent = b ? '{% trans "A guardar…" %}' : '{% trans "Guardar" %}'; }
+
+  function post(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+      body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }),
+    }).then(r => r.json());
+  }
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function buildRow(c) {
+    const canDel = c.vehicle_count === 0;
+    const del = canDel
+      ? `<button type="button" class="btn-icon danger btn-cat-del" title="{% trans "Eliminar" %}" data-id="${c.id}">🗑</button>` : '';
+    return `<tr data-id="${c.id}" data-name="${String(c.name).replace(/"/g,'&quot;')}" data-count="${c.vehicle_count}">
+      <td style="font-weight:500">${esc(c.name)}</td>
+      <td style="text-align:right"><span class="badge ${c.vehicle_count ? 'badge-accent' : 'badge-gray'}">${c.vehicle_count}</span></td>
+      <td><div class="actions"><button type="button" class="btn-icon btn-cat-edit" title="{% trans "Editar" %}">✏️</button>${del}</div></td>
+    </tr>`;
+  }
+
+  function save() {
+    const name = nameInput.value.trim();
+    if (!name) { setError('{% trans "O nome é obrigatório." %}'); nameInput.focus(); return; }
+    setBusy(true);
+    post(editingPk ? urlUpd(editingPk) : URL_SAVE, { name })
+      .then(json => {
+        setBusy(false);
+        if (!json.ok) { setError(Object.values(json.errors).flat().join(' ')); return; }
+        const c = json.category;
+        const empty = document.getElementById('empty-row');
+        if (empty) empty.remove();
+        if (editingPk) {
+          const ex = tbody.querySelector(`tr[data-id="${c.id}"]`);
+          if (ex) ex.outerHTML = buildRow(c);
+        } else {
+          tbody.insertAdjacentHTML('beforeend', buildRow(c));
+          const nr = tbody.querySelector(`tr[data-id="${c.id}"]`);
+          if (nr) nr.classList.add('row-new');
+        }
+        closeModal();
+      })
+      .catch(() => { setBusy(false); setError('{% trans "Erro de ligação. Tente novamente." %}'); });
+  }
+
+  function del(pk) {
+    if (!confirm('{% trans "Eliminar esta categoria?" %}')) return;
+    post(urlDel(pk), {}).then(json => {
+      if (!json.ok) { alert(json.error); return; }
+      const row = tbody.querySelector(`tr[data-id="${pk}"]`);
+      if (row) row.remove();
+      if (!tbody.querySelector('tr[data-id]'))
+        tbody.innerHTML = '<tr id="empty-row"><td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">{% trans "Nenhuma categoria registada." %}</td></tr>';
+    });
+  }
+
+  document.getElementById('btn-nova-cat').addEventListener('click', () => openModal(null));
+  document.getElementById('btn-popup-close').addEventListener('click', closeModal);
+  document.getElementById('btn-popup-cancel').addEventListener('click', closeModal);
+  btnSave.addEventListener('click', save);
+
+  tbody.addEventListener('click', e => {
+    const eb = e.target.closest('.btn-cat-edit');
+    const db = e.target.closest('.btn-cat-del');
+    if (eb) openModal(eb.closest('tr'));
+    if (db) del(parseInt(db.dataset.id, 10));
+  });
+
+  dlg.addEventListener('click', e => { if (!e.target.closest('.popup-panel')) closeModal(); });
+  dlg.addEventListener('cancel', e => { e.preventDefault(); closeModal(); });
+  document.addEventListener('keydown', e => { if (dlg.open && e.key === 'Enter') { e.preventDefault(); save(); } });
+}());
+</script>
 {% endblock %}

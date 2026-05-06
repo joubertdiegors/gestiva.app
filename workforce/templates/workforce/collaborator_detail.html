@@ -185,8 +185,14 @@
       {% if collaborator.role %} · {{ collaborator.role }}{% endif %}
     </p>
   </div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <a href="{% url 'workforce:update' collaborator.pk %}" class="btn btn-primary">✏️ Editar</a>
+    <form method="post" action="{% url 'workforce:duplicate' collaborator.pk %}" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm" title="Cria um novo cadastro com os dados básicos deste colaborador (nome, data de nascimento, identidade, nacionalidades e idiomas)">
+        &#x2398; Duplicar
+      </button>
+    </form>
     <a href="{% url 'workforce:list' %}" class="btn btn-ghost btn-sm">← Voltar</a>
   </div>
 </div>

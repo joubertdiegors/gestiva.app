@@ -10,10 +10,12 @@ from django.utils.html import strip_tags
 from django.views.decorators.http import require_POST
 import json
 
-from .models import Planning, PlanningBlankLine, PlanningDayOff, PlanningSubcontractor, PlanningWorker
+from accounts.decorators import perm_required
+from .models import Planning, PlanningBlankLine, PlanningDayOff, PlanningSubcontractor, PlanningVehicle, PlanningWorker
 from projects.models import Project
 from workforce.models import Collaborator
 from subcontractors.models import Subcontractor
+from fleet.models import Vehicle
 
 
 def _parse_board_date(request):
@@ -26,7 +28,7 @@ def _parse_board_date(request):
     return timezone.localdate()
 
 
-@login_required
+@perm_required('planning.view_planning')
 def planning_list(request):
     """Quadro diário: cards de obras (arrastadas manualmente) + pool de funcionários e obras."""
     selected_date = _parse_board_date(request)
@@ -36,12 +38,14 @@ def planning_list(request):
     # Plannings criados para este dia (obras arrastadas para o board)
     pw_qs = PlanningWorker.objects.select_related('worker')
     ps_qs = PlanningSubcontractor.objects.select_related('subcontractor')
+    pv_qs = PlanningVehicle.objects.select_related('vehicle', 'driver')
     plannings_today = list(
         Planning.objects.filter(date=selected_date)
-        .select_related('project__client', 'project__work_registration_type')
+        .select_related('project__client', 'project__work_registration_type', 'parent')
         .prefetch_related(
             Prefetch('planning_workers', queryset=pw_qs),
             Prefetch('planning_subcontractors', queryset=ps_qs),
+            Prefetch('planning_vehicles', queryset=pv_qs),
         )
         .order_by('pk')
     )
@@ -61,16 +65,37 @@ def planning_list(request):
     # IDs de projetos já no board hoje
     board_project_ids = {pl.project_id for pl in plannings_today}
 
+    # Ordena: plannings normais na ordem de criação, extensões inseridas logo após o seu pai
+    def _ordered_plannings(plannings):
+        by_pk   = {pl.pk: pl for pl in plannings}
+        normal  = [pl for pl in plannings if not pl.is_extension]
+        ext_map = {}  # parent_pk → [extensão, ...]
+        for pl in plannings:
+            if pl.is_extension and pl.parent_id:
+                ext_map.setdefault(pl.parent_id, []).append(pl)
+        result = []
+        for pl in normal:
+            result.append(pl)
+            for ext in ext_map.get(pl.pk, []):
+                result.append(ext)
+                # extensões de extensões (improvável mas seguro)
+                for ext2 in ext_map.get(ext.pk, []):
+                    result.append(ext2)
+        return result
+
+    plannings_ordered = _ordered_plannings(plannings_today)
+
     # Monta os cards do board (slots ocupados por obras)
-    project_cards = [
-        {
+    project_cards = []
+    for pl in plannings_ordered:
+        driver_ids = {pv.driver_id for pv in pl.planning_vehicles.all() if pv.driver_id}
+        project_cards.append({
             'kind': 'project',
             'planning': pl,
             'project': pl.project,
             'workers': list(pl.planning_workers.all()),
-        }
-        for pl in plannings_today
-    ]
+            'driver_ids': driver_ids,
+        })
 
     n_proj = len(project_cards)
     total_slots = max(slots_per_sheet, ((n_proj + slots_per_sheet - 1) // slots_per_sheet) * slots_per_sheet)
@@ -111,12 +136,12 @@ def planning_list(request):
             'pages': pages,
             'pool_workers': pool_workers,
             'sidebar_projects': sidebar_projects,
-            'project_status_choices': Project.STATUS_CHOICES,
+            'project_status_choices': Project.Status.choices,
         },
     )
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def board_clear_day(request):
     """Apaga todos os Plannings (e respetivos PlanningWorkers) de um dia."""
@@ -145,7 +170,7 @@ def board_clear_day(request):
     return JsonResponse({'ok': True, 'deleted_plannings': planning_count, 'deleted_workers': worker_count})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def board_duplicate_planning(request):
     """Duplica todos os Plannings de um dia para o dia seguinte numa única transação."""
@@ -209,7 +234,7 @@ def board_duplicate_planning(request):
     })
 
 
-@login_required
+@perm_required('planning.view_planning')
 def board_subcontractors_search(request):
     """JSON — lista de subcontratados ativos para o painel lateral."""
     q = (request.GET.get('q') or '').strip()
@@ -239,7 +264,7 @@ def board_subcontractors_search(request):
     return JsonResponse({'subcontractors': subs})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def board_assign_subcontractor(request):
     """Atribui ou remove um subcontratado de uma obra no board."""
@@ -288,7 +313,7 @@ def board_assign_subcontractor(request):
     })
 
 
-@login_required
+@perm_required('planning.view_planning')
 def board_workers_search(request):
     """JSON — lista de funcionários filtrados para o painel lateral."""
     q = (request.GET.get('q') or '').strip()
@@ -350,7 +375,7 @@ def board_workers_search(request):
     return JsonResponse({'workers': workers})
 
 
-@login_required
+@perm_required('planning.view_planning')
 def board_projects_search(request):
     """JSON — lista de projetos filtrados para o painel lateral."""
     q = (request.GET.get('q') or '').strip()
@@ -368,7 +393,7 @@ def board_projects_search(request):
 
     qs = Project.objects.select_related('client').order_by('name')
 
-    valid_statuses = {s for s, _ in Project.STATUS_CHOICES}
+    valid_statuses = {s for s, _ in Project.Status.choices}
     statuses = [s for s in statuses if s in valid_statuses]
     if statuses:
         qs = qs.filter(status__in=statuses)
@@ -396,7 +421,7 @@ def board_projects_search(request):
     return JsonResponse({'projects': projects})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def board_assign_project(request):
     """Arrasta uma obra para um slot do board — cria o Planning se não existir."""
@@ -421,18 +446,33 @@ def board_assign_project(request):
         return JsonResponse({'ok': True, 'action': 'remove'})
 
     project = get_object_or_404(Project, pk=project_id)
+    parent_id = data.get('parent_planning_id')  # presente quando é extensão
 
     with transaction.atomic():
-        planning, created = Planning.objects.get_or_create(
-            project=project,
-            date=day,
-            defaults={'notes': ''},
-        )
+        if parent_id:
+            # Extensão: cria sempre um novo Planning ligado ao pai
+            parent_pl = get_object_or_404(Planning, pk=parent_id, date=day)
+            planning = Planning.objects.create(
+                project=project,
+                date=day,
+                parent=parent_pl,
+                is_extension=True,
+                notes='',
+            )
+        else:
+            planning, _ = Planning.objects.get_or_create(
+                project=project,
+                date=day,
+                is_extension=False,
+                defaults={'notes': ''},
+            )
 
     return JsonResponse({
         'ok': True,
         'action': 'add',
         'planning_id': planning.pk,
+        'is_extension': planning.is_extension,
+        'parent_planning_id': planning.parent_id,
         'project_id': project.pk,
         'project_name': project.name,
         'client_name': project.client.name,
@@ -444,7 +484,7 @@ def board_assign_project(request):
     })
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def blank_line_save(request):
     try:
@@ -481,7 +521,7 @@ def blank_line_save(request):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def board_assign_worker(request):
     try:
@@ -527,20 +567,25 @@ def board_assign_worker(request):
             PlanningDayOff.objects.update_or_create(worker=worker, date=day, defaults={})
             return JsonResponse({'ok': True, 'target': 'off', 'worker_id': worker.pk, 'worker_name': worker.name})
 
-        if not project_id:
-            return JsonResponse({'error': 'project_id em falta.'}, status=400)
+        planning_id = data.get('planning_id')
+        if not planning_id and not project_id:
+            return JsonResponse({'error': 'planning_id ou project_id em falta.'}, status=400)
 
-        project = get_object_or_404(
-            Project.objects.filter(status__in=['planning', 'active']),
-            pk=project_id,
-        )
+        if planning_id:
+            planning = get_object_or_404(Planning, pk=planning_id, date=day)
+        else:
+            project = get_object_or_404(
+                Project.objects.filter(status__in=['planning', 'active']),
+                pk=project_id,
+            )
+            planning, _ = Planning.objects.get_or_create(
+                project=project,
+                date=day,
+                is_extension=False,
+                defaults={'notes': ''},
+            )
+
         PlanningDayOff.objects.filter(worker=worker, date=day).delete()
-        # Não remove de outros plannings — o mesmo worker pode estar em várias obras no mesmo dia
-        planning, _ = Planning.objects.get_or_create(
-            project=project,
-            date=day,
-            defaults={'notes': ''},
-        )
         pw, _ = PlanningWorker.objects.get_or_create(
             planning=planning,
             worker=worker,
@@ -558,12 +603,12 @@ def board_assign_worker(request):
             'worker_name': worker.name,
             'pw_id': pw.pk,
             'planning_id': planning.pk,
-            'project_id': project.pk,
+            'project_id': planning.project_id,
         }
     )
 
 
-@login_required
+@perm_required('planning.view_planning')
 def planning_detail(request, pk):
     planning = get_object_or_404(
         Planning.objects.prefetch_related(
@@ -588,7 +633,7 @@ def planning_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('planning.add_planning')
 def planning_create(request, project_pk):
     project = get_object_or_404(Project, pk=project_pk)
     if request.method == 'POST':
@@ -601,7 +646,7 @@ def planning_create(request, project_pk):
     return render(request, 'planning/planning_form.html', {'project': project})
 
 
-@login_required
+@perm_required('planning.delete_planning')
 @require_POST
 def planning_delete(request, pk):
     from timesheets.models import Timesheet
@@ -619,7 +664,7 @@ def planning_delete(request, pk):
     return redirect('planning:list')
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def planning_add_worker(request, planning_pk):
     planning = get_object_or_404(Planning, pk=planning_pk)
@@ -650,7 +695,7 @@ def planning_add_worker(request, planning_pk):
     })
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def planning_update_worker(request, pw_pk):
     pw = get_object_or_404(PlanningWorker, pk=pw_pk)
@@ -670,14 +715,14 @@ def planning_update_worker(request, pw_pk):
                          'period': pw.get_period_display(), 'period_key': pw.period})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def planning_remove_worker(request, pw_pk):
     get_object_or_404(PlanningWorker, pk=pw_pk).delete()
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def planning_add_subcontractor(request, planning_pk):
     planning = get_object_or_404(Planning, pk=planning_pk)
@@ -695,8 +740,123 @@ def planning_add_subcontractor(request, planning_pk):
     return JsonResponse({'id': ps.pk, 'subcontractor_name': sub.name, 'notes': ps.notes})
 
 
-@login_required
+@perm_required('planning.change_planning')
 @require_POST
 def planning_remove_subcontractor(request, ps_pk):
     get_object_or_404(PlanningSubcontractor, pk=ps_pk).delete()
     return JsonResponse({'ok': True})
+
+
+@perm_required('planning.view_planning')
+def board_vehicles_search(request):
+    """JSON — lista de veículos activos para o painel lateral."""
+    q = (request.GET.get('q') or '').strip()
+    date_str = (request.GET.get('date') or '')[:10]
+
+    assigned_ids = set()
+    if date_str:
+        try:
+            day = datetime.strptime(date_str, '%Y-%m-%d').date()
+            assigned_ids = set(
+                PlanningVehicle.objects.filter(planning__date=day)
+                .values_list('vehicle_id', flat=True)
+            )
+        except ValueError:
+            pass
+
+    qs = Vehicle.objects.filter(status=Vehicle.STATUS_ACTIVE).select_related('category').order_by('license_plate')
+    if q:
+        qs = qs.filter(
+            Q(license_plate__icontains=q) |
+            Q(brand__icontains=q) |
+            Q(model__icontains=q)
+        )
+
+    vehicles = []
+    for v in qs[:80]:
+        vehicles.append({
+            'id': v.pk,
+            'license_plate': v.license_plate,
+            'brand': v.brand,
+            'model': v.model,
+            'assigned': v.pk in assigned_ids,
+        })
+    return JsonResponse({'vehicles': vehicles})
+
+
+@perm_required('planning.change_planning')
+@require_POST
+def board_assign_vehicle(request):
+    """Atribui ou remove um veículo de uma obra no board (M2M via PlanningVehicle)."""
+    try:
+        data = json.loads(request.body.decode() or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido.'}, status=400)
+
+    action = data.get('action', 'add')
+
+    if action == 'remove':
+        pv_id = data.get('pv_id')
+        if not pv_id:
+            return JsonResponse({'error': 'pv_id em falta.'}, status=400)
+        pv = get_object_or_404(PlanningVehicle, pk=pv_id)
+        planning_id = pv.planning_id
+        vehicle_id = pv.vehicle_id
+        pv.delete()
+        return JsonResponse({'ok': True, 'action': 'remove', 'planning_id': planning_id, 'vehicle_id': vehicle_id})
+
+    # action == 'add'
+    planning_id = data.get('planning_id')
+    vehicle_id = data.get('vehicle_id')
+    if not planning_id or not vehicle_id:
+        return JsonResponse({'error': 'Dados em falta.'}, status=400)
+
+    planning = get_object_or_404(Planning, pk=planning_id)
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_id, status=Vehicle.STATUS_ACTIVE)
+
+    with transaction.atomic():
+        pv, created = PlanningVehicle.objects.get_or_create(planning=planning, vehicle=vehicle)
+
+    return JsonResponse({
+        'ok': True,
+        'action': 'add',
+        'pv_id': pv.pk,
+        'planning_id': planning.pk,
+        'project_id': planning.project_id,
+        'vehicle_id': vehicle.pk,
+        'license_plate': vehicle.license_plate,
+        'brand': vehicle.brand,
+        'model': vehicle.model,
+    })
+
+
+@perm_required('planning.change_planning')
+@require_POST
+def board_set_vehicle_driver(request):
+    """Define (ou limpa) o condutor de um PlanningVehicle."""
+    try:
+        data = json.loads(request.body.decode() or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido.'}, status=400)
+
+    pv_id = data.get('pv_id')
+    if not pv_id:
+        return JsonResponse({'error': 'pv_id em falta.'}, status=400)
+
+    pv = get_object_or_404(PlanningVehicle, pk=pv_id)
+    worker_id = data.get('worker_id')  # None = limpar condutor
+
+    if worker_id:
+        driver = get_object_or_404(Collaborator, pk=worker_id)
+        pv.driver = driver
+    else:
+        pv.driver = None
+
+    pv.save(update_fields=['driver'])
+
+    return JsonResponse({
+        'ok': True,
+        'pv_id': pv.pk,
+        'worker_id': pv.driver_id,
+        'worker_name': pv.driver.name if pv.driver else None,
+    })

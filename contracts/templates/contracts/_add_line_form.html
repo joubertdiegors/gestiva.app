@@ -1,0 +1,55 @@
+{% comment %}
+Partial: inline form to add a line.
+Variables: form (ContractLineForm or AddendumLineForm), action_url, show_numeric (bool)
+{% endcomment %}
+{% load i18n %}
+<div class="add-line-wrap">
+  <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);margin-bottom:8px;">Adicionar Linha</div>
+  <form method="post" action="{{ action_url }}" id="add-line-form">
+    {% csrf_token %}
+    <div class="add-line-grid">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        {{ form.line_type }}
+      </div>
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Descrição</label>
+        {{ form.description }}
+      </div>
+      <div class="form-group num-field">
+        <label class="form-label">Qtd.</label>
+        {{ form.quantity }}
+      </div>
+      <div class="form-group num-field">
+        <label class="form-label">Un.</label>
+        {{ form.unit }}
+      </div>
+      <div class="form-group num-field">
+        <label class="form-label">Preço Unit.</label>
+        {{ form.unit_price }}
+      </div>
+      <div class="form-group num-field">
+        <label class="form-label">Desc. %</label>
+        {{ form.discount_percent }}
+      </div>
+      <div class="form-group num-field">
+        <label class="form-label">IVA %</label>
+        {{ form.vat_rate }}
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button type="submit" class="btn btn-primary">+ Adicionar</button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+(function(){
+  var sel = document.getElementById('id_line_type');
+  var numFields = document.querySelectorAll('#add-line-form .num-field');
+  function toggle(){
+    var show = sel.value === 'line';
+    numFields.forEach(function(f){ f.style.display = show ? '' : 'none'; });
+  }
+  if(sel){ toggle(); sel.addEventListener('change', toggle); }
+})();
+</script>

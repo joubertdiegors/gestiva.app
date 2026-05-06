@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 # ── CATEGORIA DE VEÍCULO ─────────────────────────────────────────────────────
@@ -41,6 +42,12 @@ class Vehicle(models.Model):
         (FUEL_CNG, _("CNG")),
     ]
 
+    fleet_number = models.PositiveSmallIntegerField(
+        _("Fleet Number"),
+        null=True,
+        blank=True,
+        help_text=_("Internal reference number. Must be unique among active vehicles."),
+    )
     license_plate = models.CharField(_("License Plate"), max_length=20, unique=True)
     brand = models.CharField(_("Brand"), max_length=80)
     model = models.CharField(_("Model"), max_length=80)
@@ -73,17 +80,35 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        if self.fleet_number is not None:
+            active_statuses = [self.STATUS_ACTIVE, self.STATUS_MAINTENANCE]
+            qs = Vehicle.objects.filter(
+                fleet_number=self.fleet_number,
+                status__in=active_statuses,
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                raise ValidationError({
+                    'fleet_number': _(
+                        "Fleet number %(n)s is already assigned to an active vehicle."
+                    ) % {'n': self.fleet_number}
+                })
+
     class Meta:
         verbose_name = _("Vehicle")
         verbose_name_plural = _("Vehicles")
-        ordering = ["license_plate"]
+        ordering = ["fleet_number", "license_plate"]
 
     def __str__(self):
-        return f"{self.license_plate} — {self.brand} {self.model} ({self.year})"
+        prefix = f"#{self.fleet_number} — " if self.fleet_number else ""
+        return f"{prefix}{self.license_plate} {self.brand} {self.model} ({self.year})"
 
     @property
     def display_name(self):
-        return f"{self.license_plate} {self.brand} {self.model}"
+        prefix = f"#{self.fleet_number} " if self.fleet_number else ""
+        return f"{prefix}{self.license_plate} {self.brand} {self.model}"
 
 
 # ── DOCUMENTO DO VEÍCULO ─────────────────────────────────────────────────────

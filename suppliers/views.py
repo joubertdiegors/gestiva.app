@@ -6,13 +6,14 @@ from django.views.decorators.http import require_POST
 from django.db.models import Count
 from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
+from accounts.decorators import perm_required
 from .models import Supplier, SupplierAddress, SupplierContact
 from .forms import SupplierForm, SupplierAddressForm, SupplierContactForm
 from catalog.models import Product, UnitOfMeasure
 from procurement.models import ProductSupplier
 
 
-@login_required
+@perm_required('suppliers.view_supplier')
 def supplier_list(request):
     suppliers = (
         Supplier.objects
@@ -26,7 +27,7 @@ def supplier_list(request):
     return render(request, 'suppliers/supplier_list.html', {'suppliers': suppliers})
 
 
-@login_required
+@perm_required('suppliers.add_supplier')
 def supplier_create(request):
     form = SupplierForm(request.POST or None)
     if form.is_valid():
@@ -38,7 +39,7 @@ def supplier_create(request):
     })
 
 
-@login_required
+@perm_required('suppliers.change_supplier')
 def supplier_update(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     form = SupplierForm(request.POST or None, instance=supplier)
@@ -52,7 +53,7 @@ def supplier_update(request, pk):
     })
 
 
-@login_required
+@perm_required('suppliers.view_supplier')
 def supplier_detail(request, pk):
     supplier = get_object_or_404(
         Supplier.objects
@@ -85,7 +86,7 @@ def supplier_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('suppliers.delete_supplier')
 @require_POST
 def supplier_delete(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
@@ -115,7 +116,7 @@ def supplier_delete(request, pk):
     return redirect('suppliers:list')
 
 
-@login_required
+@perm_required('suppliers.change_supplier')
 @require_POST
 def address_save(request, supplier_pk, pk=None):
     supplier = get_object_or_404(Supplier, pk=supplier_pk)
@@ -129,7 +130,7 @@ def address_save(request, supplier_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('suppliers.change_supplier')
 @require_POST
 def address_delete(request, supplier_pk, pk):
     addr = get_object_or_404(SupplierAddress, pk=pk, supplier_id=supplier_pk)
@@ -137,7 +138,7 @@ def address_delete(request, supplier_pk, pk):
     return JsonResponse({'ok': True})
 
 
-@login_required
+@perm_required('suppliers.change_supplier')
 @require_POST
 def contact_save(request, supplier_pk, pk=None):
     supplier = get_object_or_404(Supplier, pk=supplier_pk)
@@ -151,7 +152,7 @@ def contact_save(request, supplier_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('suppliers.change_supplier')
 @require_POST
 def contact_delete(request, supplier_pk, pk):
     contact = get_object_or_404(SupplierContact, pk=pk, supplier_id=supplier_pk)

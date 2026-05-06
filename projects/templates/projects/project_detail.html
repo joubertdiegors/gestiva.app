@@ -1,0 +1,1282 @@
+{% extends "base.html" %}
+{% load i18n l10n %}
+
+{% block title %}{{ project.name }} — Construart{% endblock %}
+{% block tab_parent %}/projects/{% endblock %}
+{% block tab_icon %}🏗{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'project_list' %}">{% trans "Projetos" %}</a>
+  <span class="sep">›</span>
+  <span class="current">{{ project.name }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .detail-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--text3); font-family: sans-serif; font-size: 13px; }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .section-header h2 { font-size: 13px; font-family: sans-serif; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin: 0; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 9px 18px; font-size: 13px; font-family: sans-serif; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--text2); white-space: nowrap; }
+  .tab-btn.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Table */
+  .dt-wrap { overflow-x: auto; }
+  .dt { width: 100%; border-collapse: collapse; font-size: 13px; font-family: sans-serif; }
+  .dt thead th { padding: 9px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface2); }
+  .dt tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .dt tbody tr:last-child { border-bottom: none; }
+  .dt tbody tr:hover { background: var(--surface2); }
+  .dt td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+  .dt td.muted { color: var(--text3); }
+  .dt td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dt .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .btn-icon { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: background .12s, color .12s; }
+  .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+  .btn-icon.danger:hover { background: var(--red-light); color: var(--red); border-color: #f5c6c2; }
+  .dt-empty { padding: 20px 18px; font-size: 13px; color: var(--text3); text-align: center; font-family: sans-serif; }
+
+  /* Timeline */
+  .timeline { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .tl-item { display: flex; gap: 12px; }
+  .tl-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+  .tl-dot.meeting { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .tl-dot.email   { border-color: var(--blue, #3b82f6); background: #eff6ff; }
+  .tl-dot.phone   { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, transparent); }
+  .tl-dot.visit   { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 10%, transparent); }
+  .tl-body { flex: 1; }
+  .tl-meta { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 4px; }
+  .tl-date { font-size: 12px; color: var(--text3); font-family: sans-serif; }
+  .tl-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text3); }
+  .tl-subject { font-size: 13px; font-weight: 500; color: var(--text); }
+  .tl-body-text { font-size: 13px; color: var(--text2); margin-top: 4px; white-space: pre-wrap; }
+  .tl-author { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: sans-serif; }
+  .tl-actions { display: flex; gap: 6px; }
+
+  /* Summary cards */
+  .cost-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 16px 18px; }
+  .cost-card { background: var(--surface2); border-radius: var(--radius); padding: 14px 16px; }
+  .cost-card .cc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); font-family: sans-serif; margin-bottom: 6px; }
+  .cost-card .cc-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+  .cost-card.total { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+  .cost-card.total .cc-value { color: var(--accent); }
+
+  /* Popup */
+  .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 600; align-items: center; justify-content: center; }
+  .popup-overlay.open { display: flex; }
+  .popup { background: var(--surface); border-radius: var(--radius-lg); width: 560px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); }
+  .popup-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .popup-title { font-size: 15px; font-weight: 500; }
+  .popup-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); line-height: 1; }
+  .popup-body { padding: 22px; }
+  .popup-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .form-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid2 .span-2 { grid-column: span 2; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns: 1fr; } .form-grid2 .span-2 { grid-column: span 1; } }
+  .field-error { color: var(--red); font-size: 12px; margin-top: 3px; font-family: sans-serif; }
+  .popup-alert { padding: 9px 12px; border-radius: var(--radius); font-size: 13px; font-family: sans-serif; margin-bottom: 14px; display: none; }
+  .popup-alert.show { display: block; }
+  .popup-alert.error { background: var(--red-light); color: var(--red); }
+
+  .tfoot-total td { font-weight: 600; font-size: 13px; border-top: 2px solid var(--border); background: var(--surface2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ project.name }}</h1>
+    <p class="page-sub">{{ project.client.name }}{% if project.address %} · {{ project.address|truncatechars:60 }}{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'project_update' project.pk %}" class="btn btn-secondary">✏️ {% trans "Editar" %}</a>
+    <a href="{% url 'project_list' %}" class="btn btn-ghost btn-sm">← {% trans "Voltar" %}</a>
+  </div>
+</div>
+
+<div class="detail-layout">
+
+  <!-- Coluna esquerda: resumo -->
+  <div>
+    <div class="card" style="overflow:hidden; margin-bottom:16px;">
+      <div class="section-header"><h2>📋 {% trans "Informações" %}</h2></div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Estado" %}</span>
+        <span class="badge {% if project.status == 'active' %}badge-green{% elif project.status == 'planning' %}badge-amber{% elif project.status == 'paused' %}badge-amber{% else %}badge-gray{% endif %}">
+          {{ project.get_status_display }}
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">{% trans "Cliente" %}</span>
+        <span>{{ project.client.name }}</span>
+      </div>
+      {% if project.start_date %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Início" %}</span>
+        <span>{{ project.start_date|date:"d/m/Y" }}</span>
+      </div>
+      {% endif %}
+      {% if project.end_date %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Fim previsto" %}</span>
+        <span>{{ project.end_date|date:"d/m/Y" }}</span>
+      </div>
+      {% endif %}
+      {% if project.address_street %}
+      <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        <span class="info-label">{% trans "Morada" %}</span>
+        <span style="font-size:13px;color:var(--text2);">
+          {{ project.address_street }}{% if project.address_number %} {{ project.address_number }}{% endif %}{% if project.address_complement %}, {{ project.address_complement }}{% endif %}<br>
+          {% if project.address_postcode %}{{ project.address_postcode }} {% endif %}{{ project.address_city }}{% if project.address_country %}, {{ project.address_country }}{% endif %}
+        </span>
+      </div>
+      {% endif %}
+      {% if project.has_work_registration %}
+      <div class="info-row">
+        <span class="info-label">{% trans "Registo obra" %}</span>
+        <span>{{ project.work_registration_number }}</span>
+      </div>
+      {% endif %}
+      {% if project.notes %}
+      <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <span class="info-label">{% trans "Notas" %}</span>
+        <span style="font-size:13px;color:var(--text2);">{{ project.notes }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Painel resumo de custos -->
+    <div class="card" style="overflow:hidden;">
+      <div class="section-header"><h2>💰 {% trans "Custos" %}</h2></div>
+      <div class="cost-summary">
+        <div class="cost-card">
+          <div class="cc-label">{% trans "Faturas" %}</div>
+          <div class="cc-value" id="summary-invoices">€{{ invoices_total|floatformat:2 }}</div>
+        </div>
+        <div class="cost-card">
+          <div class="cc-label">{% trans "Materiais" %}</div>
+          <div class="cc-value" id="summary-materials">€{{ materials_total|floatformat:2 }}</div>
+        </div>
+        <div class="cost-card">
+          <div class="cc-label">{% trans "Mão-de-obra" %}</div>
+          <div class="cc-value" id="summary-labour">€{{ labour_total|floatformat:2 }}</div>
+        </div>
+        <div class="cost-card">
+          <div class="cc-label">{% trans "Combustível" %}</div>
+          <div class="cc-value">€{{ fuel_total|floatformat:2 }}</div>
+        </div>
+        <div class="cost-card total">
+          <div class="cc-label">{% trans "Total geral" %}</div>
+          <div class="cc-value" id="summary-grand">€{{ grand_total|floatformat:2 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: abas -->
+  <div>
+    <div class="card" style="overflow:hidden;">
+
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('interactions', this)">💬 {% trans "Histórico CRM" %} <span class="badge badge-gray" style="margin-left:4px;">{{ interactions|length }}</span></button>
+        <button class="tab-btn" onclick="switchTab('invoices', this)">📄 {% trans "Faturas" %} <span class="badge badge-gray" style="margin-left:4px;">{{ invoices|length }}</span></button>
+        <button class="tab-btn" onclick="switchTab('materials', this)">🧱 {% trans "Materiais" %} <span class="badge badge-gray" style="margin-left:4px;">{{ materials|length }}</span></button>
+        <button class="tab-btn" onclick="switchTab('labour', this)">👷 {% trans "Mão-de-obra" %} <span class="badge badge-gray" style="margin-left:4px;">{{ labour|length }}</span></button>
+        <button class="tab-btn" onclick="switchTab('fuel', this)">⛽ {% trans "Combustível" %}</button>
+        {% if project.has_work_registration %}
+        <button class="tab-btn" onclick="switchTab('ciaw', this)" id="tab-btn-ciaw">🪪 {% trans "CIAW" %} <span class="badge badge-accent" style="margin-left:4px;" id="ciaw-count">{{ ciaw_nodes|length }}</span></button>
+        {% endif %}
+      </div>
+
+      <!-- ── INTERACTIONS ── -->
+      <div class="tab-pane active" id="tab-interactions">
+        <div class="section-header" style="border-bottom:none;padding-bottom:0;">
+          <h2></h2>
+          <button class="btn btn-ghost btn-sm" onclick="openInteractionPopup()">+ {% trans "Registar" %}</button>
+        </div>
+        <div class="timeline" id="interactions-timeline">
+          {% for item in interactions %}
+          <div class="tl-item" data-id="{{ item.pk }}" data-date="{{ item.date|date:'Y-m-d' }}" data-type="{{ item.interaction_type }}">
+            <div class="tl-dot {{ item.interaction_type }}">
+              {% if item.interaction_type == 'meeting' %}🤝
+              {% elif item.interaction_type == 'email' %}📧
+              {% elif item.interaction_type == 'phone' %}📞
+              {% elif item.interaction_type == 'visit' %}📍
+              {% else %}💬{% endif %}
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">{{ item.date|date:"d/m/Y" }}</span>
+                <span class="tl-type">{{ item.get_interaction_type_display }}</span>
+              </div>
+              <div class="tl-subject">{{ item.subject }}</div>
+              {% if item.body %}<div class="tl-body-text">{{ item.body }}</div>{% endif %}
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                <span class="tl-author">{{ item.author.get_full_name|default:item.author.username }}</span>
+                <div class="tl-actions">
+                  <button class="btn-icon" onclick="openInteractionPopup({{ item.pk }})">✏️</button>
+                  <button class="btn-icon danger" onclick="deleteInteraction({{ item.pk }})">🗑</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div id="interactions-empty" style="padding:20px;text-align:center;font-size:13px;color:var(--text3);font-family:sans-serif;">{% trans "Nenhuma interação registada." %}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ── INVOICES ── -->
+      <div class="tab-pane" id="tab-invoices">
+        <div class="section-header" style="border-bottom:none;padding-bottom:0;">
+          <h2></h2>
+          <button class="btn btn-ghost btn-sm" onclick="openInvoicePopup()">+ {% trans "Adicionar" %}</button>
+        </div>
+        <div class="dt-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th>{% trans "Data" %}</th>
+                <th>{% trans "Fornecedor" %}</th>
+                <th>{% trans "Referência" %}</th>
+                <th>{% trans "Descrição" %}</th>
+                <th class="num">{% trans "Valor HT" %}</th>
+                <th class="num">{% trans "Valor TTC" %}</th>
+                <th>{% trans "Estado" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="invoices-tbody">
+              {% for inv in invoices %}
+              <tr data-id="{{ inv.pk }}" data-supplier-id="{{ inv.supplier_id }}" data-amount-ht="{{ inv.amount_ht }}" data-vat-rate="{{ inv.vat_rate }}" data-status="{{ inv.status }}" data-notes="{{ inv.notes|escapejs }}">
+                <td class="muted">{{ inv.date|date:"d/m/Y" }}</td>
+                <td style="font-weight:500;">{{ inv.supplier }}</td>
+                <td class="muted">{{ inv.invoice_ref|default:"—" }}</td>
+                <td class="muted">{{ inv.description|default:"—"|truncatechars:40 }}</td>
+                <td class="num">€{{ inv.amount_ht|floatformat:2 }}</td>
+                <td class="num">€{{ inv.amount_ttc|floatformat:2 }}</td>
+                <td>
+                  <span class="badge {% if inv.status == 'paid' %}badge-green{% else %}badge-amber{% endif %}">
+                    {{ inv.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-icon" onclick="openInvoicePopup({{ inv.pk }})">✏️</button>
+                    <button class="btn-icon danger" onclick="deleteInvoice({{ inv.pk }})">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr id="invoices-empty"><td colspan="8" class="dt-empty">{% trans "Nenhuma fatura registada." %}</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="tfoot-total">
+              <tr>
+                <td colspan="4" style="padding:10px 14px;font-family:sans-serif;">{% trans "Total" %}</td>
+                <td class="num" id="invoices-total-ht">€{{ invoices_total|floatformat:2 }}</td>
+                <td class="num"></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── MATERIALS ── -->
+      <div class="tab-pane" id="tab-materials">
+        <div class="section-header" style="border-bottom:none;padding-bottom:0;">
+          <h2></h2>
+          <button class="btn btn-ghost btn-sm" onclick="openMaterialPopup()">+ {% trans "Adicionar" %}</button>
+        </div>
+        <div class="dt-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th>{% trans "Data" %}</th>
+                <th>{% trans "Descrição" %}</th>
+                <th class="num">{% trans "Qtd" %}</th>
+                <th>{% trans "Un." %}</th>
+                <th class="num">{% trans "Preço un." %}</th>
+                <th class="num">{% trans "Total" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="materials-tbody">
+              {% for mat in materials %}
+              <tr data-id="{{ mat.pk }}" data-date="{{ mat.date|date:'Y-m-d'|default:'' }}" data-qty="{{ mat.quantity }}" data-unit-price="{{ mat.unit_price }}" data-total="{{ mat.total }}" data-notes="{{ mat.notes|escapejs }}">
+                <td class="muted">{{ mat.date|date:"d/m/Y"|default:"—" }}</td>
+                <td style="font-weight:500;">{{ mat.description }}</td>
+                <td class="num">{{ mat.quantity|floatformat:"-4" }}</td>
+                <td class="muted">{{ mat.unit|default:"—" }}</td>
+                <td class="num">€{{ mat.unit_price|floatformat:2 }}</td>
+                <td class="num">€{{ mat.total|floatformat:2 }}</td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-icon" onclick="openMaterialPopup({{ mat.pk }})">✏️</button>
+                    <button class="btn-icon danger" onclick="deleteMaterial({{ mat.pk }})">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr id="materials-empty"><td colspan="7" class="dt-empty">{% trans "Nenhum material registado." %}</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="tfoot-total">
+              <tr>
+                <td colspan="5" style="padding:10px 14px;font-family:sans-serif;">{% trans "Total" %}</td>
+                <td class="num" id="materials-total">€{{ materials_total|floatformat:2 }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── LABOUR ── -->
+      <div class="tab-pane" id="tab-labour">
+        <div class="section-header" style="border-bottom:none;padding-bottom:0;">
+          <h2></h2>
+          <button class="btn btn-ghost btn-sm" onclick="openLabourPopup()">+ {% trans "Adicionar" %}</button>
+        </div>
+        <div class="dt-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th>{% trans "Data" %}</th>
+                <th>{% trans "Colaborador" %}</th>
+                <th class="num">{% trans "Horas" %}</th>
+                <th class="num">{% trans "€/h" %}</th>
+                <th>{% trans "Extra" %}</th>
+                <th class="num">{% trans "Total" %}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="labour-tbody">
+              {% for entry in labour %}
+              <tr data-id="{{ entry.pk }}" data-worker-id="{{ entry.worker_id }}" data-date="{{ entry.date|date:'Y-m-d' }}" data-hours="{{ entry.hours }}" data-rate="{{ entry.hourly_rate }}" data-overtime="{{ entry.is_overtime|yesno:'true,false' }}" data-multiplier="{{ entry.overtime_multiplier }}" data-total="{{ entry.total_cost }}" data-notes="{{ entry.notes|escapejs }}">
+                <td class="muted">{{ entry.date|date:"d/m/Y" }}</td>
+                <td style="font-weight:500;">{{ entry.worker.name }}</td>
+                <td class="num">{{ entry.hours|floatformat:2 }}</td>
+                <td class="num">€{{ entry.hourly_rate|floatformat:2 }}</td>
+                <td>{% if entry.is_overtime %}<span class="badge badge-amber">×{{ entry.overtime_multiplier }}</span>{% else %}—{% endif %}</td>
+                <td class="num">€{{ entry.total_cost|floatformat:2 }}</td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-icon" onclick="openLabourPopup({{ entry.pk }})">✏️</button>
+                    <button class="btn-icon danger" onclick="deleteLabour({{ entry.pk }})">🗑</button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr id="labour-empty"><td colspan="7" class="dt-empty">{% trans "Nenhuma entrada de mão-de-obra." %}</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="tfoot-total">
+              <tr>
+                <td colspan="5" style="padding:10px 14px;font-family:sans-serif;">{% trans "Total" %}</td>
+                <td class="num" id="labour-total">€{{ labour_total|floatformat:2 }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── FUEL ── -->
+      <div class="tab-pane" id="tab-fuel">
+        <div style="padding:12px 18px 0;display:flex;gap:16px;flex-wrap:wrap;">
+          <div class="cost-card" style="min-width:140px;">
+            <div class="cc-label">{% trans "Total combustível" %}</div>
+            <div class="cc-value">€{{ fuel_total|floatformat:2 }}</div>
+          </div>
+          <div class="cost-card" style="min-width:140px;">
+            <div class="cc-label">{% trans "Total litros" %}</div>
+            <div class="cc-value">{{ fuel_liters|floatformat:2 }} L</div>
+          </div>
+        </div>
+        <div class="dt-wrap" style="margin-top:12px;">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th>{% trans "Data" %}</th>
+                <th>{% trans "Veículo" %}</th>
+                <th>{% trans "Condutor" %}</th>
+                <th class="num">{% trans "Litros" %}</th>
+                <th class="num">€/L</th>
+                <th class="num">{% trans "Total" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in fuel_records %}
+              <tr>
+                <td class="muted">{{ f.date|date:"d/m/Y" }}</td>
+                <td>{{ f.vehicle.display_name }}</td>
+                <td class="muted">{{ f.driver.name }}</td>
+                <td class="num">{{ f.liters|floatformat:2 }}</td>
+                <td class="num">{% if f.price_per_liter %}€{{ f.price_per_liter|floatformat:3 }}{% else %}—{% endif %}</td>
+                <td class="num">€{{ f.total_cost|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="dt-empty">{% trans "Nenhum registo de combustível associado a este projeto." %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p style="padding:10px 18px;font-size:12px;color:var(--text3);font-family:sans-serif;">
+          {% trans "Calculado a partir de VehicleFueling para os veículos usados no planeamento desta obra." %}
+        </p>
+      </div>
+
+      {% if project.has_work_registration %}
+      <!-- ── CIAW ── -->
+      <div class="tab-pane" id="tab-ciaw">
+        <div class="section-header">
+          <h2>🪪 {% trans "CIAW — Participantes da obra" %}</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="ciawOpenAdd()">+ {% trans "Adicionar" %}</button>
+          </div>
+        </div>
+
+        <div style="padding:16px 18px;">
+          <!-- Número CIAW destacado -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:12px 16px;background:var(--accent-light);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:var(--radius);">
+            <span style="font-size:20px;">🪪</span>
+            <div>
+              <div style="font-size:11px;font-family:sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);margin-bottom:2px;">
+                {% if project.work_registration_type %}{{ project.work_registration_type.name }}{% else %}{% trans "Registo de obra" %}{% endif %}
+              </div>
+              <div style="font-size:18px;font-weight:700;font-family:monospace;letter-spacing:1px;color:var(--text);">
+                {{ project.work_registration_number }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Árvore CIAW -->
+          <div id="ciaw-tree" style="font-family:sans-serif;font-size:13px;">
+            {% include "projects/_ciaw_tree.html" with ciaw_nodes_json=ciaw_nodes_json project=project %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP CIAW — Adicionar participante ══ -->
+{% if project.has_work_registration %}
+<div class="popup-overlay" id="ciaw-overlay">
+  <div class="popup" style="width:500px;">
+    <div class="popup-header">
+      <span class="popup-title">{% trans "Adicionar participante CIAW" %}</span>
+      <button class="popup-close" onclick="closePopup('ciaw-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+
+      <!-- Passo 1: escolher tipo -->
+      <div id="ciaw-step-type">
+        <p style="color:var(--text2);margin-bottom:16px;">{% trans "O que deseja adicionar?" %}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <button class="ciaw-type-btn" onclick="ciawSelectKind('subcontractor')" style="padding:20px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:center;transition:all .15s;">
+            <div style="font-size:28px;margin-bottom:8px;">🏢</div>
+            <div style="font-weight:600;font-size:14px;">{% trans "Subempreiteiro" %}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px;">{% trans "Empresa subcontratada" %}</div>
+          </button>
+          <button class="ciaw-type-btn" onclick="ciawSelectKind('worker')" style="padding:20px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:center;transition:all .15s;">
+            <div style="font-size:28px;margin-bottom:8px;">👷</div>
+            <div style="font-weight:600;font-size:14px;">{% trans "Trabalhador" %}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px;">{% trans "Funcionário de subempreiteiro" %}</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Passo 2: pesquisar e selecionar pai + entidade -->
+      <div id="ciaw-step-select" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+          <button onclick="ciawBackToType()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;" title="Voltar">←</button>
+          <span id="ciaw-kind-title" style="font-weight:600;font-size:14px;"></span>
+        </div>
+
+        <!-- Selecionar nó pai (oculto para workers — determinado pela empresa do trabalhador) -->
+        <div class="form-group" id="ciaw-parent-group">
+          <label class="form-label">{% trans "Adicionar sob" %} *</label>
+          <select id="ciaw-parent-select" class="form-control">
+            <!-- Preenchido por JS -->
+          </select>
+        </div>
+
+        <!-- Pesquisa -->
+        <div class="form-group">
+          <label class="form-label">{% trans "Pesquisar" %}</label>
+          <input type="text" id="ciaw-search-input" class="form-control" placeholder="{% trans 'Nome...' %}" oninput="ciawSearch()">
+        </div>
+
+        <div id="ciaw-results" style="border:1px solid var(--border);border-radius:var(--radius);max-height:240px;overflow-y:auto;margin-top:4px;">
+          <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">{% trans "Digite para pesquisar..." %}</div>
+        </div>
+        <div id="ciaw-selected-preview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--accent-light);border-radius:var(--radius);font-size:13px;"></div>
+        <div id="ciaw-add-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none;"></div>
+      </div>
+
+    </div>
+    <div class="popup-footer" id="ciaw-popup-footer" style="display:none;">
+      <button class="btn btn-ghost" onclick="closePopup('ciaw-overlay')">{% trans "Cancelar" %}</button>
+      <button class="btn btn-primary" onclick="ciawConfirmAdd()" id="ciaw-confirm-btn">{% trans "Adicionar" %}</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ══ POPUP INTERACTION ══ -->
+<div class="popup-overlay" id="interaction-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="interaction-popup-title">{% trans "Registar interação" %}</span>
+      <button class="popup-close" onclick="closePopup('interaction-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="interaction-error"></div>
+      <input type="hidden" id="interaction-pk">
+      <div class="form-grid2">
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %} *</label>
+          <input type="date" id="interaction-date" class="form-control">
+          <div class="field-error" id="err-interaction-date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Tipo" %}</label>
+          <select id="interaction-type" class="form-control">
+            {% for val, label in interaction_type_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Assunto" %} *</label>
+          <input type="text" id="interaction-subject" class="form-control">
+          <div class="field-error" id="err-interaction-subject"></div>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Corpo / Notas" %}</label>
+          <textarea id="interaction-body" class="form-control" rows="4"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="interaction-save-btn" onclick="saveInteraction()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('interaction-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP INVOICE ══ -->
+<div class="popup-overlay" id="invoice-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="invoice-popup-title">{% trans "Fatura de fornecedor" %}</span>
+      <button class="popup-close" onclick="closePopup('invoice-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="invoice-error"></div>
+      <input type="hidden" id="invoice-pk">
+      <div class="form-grid2">
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Fornecedor" %} *</label>
+          <select id="invoice-supplier" class="form-control">
+            <option value="">— {% trans "Selecionar" %} —</option>
+            {% for s in all_suppliers %}
+            <option value="{{ s.pk }}">{{ s }}</option>
+            {% endfor %}
+          </select>
+          <div class="field-error" id="err-invoice-supplier_id"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Referência fatura" %}</label>
+          <input type="text" id="invoice-ref" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %} *</label>
+          <input type="date" id="invoice-date" class="form-control">
+          <div class="field-error" id="err-invoice-date"></div>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Descrição" %}</label>
+          <input type="text" id="invoice-description" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Valor HT (€)" %} *</label>
+          <input type="number" step="0.01" id="invoice-amount-ht" class="form-control">
+          <div class="field-error" id="err-invoice-amount_ht"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "IVA (%)" %}</label>
+          <input type="number" step="0.01" id="invoice-vat" class="form-control" value="21">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Estado" %}</label>
+          <select id="invoice-status" class="form-control">
+            {% for val, label in invoice_status_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="invoice-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="invoice-save-btn" onclick="saveInvoice()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('invoice-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP MATERIAL ══ -->
+<div class="popup-overlay" id="material-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="material-popup-title">{% trans "Material" %}</span>
+      <button class="popup-close" onclick="closePopup('material-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="material-error"></div>
+      <input type="hidden" id="material-pk">
+      <div class="form-grid2">
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Descrição" %} *</label>
+          <input type="text" id="material-description" class="form-control">
+          <div class="field-error" id="err-material-description"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Quantidade" %}</label>
+          <input type="number" step="0.0001" id="material-qty" class="form-control" value="1">
+          <div class="field-error" id="err-material-quantity"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Unidade" %}</label>
+          <input type="text" id="material-unit" class="form-control" placeholder="un, m², kg…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Preço unitário (€)" %}</label>
+          <input type="number" step="0.01" id="material-price" class="form-control" value="0">
+          <div class="field-error" id="err-material-unit_price"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %}</label>
+          <input type="date" id="material-date" class="form-control">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="material-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="material-save-btn" onclick="saveMaterial()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('material-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP LABOUR ══ -->
+<div class="popup-overlay" id="labour-overlay">
+  <div class="popup">
+    <div class="popup-header">
+      <span class="popup-title" id="labour-popup-title">{% trans "Mão-de-obra" %}</span>
+      <button class="popup-close" onclick="closePopup('labour-overlay')">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="popup-alert error" id="labour-error"></div>
+      <input type="hidden" id="labour-pk">
+      <div class="form-grid2">
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Colaborador" %} *</label>
+          <select id="labour-worker" class="form-control">
+            <option value="">— {% trans "Selecionar" %} —</option>
+            {% for w in all_workers %}
+            <option value="{{ w.pk }}" data-rate="{{ w.get_current_hourly_rate.hourly_rate|default:'' }}">{{ w.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="field-error" id="err-labour-worker_id"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Data" %} *</label>
+          <input type="date" id="labour-date" class="form-control">
+          <div class="field-error" id="err-labour-date"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "Horas" %}</label>
+          <input type="number" step="0.25" id="labour-hours" class="form-control" value="8">
+          <div class="field-error" id="err-labour-hours"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{% trans "€/hora" %}</label>
+          <input type="number" step="0.01" id="labour-rate" class="form-control" value="0">
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;margin-top:20px;">
+            <input type="checkbox" id="labour-overtime"> <span>{% trans "Horas extra" %}</span>
+          </label>
+        </div>
+        <div class="form-group" id="overtime-field" style="display:none;">
+          <label class="form-label">{% trans "Multiplicador extra" %}</label>
+          <input type="number" step="0.1" id="labour-multiplier" class="form-control" value="1.5">
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">{% trans "Notas" %}</label>
+          <textarea id="labour-notes" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="btn btn-primary" id="labour-save-btn" onclick="saveLabour()">{% trans "Guardar" %}</button>
+      <button class="btn btn-ghost" onclick="closePopup('labour-overlay')">{% trans "Cancelar" %}</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CSRF = '{{ csrf_token }}';
+  const PROJECT_PK = {{ project.pk }};
+
+  const URL = {
+    interactionSave:   "{% url 'project_interaction_save' project.pk %}",
+    interactionDelete: (id) => "{% url 'project_interaction_delete' project.pk 0 %}".replace('/0/', `/${id}/`),
+    invoiceSave:       "{% url 'project_invoice_save' project.pk %}",
+    invoiceDelete:     (id) => "{% url 'project_invoice_delete' project.pk 0 %}".replace('/0/', `/${id}/`),
+    materialSave:      "{% url 'project_material_save' project.pk %}",
+    materialDelete:    (id) => "{% url 'project_material_delete' project.pk 0 %}".replace('/0/', `/${id}/`),
+    labourSave:        "{% url 'project_labour_save' project.pk %}",
+    labourDelete:      (id) => "{% url 'project_labour_delete' project.pk 0 %}".replace('/0/', `/${id}/`),
+  };
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function post(url, data) {
+    return fetch(url, { method: 'POST', body: new URLSearchParams({ csrfmiddlewaretoken: CSRF, ...data }) });
+  }
+
+  function clearErrors(prefix) {
+    document.querySelectorAll(`[id^="err-${prefix}"]`).forEach(el => el.textContent = '');
+    const alert = document.getElementById(`${prefix}-error`);
+    if (alert) { alert.textContent = ''; alert.classList.remove('show'); }
+  }
+
+  function showFieldErrors(errors, prefix) {
+    Object.entries(errors).forEach(([field, msgs]) => {
+      const el = document.getElementById(`err-${prefix}-${field}`);
+      if (el) el.textContent = msgs[0];
+    });
+  }
+
+  function showAlert(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function fmt(val) {
+    return '€' + parseFloat(val).toFixed(2).replace('.', ',');
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  window.switchTab = function (name, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    btn.classList.add('active');
+  };
+
+  // ── Popup generic ─────────────────────────────────────────────────────────
+  window.closePopup = function (id) {
+    document.getElementById(id).classList.remove('open');
+  };
+  document.querySelectorAll('.popup-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  // ══ INTERACTIONS ══════════════════════════════════════════════════════════
+  let editingInteractionPk = null;
+
+  window.openInteractionPopup = function (pk, date, type, subject, body) {
+    editingInteractionPk = pk || null;
+    clearErrors('interaction');
+    document.getElementById('interaction-popup-title').textContent = pk ? '{% trans "Editar interação" %}' : '{% trans "Registar interação" %}';
+    document.getElementById('interaction-pk').value = pk || '';
+    if (pk) {
+      const row = document.querySelector(`#interactions-timeline .tl-item[data-id="${pk}"]`);
+      document.getElementById('interaction-date').value = row?.dataset.date || '';
+      document.getElementById('interaction-type').value = row?.dataset.type || 'other';
+      document.getElementById('interaction-subject').value = row ? row.querySelector('.tl-subject').textContent.trim() : '';
+      const bodyEl = row ? row.querySelector('.tl-body-text') : null;
+      document.getElementById('interaction-body').value = bodyEl ? bodyEl.textContent.trim() : '';
+    } else {
+      document.getElementById('interaction-date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('interaction-type').value = 'other';
+      document.getElementById('interaction-subject').value = '';
+      document.getElementById('interaction-body').value = '';
+    }
+    document.getElementById('interaction-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('interaction-subject').focus(), 50);
+  };
+
+  window.saveInteraction = function () {
+    clearErrors('interaction');
+    const data = {
+      entry_pk: document.getElementById('interaction-pk').value,
+      date: document.getElementById('interaction-date').value,
+      interaction_type: document.getElementById('interaction-type').value,
+      subject: document.getElementById('interaction-subject').value,
+      body: document.getElementById('interaction-body').value,
+    };
+    const btn = document.getElementById('interaction-save-btn');
+    btn.disabled = true;
+    post(URL.interactionSave, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) { showFieldErrors(json.errors, 'interaction'); return; }
+      const e = json.entry;
+      const existing = document.querySelector(`#interactions-timeline .tl-item[data-id="${e.id}"]`);
+      const typeIcons = { meeting:'🤝', email:'📧', phone:'📞', visit:'📍', other:'💬' };
+      const rawType = data.interaction_type;
+      const icon = typeIcons[rawType] || '💬';
+      const emptyDiv = document.getElementById('interactions-empty');
+      if (emptyDiv) emptyDiv.remove();
+      if (existing) {
+        existing.querySelector('.tl-date').textContent = e.date.split('-').reverse().join('/');
+        existing.querySelector('.tl-type').textContent = e.type;
+        existing.querySelector('.tl-subject').textContent = e.subject;
+        const bodyEl = existing.querySelector('.tl-body-text');
+        if (e.body) {
+          if (bodyEl) bodyEl.textContent = e.body;
+          else {
+            const d = document.createElement('div');
+            d.className = 'tl-body-text';
+            d.textContent = e.body;
+            existing.querySelector('.tl-subject').after(d);
+          }
+        } else if (bodyEl) bodyEl.remove();
+      } else {
+        const tl = document.getElementById('interactions-timeline');
+        const item = document.createElement('div');
+        item.className = 'tl-item';
+        item.dataset.id = e.id;
+        item.innerHTML = `
+          <div class="tl-dot ${rawType}">${icon}</div>
+          <div class="tl-body">
+            <div class="tl-meta">
+              <span class="tl-date">${e.date.split('-').reverse().join('/')}</span>
+              <span class="tl-type">${e.type}</span>
+            </div>
+            <div class="tl-subject">${e.subject}</div>
+            ${e.body ? `<div class="tl-body-text">${e.body}</div>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+              <span class="tl-author">${e.author}</span>
+              <div class="tl-actions">
+                <button class="btn-icon" onclick="openInteractionPopup(${e.id})">✏️</button>
+                <button class="btn-icon danger" onclick="deleteInteraction(${e.id})">🗑</button>
+              </div>
+            </div>
+          </div>`;
+        tl.prepend(item);
+      }
+      closePopup('interaction-overlay');
+    }).catch(() => { btn.disabled = false; showAlert('interaction-error', '{% trans "Erro ao guardar." %}'); });
+  };
+
+  window.deleteInteraction = function (pk) {
+    if (!confirm('{% trans "Eliminar esta interação?" %}')) return;
+    post(URL.interactionDelete(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      document.querySelector(`#interactions-timeline .tl-item[data-id="${pk}"]`)?.remove();
+      if (!document.querySelector('#interactions-timeline .tl-item')) {
+        const tl = document.getElementById('interactions-timeline');
+        const d = document.createElement('div');
+        d.id = 'interactions-empty';
+        d.style = 'padding:20px;text-align:center;font-size:13px;color:var(--text3);font-family:sans-serif;';
+        d.textContent = '{% trans "Nenhuma interação registada." %}';
+        tl.appendChild(d);
+      }
+    });
+  };
+
+  // ══ INVOICES ═════════════════════════════════════════════════════════════
+  let invoicesTotalHt = {% localize off %}{{ invoices_total }}{% endlocalize %};
+
+  window.openInvoicePopup = function (pk) {
+    clearErrors('invoice');
+    document.getElementById('invoice-pk').value = pk || '';
+    document.getElementById('invoice-popup-title').textContent = pk ? '{% trans "Editar fatura" %}' : '{% trans "Nova fatura" %}';
+    if (pk) {
+      const row = document.querySelector(`#invoices-tbody tr[data-id="${pk}"]`);
+      const cells = row.querySelectorAll('td');
+      document.getElementById('invoice-supplier').value = row.dataset.supplierId || '';
+      document.getElementById('invoice-ref').value = cells[2].textContent.trim() === '—' ? '' : cells[2].textContent.trim();
+      document.getElementById('invoice-description').value = cells[3].textContent.trim() === '—' ? '' : cells[3].textContent.trim();
+      document.getElementById('invoice-amount-ht').value = row.dataset.amountHt || '';
+      document.getElementById('invoice-vat').value = row.dataset.vatRate || '21';
+      document.getElementById('invoice-status').value = row.dataset.status || 'pending';
+      document.getElementById('invoice-notes').value = row.dataset.notes || '';
+      // reconstruct date from dd/mm/yyyy cell text
+      const dateParts = cells[0].textContent.trim().split('/');
+      if (dateParts.length === 3) document.getElementById('invoice-date').value = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+    } else {
+      ['invoice-supplier','invoice-ref','invoice-description','invoice-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('invoice-amount-ht').value = '';
+      document.getElementById('invoice-vat').value = '21';
+      document.getElementById('invoice-status').value = 'pending';
+      document.getElementById('invoice-date').value = new Date().toISOString().slice(0,10);
+    }
+    document.getElementById('invoice-overlay').classList.add('open');
+  };
+
+  window.saveInvoice = function () {
+    clearErrors('invoice');
+    const data = {
+      entry_pk: document.getElementById('invoice-pk').value,
+      supplier_id: document.getElementById('invoice-supplier').value,
+      invoice_ref: document.getElementById('invoice-ref').value,
+      description: document.getElementById('invoice-description').value,
+      date: document.getElementById('invoice-date').value,
+      amount_ht: document.getElementById('invoice-amount-ht').value,
+      vat_rate: document.getElementById('invoice-vat').value,
+      status: document.getElementById('invoice-status').value,
+      notes: document.getElementById('invoice-notes').value,
+    };
+    const btn = document.getElementById('invoice-save-btn');
+    btn.disabled = true;
+    post(URL.invoiceSave, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) { showFieldErrors(json.errors, 'invoice'); return; }
+      const e = json.entry;
+      const isPaid = e.status === 'paid';
+      const badgeHtml = `<span class="badge ${isPaid ? 'badge-green' : 'badge-amber'}">${e.status_display}</span>`;
+      const existing = document.querySelector(`#invoices-tbody tr[data-id="${e.id}"]`);
+      const emptyRow = document.getElementById('invoices-empty');
+      if (emptyRow) emptyRow.remove();
+      const amtHt = parseFloat(e.amount_ht);
+      if (existing) {
+        const oldHt = parseFloat(existing.dataset.amountHt || 0);
+        invoicesTotalHt = invoicesTotalHt - oldHt + amtHt;
+        existing.dataset.amountHt = e.amount_ht;
+        existing.dataset.vatRate = e.vat_rate;
+        existing.dataset.status = e.status;
+        existing.dataset.supplierId = e.supplier_id || data.supplier_id;
+        const cells = existing.querySelectorAll('td');
+        cells[0].textContent = e.date.split('-').reverse().join('/');
+        cells[1].textContent = e.supplier;
+        cells[2].textContent = e.invoice_ref || '—';
+        cells[3].textContent = e.description || '—';
+        cells[4].textContent = fmt(e.amount_ht);
+        cells[5].textContent = fmt(e.amount_ttc);
+        cells[6].innerHTML = badgeHtml;
+      } else {
+        invoicesTotalHt += amtHt;
+        const tbody = document.getElementById('invoices-tbody');
+        const tr = document.createElement('tr');
+        tr.dataset.id = e.id;
+        tr.dataset.amountHt = e.amount_ht;
+        tr.dataset.vatRate = e.vat_rate;
+        tr.dataset.status = e.status;
+        tr.dataset.supplierId = data.supplier_id;
+        tr.innerHTML = `
+          <td class="muted">${e.date.split('-').reverse().join('/')}</td>
+          <td style="font-weight:500;">${e.supplier}</td>
+          <td class="muted">${e.invoice_ref || '—'}</td>
+          <td class="muted">${(e.description || '—').substring(0,40)}</td>
+          <td class="num">${fmt(e.amount_ht)}</td>
+          <td class="num">${fmt(e.amount_ttc)}</td>
+          <td>${badgeHtml}</td>
+          <td><div class="actions">
+            <button class="btn-icon" onclick="openInvoicePopup(${e.id})">✏️</button>
+            <button class="btn-icon danger" onclick="deleteInvoice(${e.id})">🗑</button>
+          </div></td>`;
+        tbody.appendChild(tr);
+      }
+      document.getElementById('invoices-total-ht').textContent = fmt(invoicesTotalHt);
+      document.getElementById('summary-invoices').textContent = fmt(invoicesTotalHt);
+      updateGrandTotal();
+      closePopup('invoice-overlay');
+    }).catch(() => { btn.disabled = false; showAlert('invoice-error', '{% trans "Erro ao guardar." %}'); });
+  };
+
+  window.deleteInvoice = function (pk) {
+    if (!confirm('{% trans "Eliminar esta fatura?" %}')) return;
+    const row = document.querySelector(`#invoices-tbody tr[data-id="${pk}"]`);
+    const amt = parseFloat(row?.dataset.amountHt || 0);
+    post(URL.invoiceDelete(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      row?.remove();
+      invoicesTotalHt -= amt;
+      document.getElementById('invoices-total-ht').textContent = fmt(invoicesTotalHt);
+      document.getElementById('summary-invoices').textContent = fmt(invoicesTotalHt);
+      updateGrandTotal();
+      checkEmpty('invoices-tbody', 'invoices-empty', 8, '{% trans "Nenhuma fatura registada." %}');
+    });
+  };
+
+  // ══ MATERIALS ════════════════════════════════════════════════════════════
+  let materialsTotal = {% localize off %}{{ materials_total }}{% endlocalize %};
+
+  window.openMaterialPopup = function (pk) {
+    clearErrors('material');
+    document.getElementById('material-pk').value = pk || '';
+    document.getElementById('material-popup-title').textContent = pk ? '{% trans "Editar material" %}' : '{% trans "Novo material" %}';
+    if (pk) {
+      const row = document.querySelector(`#materials-tbody tr[data-id="${pk}"]`);
+      const cells = row.querySelectorAll('td');
+      const dateVal = row.dataset.date || '';
+      document.getElementById('material-date').value = dateVal;
+      document.getElementById('material-description').value = cells[1].textContent.trim();
+      document.getElementById('material-qty').value = row.dataset.qty || '1';
+      document.getElementById('material-unit').value = cells[3].textContent.trim() === '—' ? '' : cells[3].textContent.trim();
+      document.getElementById('material-price').value = row.dataset.unitPrice || '0';
+      document.getElementById('material-notes').value = row.dataset.notes || '';
+    } else {
+      ['material-description','material-unit','material-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('material-date').value = '';
+      document.getElementById('material-qty').value = '1';
+      document.getElementById('material-price').value = '0';
+    }
+    document.getElementById('material-overlay').classList.add('open');
+  };
+
+  window.saveMaterial = function () {
+    clearErrors('material');
+    const data = {
+      entry_pk: document.getElementById('material-pk').value,
+      description: document.getElementById('material-description').value,
+      quantity: document.getElementById('material-qty').value,
+      unit: document.getElementById('material-unit').value,
+      unit_price: document.getElementById('material-price').value,
+      date: document.getElementById('material-date').value,
+      notes: document.getElementById('material-notes').value,
+    };
+    const btn = document.getElementById('material-save-btn');
+    btn.disabled = true;
+    post(URL.materialSave, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) { showFieldErrors(json.errors, 'material'); return; }
+      const e = json.entry;
+      const existing = document.querySelector(`#materials-tbody tr[data-id="${e.id}"]`);
+      const emptyRow = document.getElementById('materials-empty');
+      if (emptyRow) emptyRow.remove();
+      const total = parseFloat(e.total);
+      if (existing) {
+        const oldTotal = parseFloat(existing.dataset.total || 0);
+        materialsTotal = materialsTotal - oldTotal + total;
+        existing.dataset.qty = e.quantity;
+        existing.dataset.unitPrice = e.unit_price;
+        existing.dataset.total = e.total;
+        existing.dataset.date = e.date;
+        const cells = existing.querySelectorAll('td');
+        cells[0].textContent = e.date ? e.date.split('-').reverse().join('/') : '—';
+        cells[1].textContent = e.description;
+        cells[2].textContent = parseFloat(e.quantity).toFixed(2).replace(/\.?0+$/, '');
+        cells[3].textContent = e.unit || '—';
+        cells[4].textContent = fmt(e.unit_price);
+        cells[5].textContent = fmt(e.total);
+      } else {
+        materialsTotal += total;
+        const tbody = document.getElementById('materials-tbody');
+        const tr = document.createElement('tr');
+        tr.dataset.id = e.id;
+        tr.dataset.qty = e.quantity;
+        tr.dataset.unitPrice = e.unit_price;
+        tr.dataset.total = e.total;
+        tr.dataset.date = e.date;
+        tr.innerHTML = `
+          <td class="muted">${e.date ? e.date.split('-').reverse().join('/') : '—'}</td>
+          <td style="font-weight:500;">${e.description}</td>
+          <td class="num">${parseFloat(e.quantity).toFixed(2).replace(/\.?0+$/, '')}</td>
+          <td class="muted">${e.unit || '—'}</td>
+          <td class="num">${fmt(e.unit_price)}</td>
+          <td class="num">${fmt(e.total)}</td>
+          <td><div class="actions">
+            <button class="btn-icon" onclick="openMaterialPopup(${e.id})">✏️</button>
+            <button class="btn-icon danger" onclick="deleteMaterial(${e.id})">🗑</button>
+          </div></td>`;
+        tbody.appendChild(tr);
+      }
+      document.getElementById('materials-total').textContent = fmt(materialsTotal);
+      document.getElementById('summary-materials').textContent = fmt(materialsTotal);
+      updateGrandTotal();
+      closePopup('material-overlay');
+    }).catch(() => { btn.disabled = false; showAlert('material-error', '{% trans "Erro ao guardar." %}'); });
+  };
+
+  window.deleteMaterial = function (pk) {
+    if (!confirm('{% trans "Eliminar este material?" %}')) return;
+    const row = document.querySelector(`#materials-tbody tr[data-id="${pk}"]`);
+    const total = parseFloat(row?.dataset.total || 0);
+    post(URL.materialDelete(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      row?.remove();
+      materialsTotal -= total;
+      document.getElementById('materials-total').textContent = fmt(materialsTotal);
+      document.getElementById('summary-materials').textContent = fmt(materialsTotal);
+      updateGrandTotal();
+      checkEmpty('materials-tbody', 'materials-empty', 7, '{% trans "Nenhum material registado." %}');
+    });
+  };
+
+  // ══ LABOUR ═══════════════════════════════════════════════════════════════
+  let labourTotal = {% localize off %}{{ labour_total }}{% endlocalize %};
+
+  document.getElementById('labour-overtime').addEventListener('change', function () {
+    document.getElementById('overtime-field').style.display = this.checked ? '' : 'none';
+  });
+
+  document.getElementById('labour-worker').addEventListener('change', function () {
+    const opt = this.selectedOptions[0];
+    const rate = opt?.dataset.rate;
+    if (rate) document.getElementById('labour-rate').value = rate;
+  });
+
+  window.openLabourPopup = function (pk) {
+    clearErrors('labour');
+    document.getElementById('labour-pk').value = pk || '';
+    document.getElementById('labour-popup-title').textContent = pk ? '{% trans "Editar mão-de-obra" %}' : '{% trans "Nova entrada" %}';
+    if (pk) {
+      const row = document.querySelector(`#labour-tbody tr[data-id="${pk}"]`);
+      const cells = row.querySelectorAll('td');
+      document.getElementById('labour-worker').value = row.dataset.workerId || '';
+      document.getElementById('labour-date').value = row.dataset.date || '';
+      document.getElementById('labour-hours').value = row.dataset.hours || '8';
+      document.getElementById('labour-rate').value = row.dataset.rate || '0';
+      const isOT = row.dataset.overtime === 'true';
+      document.getElementById('labour-overtime').checked = isOT;
+      document.getElementById('overtime-field').style.display = isOT ? '' : 'none';
+      document.getElementById('labour-multiplier').value = row.dataset.multiplier || '1.5';
+      document.getElementById('labour-notes').value = row.dataset.notes || '';
+    } else {
+      document.getElementById('labour-worker').value = '';
+      document.getElementById('labour-date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('labour-hours').value = '8';
+      document.getElementById('labour-rate').value = '0';
+      document.getElementById('labour-overtime').checked = false;
+      document.getElementById('overtime-field').style.display = 'none';
+      document.getElementById('labour-multiplier').value = '1.5';
+      document.getElementById('labour-notes').value = '';
+    }
+    document.getElementById('labour-overlay').classList.add('open');
+  };
+
+  window.saveLabour = function () {
+    clearErrors('labour');
+    const isOT = document.getElementById('labour-overtime').checked;
+    const data = {
+      entry_pk: document.getElementById('labour-pk').value,
+      worker_id: document.getElementById('labour-worker').value,
+      date: document.getElementById('labour-date').value,
+      hours: document.getElementById('labour-hours').value,
+      hourly_rate: document.getElementById('labour-rate').value,
+      is_overtime: isOT ? 'on' : '',
+      overtime_multiplier: document.getElementById('labour-multiplier').value,
+      notes: document.getElementById('labour-notes').value,
+    };
+    const btn = document.getElementById('labour-save-btn');
+    btn.disabled = true;
+    post(URL.labourSave, data).then(r => r.json()).then(json => {
+      btn.disabled = false;
+      if (!json.ok) { showFieldErrors(json.errors, 'labour'); return; }
+      const e = json.entry;
+      const existing = document.querySelector(`#labour-tbody tr[data-id="${e.id}"]`);
+      const emptyRow = document.getElementById('labour-empty');
+      if (emptyRow) emptyRow.remove();
+      const total = parseFloat(e.total_cost);
+      const otBadge = e.is_overtime ? `<span class="badge badge-amber">×${data.overtime_multiplier}</span>` : '—';
+      if (existing) {
+        const oldTotal = parseFloat(existing.dataset.total || 0);
+        labourTotal = labourTotal - oldTotal + total;
+        existing.dataset.workerId = data.worker_id;
+        existing.dataset.date = e.date;
+        existing.dataset.hours = e.hours;
+        existing.dataset.rate = e.hourly_rate;
+        existing.dataset.overtime = e.is_overtime;
+        existing.dataset.total = e.total_cost;
+        const cells = existing.querySelectorAll('td');
+        cells[0].textContent = e.date.split('-').reverse().join('/');
+        cells[1].textContent = e.worker;
+        cells[2].textContent = parseFloat(e.hours).toFixed(2);
+        cells[3].textContent = fmt(e.hourly_rate);
+        cells[4].innerHTML = otBadge;
+        cells[5].textContent = fmt(e.total_cost);
+      } else {
+        labourTotal += total;
+        const tbody = document.getElementById('labour-tbody');
+        const tr = document.createElement('tr');
+        tr.dataset.id = e.id;
+        tr.dataset.workerId = data.worker_id;
+        tr.dataset.date = e.date;
+        tr.dataset.hours = e.hours;
+        tr.dataset.rate = e.hourly_rate;
+        tr.dataset.overtime = e.is_overtime;
+        tr.dataset.total = e.total_cost;
+        tr.innerHTML = `
+          <td class="muted">${e.date.split('-').reverse().join('/')}</td>
+          <td style="font-weight:500;">${e.worker}</td>
+          <td class="num">${parseFloat(e.hours).toFixed(2)}</td>
+          <td class="num">${fmt(e.hourly_rate)}</td>
+          <td>${otBadge}</td>
+          <td class="num">${fmt(e.total_cost)}</td>
+          <td><div class="actions">
+            <button class="btn-icon" onclick="openLabourPopup(${e.id})">✏️</button>
+            <button class="btn-icon danger" onclick="deleteLabour(${e.id})">🗑</button>
+          </div></td>`;
+        tbody.appendChild(tr);
+      }
+      document.getElementById('labour-total').textContent = fmt(labourTotal);
+      document.getElementById('summary-labour').textContent = fmt(labourTotal);
+      updateGrandTotal();
+      closePopup('labour-overlay');
+    }).catch(() => { btn.disabled = false; showAlert('labour-error', '{% trans "Erro ao guardar." %}'); });
+  };
+
+  window.deleteLabour = function (pk) {
+    if (!confirm('{% trans "Eliminar esta entrada?" %}')) return;
+    const row = document.querySelector(`#labour-tbody tr[data-id="${pk}"]`);
+    const total = parseFloat(row?.dataset.total || 0);
+    post(URL.labourDelete(pk), {}).then(r => r.json()).then(json => {
+      if (!json.ok) return;
+      row?.remove();
+      labourTotal -= total;
+      document.getElementById('labour-total').textContent = fmt(labourTotal);
+      document.getElementById('summary-labour').textContent = fmt(labourTotal);
+      updateGrandTotal();
+      checkEmpty('labour-tbody', 'labour-empty', 7, '{% trans "Nenhuma entrada de mão-de-obra." %}');
+    });
+  };
+
+  // ── Grand total ───────────────────────────────────────────────────────────
+  const fuelTotal = {% localize off %}{{ fuel_total }}{% endlocalize %};
+  function updateGrandTotal() {
+    const total = invoicesTotalHt + materialsTotal + labourTotal + fuelTotal;
+    document.getElementById('summary-grand').textContent = fmt(total);
+  }
+
+  // ── Empty row helper ──────────────────────────────────────────────────────
+  function checkEmpty(tbodyId, emptyId, colspan, msg) {
+    const tbody = document.getElementById(tbodyId);
+    if (tbody && tbody.querySelectorAll('tr[data-id]').length === 0) {
+      const tr = document.createElement('tr');
+      tr.id = emptyId;
+      tr.innerHTML = `<td colspan="${colspan}" class="dt-empty">${msg}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+})();
+</script>
+{% endblock %}

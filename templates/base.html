@@ -13,273 +13,423 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Construart{% endblock %}</title>
+
+  <!-- Fontes: Inter (UI) + JetBrains Mono (números) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Sistema de design: tokens de tema + componentes base -->
+  <link rel="stylesheet" href="{% static 'construart/construart.css' %}">
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg:           #f0eff4;
-      --surface:      #ffffff;
-      --surface2:     #f7f6fb;
-      --border:       #e3e2ea;
-      --border2:      #ccc9d8;
-      --text:         #18171f;
-      --text2:        #5c5a6e;
-      --text3:        #9896ab;
-      --accent:       #c8622a;
-      --accent-light: #f5ece5;
-      --accent-dark:  #a34e1f;
-      --green:        #2d7a4f;
-      --green-light:  #e6f4ec;
-      --amber:        #b8760a;
-      --amber-light:  #fdf3e0;
-      --red:          #c0392b;
-      --red-light:    #fdecea;
+    /*
+     * Ponte de compatibilidade: mapeia os tokens legados (--bg, --accent, etc.)
+     * para os novos tokens --ca-*. Permite que o código existente continue
+     * a funcionar sem alterações imediatas nos templates.
+     * À medida que os templates forem migrados, estas pontes podem ser removidas.
+     */
+    :root,
+    [data-theme="light"],
+    [data-theme="dark"] {
+      --bg:           var(--ca-bg);
+      --surface:      var(--ca-surface);
+      --surface2:     var(--ca-surface-2);
+      --border:       var(--ca-border);
+      --border2:      var(--ca-border-2);
+      --text:         var(--ca-text);
+      --text2:        var(--ca-text-2);
+      --text3:        var(--ca-text-3);
+      --accent:       var(--ca-accent);
+      --accent-light: var(--ca-accent-50);
+      --accent-dark:  var(--ca-accent-2);
+      --green:        var(--ca-green-text);
+      --green-light:  var(--ca-green-bg);
+      --amber:        var(--ca-amber-text);
+      --amber-light:  var(--ca-amber-bg);
+      --red:          var(--ca-rose-text);
+      --red-light:    var(--ca-rose-bg);
 
-      /* Layout */
+      /* Layout — não mudam com o tema */
       --sidebar-w:          56px;
       --sidebar-w-expanded: 240px;
-      --topbar-h:           52px;
+      --topbar-h:           56px;
       --tabbar-h:           38px;
-      --radius:             8px;
-      --radius-lg:          12px;
-      --shadow:             0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-      --shadow-md:          0 4px 16px rgba(0,0,0,.10);
+      --radius:             var(--ca-r);
+      --radius-lg:          var(--ca-r-lg);
+      --shadow:             var(--ca-shadow-sm);
+      --shadow-md:          var(--ca-shadow-md);
 
-      /* Sidebar dark surface */
-      --nav-bg:       #1e1d27;
-      --nav-border:   rgba(255,255,255,.07);
-      --nav-text:     #a09eb8;
-      --nav-hover:    rgba(255,255,255,.06);
-      --nav-active:   rgba(200,98,42,.15);
+      /* Sidebar */
+      --nav-bg:     var(--ca-side-bg);
+      --nav-border: var(--ca-side-border);
+      --nav-text:   var(--ca-side-text);
+      --nav-hover:  var(--ca-side-hover);
+      --nav-active: var(--ca-side-active-bg);
+    }
+
+    /* Tokens complementares para o ca-shell (não cobertos pelo construart.css) */
+    :root {
+      --ca-surface-hover: color-mix(in srgb, var(--ca-surface-2) 70%, var(--ca-surface));
+      --ca-border-strong: var(--ca-border-2, color-mix(in srgb, var(--ca-border) 80%, #000));
+      --ca-text-muted:    var(--ca-text-2);
+      --ca-text-subtle:   var(--ca-text-3);
+      --ca-accent-hover:  var(--ca-accent-2);
+      --ca-accent-soft:   var(--ca-accent-50);
+      --ca-accent-on:     #ffffff;
+      --ca-ring:          color-mix(in srgb, var(--ca-accent) 25%, transparent);
+      --ca-kbd-bg:        var(--ca-surface-2);
+      --ca-kbd-border:    var(--ca-border);
+      --ca-page-bg:       var(--ca-bg);
     }
 
     body {
-      font-family: 'Georgia', serif;
-      background: var(--bg);
-      color: var(--text);
+      font-family: var(--ca-font);
+      background: var(--ca-bg);
+      color: var(--ca-text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
     /* ══════════════════════════════════════════
-       TOPBAR
+       CA-SHELL: TOPBAR + TAB BAR
     ══════════════════════════════════════════ */
-    .topbar {
-      height: var(--topbar-h);
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 0;
+    .ca-shell, .ca-shell * { box-sizing: border-box; }
+    .ca-shell button { font: inherit; color: inherit; }
+    .ca-shell {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 200;
-      box-shadow: var(--shadow);
+      font-family: var(--ca-font, 'Inter', ui-sans-serif, system-ui, sans-serif);
+      color: var(--ca-text);
+      -webkit-font-smoothing: antialiased;
+      background: var(--ca-surface);
+      user-select: none;
     }
 
-    /* Brand area — matches sidebar collapsed width */
-    .topbar-brand {
-      width: var(--sidebar-w);
-      flex-shrink: 0;
+    /* ── Top row (56px) ── */
+    .ca-top {
+      height: 56px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      height: 100%;
-      border-right: 1px solid var(--border);
-      transition: width .22s ease;
+      padding: 0 20px;
+      gap: 16px;
+      background: var(--ca-surface);
+      border-bottom: 1px solid var(--ca-border);
+    }
+
+    .ca-logo {
+      display: flex; align-items: center; gap: 9px;
+      color: var(--ca-text);
       text-decoration: none;
-    }
-    .topbar-brand .brand-logo {
-      width: 34px; height: 34px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .topbar-brand .brand-logo img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-    }
-    .topbar-brand .brand-logo-fallback {
-      width: 34px; height: 34px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      font-family: sans-serif;
       flex-shrink: 0;
     }
-    .topbar-brand .brand-name {
+    .ca-logo__mark {
+      width: 30px; height: 30px;
+      color: var(--ca-accent);
+      display: grid; place-items: center;
+    }
+    .ca-logo__mark svg { width: 100%; height: 100%; }
+    .ca-logo__text {
       font-size: 15px;
       font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      max-width: 0;
-      opacity: 0;
-      transition: max-width .22s ease, opacity .15s ease, margin .22s ease;
-      font-family: sans-serif;
-      margin-left: 0;
+      letter-spacing: -0.01em;
+      line-height: 1;
     }
 
-    /* Search — centered in the topbar */
-    .topbar-search {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-    }
-    .topbar-search-inner {
-      width: 100%;
-      max-width: 480px;
-      position: relative;
-    }
-    .topbar-search input {
-      width: 100%;
-      height: 34px;
-      padding: 0 12px 0 36px;
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      font-size: 13px;
-      font-family: 'Georgia', serif;
-      background: var(--surface2);
-      color: var(--text);
-      transition: border-color .15s, background .15s;
-    }
-    .topbar-search input:focus {
-      outline: none;
-      border-color: var(--accent);
-      background: var(--surface);
-    }
-    .topbar-search input::placeholder { color: var(--text3); }
-    .topbar-search .search-icon {
-      position: absolute;
-      left: 11px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--text3);
-      font-size: 14px;
-      pointer-events: none;
-    }
-
-    /* Right side of topbar */
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding-right: 16px;
+    .ca-divider {
+      width: 1px; height: 24px;
+      background: var(--ca-border);
       flex-shrink: 0;
     }
-    .topbar-btn {
+
+    /* ── Search ── */
+    .ca-search {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      flex: 0 1 420px;
+    }
+    .ca-search__field {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: var(--ca-surface-2, var(--surface2));
+      border: 1px solid transparent;
+      transition: border-color .12s, box-shadow .12s, background .12s;
+    }
+    .ca-search__field:focus-within {
+      border-color: var(--ca-accent);
+      box-shadow: 0 0 0 3px var(--ca-ring, rgba(22,134,74,0.20));
+      background: var(--ca-bg);
+    }
+    .ca-search__icon { color: var(--ca-text-subtle, var(--text3)); display: grid; place-items: center; flex-shrink: 0; }
+    .ca-search input {
+      flex: 1;
+      border: 0; outline: 0;
+      background: transparent;
+      color: var(--ca-text);
+      font-size: 13px;
+      min-width: 0;
+    }
+    .ca-search input::placeholder { color: var(--ca-text-subtle, var(--text3)); }
+    .ca-kbd {
+      display: inline-flex; align-items: center;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--ca-kbd-bg, var(--surface2));
+      color: var(--ca-text-muted, var(--text2));
+      font-size: 11px;
+      border: 1px solid var(--ca-kbd-border, var(--border));
+      flex-shrink: 0;
+    }
+
+    /* ── Right cluster ── */
+    .ca-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Primary CTA — "Criar" */
+    .ca-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 34px;
+      padding: 0 12px 0 10px;
+      border-radius: 8px;
+      border: 0;
+      background: var(--ca-accent);
+      color: var(--ca-accent-on, #fff);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .12s, transform .04s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+      white-space: nowrap;
+    }
+    .ca-cta:hover { background: var(--ca-accent-hover, var(--ca-accent-2)); }
+    .ca-cta:active { transform: translateY(1px); }
+    .ca-cta svg { display: block; }
+    @media (max-width: 720px) {
+      .ca-cta span { display: none; }
+      .ca-cta { padding: 0 10px; gap: 0; }
+    }
+
+    .ca-iconbtn {
+      position: relative;
       width: 34px; height: 34px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
+      border-radius: 8px;
+      border: 0;
       background: transparent;
-      color: var(--text2);
+      color: var(--ca-text-muted, var(--text2));
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px;
-      transition: background .15s, color .15s;
+      display: grid; place-items: center;
+      transition: background .12s, color .12s;
     }
-    .topbar-btn:hover { background: var(--surface2); color: var(--text); }
+    .ca-iconbtn:hover { background: var(--ca-surface-hover, var(--surface2)); color: var(--ca-text); }
+    .ca-iconbtn[aria-pressed="true"] { background: var(--ca-surface-hover, var(--surface2)); color: var(--ca-text); }
+    .ca-iconbtn svg { display: block; }
 
-    /* User pill + gear */
-    .topbar-user-area {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-left: 6px;
+    .ca-iconbtns { display: flex; align-items: center; gap: 2px; }
+
+    /* ── User pill ── */
+    .ca-user {
+      display: flex; align-items: center; gap: 9px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 999px;
+      background: var(--ca-bg);
+      border: 1px solid var(--ca-border);
+      cursor: pointer;
+      transition: background .12s, border-color .12s;
       position: relative;
     }
-
-    /* Gear button */
-    .topbar-gear {
-      width: 32px; height: 32px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text2);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-      transition: background .15s, color .15s, transform .25s ease;
-      position: relative;
-    }
-    .topbar-gear:hover { background: var(--surface2); color: var(--accent); transform: rotate(45deg); }
-
-    /* User pill */
-    .topbar-user {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 10px 4px 6px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: background .15s;
-      position: relative;
-    }
-    .topbar-user:hover { background: var(--surface2); }
-    .topbar-user-avatar {
-      width: 26px; height: 26px;
+    .ca-user:hover { border-color: var(--ca-border-strong, var(--border)); }
+    .ca-avatar {
+      width: 28px; height: 28px;
       border-radius: 50%;
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--ca-accent), var(--ca-accent-hover, var(--accent-dark)));
       color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px;
-      font-weight: 700;
-      font-family: sans-serif;
+      font-size: 12px; font-weight: 600;
+      display: grid; place-items: center;
+      flex-shrink: 0;
     }
-    .topbar-user-info { line-height: 1.2; }
-    .topbar-user-name { font-size: 12px; color: var(--text); font-family: sans-serif; font-weight: 500; }
-    .topbar-user-role { font-size: 10px; color: var(--text3); font-family: sans-serif; }
+    .ca-user__meta {
+      display: flex; flex-direction: column;
+      line-height: 1.15;
+      min-width: 0;
+    }
+    .ca-user__name { font-size: 12.5px; font-weight: 500; color: var(--ca-text); white-space: nowrap; }
+    .ca-user__role { font-size: 10.5px; color: var(--ca-text-muted, var(--text2)); white-space: nowrap; }
+    .ca-user__chev { color: var(--ca-text-muted, var(--text2)); flex-shrink: 0; }
 
-    /* Dropdown menus */
-    .topbar-dropdown {
+    /* ── Dropdown menus ── */
+    .ca-dropdown {
       position: absolute;
       top: calc(100% + 6px);
       right: 0;
       min-width: 200px;
-      background: var(--surface);
-      border: 1px solid var(--border);
+      background: var(--ca-surface);
+      border: 1px solid var(--ca-border);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-md);
       z-index: 500;
       display: none;
       overflow: hidden;
     }
-    .topbar-dropdown.open { display: block; }
-    .topbar-dropdown-header {
+    .ca-dropdown.open { display: block; }
+    .ca-dropdown-header {
       padding: 10px 14px 8px;
       font-size: 11px;
-      color: var(--text3);
-      font-family: sans-serif;
+      color: var(--ca-text-subtle, var(--text3));
       text-transform: uppercase;
       letter-spacing: .8px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--ca-border);
     }
-    .topbar-dropdown a,
-    .topbar-dropdown button.dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .ca-dropdown a,
+    .ca-dropdown button.dropdown-item {
+      display: flex; align-items: center; gap: 10px;
       padding: 10px 14px;
       font-size: 13px;
-      font-family: sans-serif;
-      color: var(--text);
+      color: var(--ca-text);
       text-decoration: none;
-      background: none;
-      border: none;
-      width: 100%;
-      cursor: pointer;
+      background: none; border: none;
+      width: 100%; cursor: pointer;
       transition: background .12s;
+      font-family: inherit;
     }
-    .topbar-dropdown a:hover,
-    .topbar-dropdown button.dropdown-item:hover { background: var(--surface2); }
-    .topbar-dropdown .dropdown-icon { font-size: 15px; width: 18px; text-align: center; }
-    .topbar-dropdown hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
-    .topbar-dropdown .danger { color: var(--red); }
+    .ca-dropdown a:hover,
+    .ca-dropdown button.dropdown-item:hover { background: var(--ca-surface-hover, var(--surface2)); }
+    .ca-dropdown .dropdown-icon { font-size: 15px; width: 18px; text-align: center; }
+    .ca-dropdown hr { border: none; border-top: 1px solid var(--ca-border); margin: 4px 0; }
+    .ca-dropdown .danger { color: var(--red); }
+
+    /* ── Tab bar (38px) ── */
+    .ca-tabs {
+      height: 38px;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 16px;
+      gap: 2px;
+      background: var(--ca-surface);
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .ca-tabs::-webkit-scrollbar { display: none; }
+    .ca-tabs::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1px;
+      background: var(--ca-border);
+      z-index: 0;
+    }
+
+    .ca-tab {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 8px;
+      height: 32px;
+      padding: 0 10px 0 12px;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--ca-text-muted, var(--text2));
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      margin-bottom: 0;
+      z-index: 1;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .ca-tab:hover { background: var(--ca-surface-hover, var(--surface2)); color: var(--ca-text); }
+    .ca-tab__icon { color: var(--ca-text-subtle, var(--text3)); display: grid; place-items: center; font-size: 13px; }
+    .ca-tab__close {
+      width: 18px; height: 18px;
+      border: 0; background: transparent;
+      color: var(--ca-text-subtle, var(--text3));
+      border-radius: 4px;
+      cursor: pointer;
+      display: grid; place-items: center;
+      opacity: 0;
+      transition: opacity .12s, background .12s, color .12s;
+      padding: 0;
+      font-size: 11px; line-height: 1;
+    }
+    .ca-tab:hover .ca-tab__close { opacity: 0.7; }
+    .ca-tab__close:hover { background: var(--ca-border-strong, var(--border)); color: var(--ca-text); opacity: 1 !important; }
+
+    .ca-tab--active {
+      background: var(--ca-page-bg, var(--bg));
+      border-color: var(--ca-border);
+      color: var(--ca-text);
+      font-weight: 500;
+      z-index: 2;
+    }
+    .ca-tab--active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 8px; right: 8px;
+      height: 2px;
+      background: var(--ca-accent);
+      border-radius: 2px;
+    }
+    .ca-tab--active::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 1px;
+      background: var(--ca-page-bg, var(--bg));
+    }
+    .ca-tab--active .ca-tab__icon { color: var(--ca-accent); }
+    .ca-tab--active .ca-tab__close { opacity: 0.5; }
+
+    /* Breadcrumb area (right side of tab bar) */
+    .ca-tabs-breadcrumb {
+      margin-left: auto;
+      padding: 0 16px 0 8px;
+      font-size: 12px;
+      color: var(--ca-text-subtle, var(--text3));
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      height: 32px;
+      z-index: 1;
+      position: relative;
+    }
+    .ca-tabs-breadcrumb a { color: var(--ca-text-muted, var(--text2)); text-decoration: none; }
+    .ca-tabs-breadcrumb a:hover { color: var(--ca-accent); }
+    .ca-tabs-breadcrumb .sep { color: var(--ca-border-strong, var(--border)); }
+    .ca-tabs-breadcrumb .current { color: var(--ca-text); }
+
+    /* ── Theme flip toggle ── */
+    /* Em modo claro: mostra sol (→ escuro); esconde lua */
+    .ca-theme-flip button[data-theme="light"] { display: none; }
+    /* Em modo escuro: mostra lua (→ claro); esconde sol */
+    [data-theme="dark"] .ca-theme-flip button[data-theme="dark"]  { display: none; }
+    [data-theme="dark"] .ca-theme-flip button[data-theme="light"] { display: grid; }
+
+    /* ── Responsive ── */
+    @media (max-width: 960px) {
+      .ca-search { flex: 1 1 auto; max-width: none; }
+      .ca-user__meta { display: none; }
+      .ca-user { padding: 4px; border-radius: 999px; }
+      .ca-user__chev { display: none; }
+    }
+    @media (max-width: 720px) {
+      .ca-top { padding: 0 12px; gap: 10px; }
+    }
 
     /* ══════════════════════════════════════════
        SIDEBAR
@@ -288,7 +438,7 @@
       width: var(--sidebar-w);
       background: var(--nav-bg);
       position: fixed;
-      top: var(--topbar-h);
+      top: calc(var(--topbar-h) + var(--tabbar-h));
       left: 0;
       bottom: 0;
       z-index: 150;
@@ -551,115 +701,22 @@
     }
 
     /* ══════════════════════════════════════════
-       TAB BAR
-    ══════════════════════════════════════════ */
-    .tabbar {
-      height: var(--tabbar-h);
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: flex-end;
-      gap: 0;
-      position: fixed;
-      top: var(--topbar-h);
-      left: var(--sidebar-w);
-      right: 0;
-      z-index: 140;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scrollbar-width: none;
-      transition: left .22s ease;
-    }
-    .tabbar::-webkit-scrollbar { display: none; }
-    .sidebar.is-expanded ~ .layout-body .tabbar { left: var(--sidebar-w-expanded); }
-
-    .tab {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 14px;
-      height: 34px;
-      font-size: 12px;
-      font-family: sans-serif;
-      color: var(--text3);
-      text-decoration: none;
-      border: 1px solid transparent;
-      border-bottom: none;
-      border-radius: var(--radius) var(--radius) 0 0;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: background .12s, color .12s;
-      position: relative;
-      top: 1px;
-      background: transparent;
-    }
-    .tab:hover { color: var(--text2); background: var(--surface2); }
-    .tab.is-active {
-      color: var(--text);
-      background: var(--bg);
-      border-color: var(--border);
-      font-weight: 500;
-    }
-    .tab.is-active::after {
-      content: '';
-      position: absolute;
-      bottom: -1px; left: 0; right: 0;
-      height: 2px;
-      background: var(--accent);
-      border-radius: 2px 2px 0 0;
-    }
-    .tab-close {
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      border: none;
-      background: none;
-      color: var(--text3);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px;
-      line-height: 1;
-      padding: 0;
-      transition: background .12s, color .12s;
-    }
-    .tab-close:hover { background: var(--border2); color: var(--text); }
-    .tab-icon { font-size: 13px; }
-
-    /* Breadcrumb inside tabbar (right side) */
-    .tabbar-breadcrumb {
-      margin-left: auto;
-      padding: 0 16px;
-      font-size: 12px;
-      color: var(--text3);
-      font-family: sans-serif;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-      height: 34px;
-    }
-    .tabbar-breadcrumb a { color: var(--text2); text-decoration: none; }
-    .tabbar-breadcrumb a:hover { color: var(--accent); }
-    .tabbar-breadcrumb .sep { color: var(--border2); }
-    .tabbar-breadcrumb .current { color: var(--text); }
-
-    /* ══════════════════════════════════════════
        MAIN LAYOUT BODY
     ══════════════════════════════════════════ */
     .layout-body {
-      margin-top: var(--topbar-h);
+      margin-top: calc(var(--topbar-h) + var(--tabbar-h));
       margin-left: var(--sidebar-w);
       transition: margin-left .22s ease;
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: calc(100vh - var(--topbar-h));
+      min-height: calc(100vh - var(--topbar-h) - var(--tabbar-h));
     }
     .layout-body.is-expanded { margin-left: var(--sidebar-w-expanded); }
 
     .page-body {
       padding: 28px 32px;
       flex: 1;
-      margin-top: var(--tabbar-h);
     }
 
     /* ══════════════════════════════════════════
@@ -788,12 +845,10 @@
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); width: var(--sidebar-w-expanded) !important; transition: transform .25s ease; }
       .sidebar.mobile-open { transform: translateX(0); z-index: 300; }
-      .layout-body, .layout-body.is-expanded, .tabbar { margin-left: 0 !important; left: 0 !important; }
-      .topbar-brand { width: 52px; }
+      .layout-body, .layout-body.is-expanded { margin-left: 0 !important; }
       .page-body { padding: 16px; }
-      .topbar-right { gap: 6px; padding-right: 10px; }
-      .topbar-user-info { display: none; }
-      .topbar-search-inner { max-width: 100%; }
+      .ca-logo__text { display: none; }
+      .ca-search { flex: 1 1 auto; max-width: none; }
 
       /* overlay para fechar sidebar em mobile — visível só via JS */
       .sidebar-overlay {
@@ -823,9 +878,15 @@
     .no-transition, .no-transition * { transition: none !important; }
   </style>
 
-  <!-- Script inline: aplica estado do sidebar ANTES do primeiro paint, eliminando o piscar -->
+  <!-- Script inline: aplica tema E estado do sidebar ANTES do primeiro paint (anti-flash) -->
   <script>
   (function () {
+    /* Tema */
+    var theme = 'light';
+    try { theme = localStorage.getItem('construart-theme') || 'light'; } catch(_) {}
+    document.documentElement.setAttribute('data-theme', theme);
+
+    /* Sidebar */
     var expanded = sessionStorage.getItem('crt_sidebar_expanded') === '1';
     var mobile   = window.innerWidth <= 768;
     if (expanded && !mobile) {
@@ -837,9 +898,6 @@
   <style>
     html[data-sidebar="expanded"] .sidebar           { width: var(--sidebar-w-expanded); }
     html[data-sidebar="expanded"] .layout-body       { margin-left: var(--sidebar-w-expanded); }
-    html[data-sidebar="expanded"] .tabbar            { left: var(--sidebar-w-expanded); }
-    html[data-sidebar="expanded"] .topbar-brand      { width: var(--sidebar-w-expanded); }
-    html[data-sidebar="expanded"] #brandName         { max-width: 140px; opacity: 1; margin-left: 10px; }
     html[data-sidebar="expanded"] .nav-label         { opacity: 1; max-width: 160px; }
     html[data-sidebar="expanded"] .nav-chevron       { opacity: 1; max-width: 20px; }
     html[data-sidebar="expanded"] .sidebar-toggle .toggle-label { opacity: 1; max-width: 120px; }
@@ -851,82 +909,143 @@
 </head>
 <body class="no-transition" data-tab-parent="{% block tab_parent %}{% endblock %}" data-tab-icon="{% block tab_icon %}{% endblock %}">
 
-  <!-- ══ TOPBAR ══ -->
-  <header class="topbar" id="topbar">
+  <!-- ══ TOPBAR + TAB BAR (ca-shell) ══ -->
+  <header class="ca-shell" id="topbar" role="banner">
 
-    <button class="topbar-btn" id="mobileMenuBtn" style="display:none;margin-left:8px;" title="{{ menu_title }}">☰</button>
+    <!-- Top row -->
+    <div class="ca-top">
 
-    <a class="topbar-brand" id="topbarBrand" href="{% url 'home' %}" title="{% trans "Dashboard" %}">
-      {# Para usar logomarca: coloque o arquivo em static/images/logo.png e substitua a linha abaixo #}
-      {# <div class="brand-logo"><img src="{% static 'images/logo.png' %}" alt="Construart"></div> #}
-      <div class="brand-logo-fallback">C</div>
-      <span class="brand-name" id="brandName">Construart</span>
-    </a>
+      <!-- Logo / Home -->
+      <a href="{% url 'home' %}" class="ca-logo" aria-label="Construart — início">
+        <span class="ca-logo__mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M26 8H12a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M19 16h4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="ca-logo__text">Construart</span>
+      </a>
 
-    <div class="topbar-search">
-      <div class="topbar-search-inner">
-        <span class="search-icon">🔍</span>
-        <input type="text" placeholder="{% trans "Pesquisar cliente, obra, documento…" %}">
+      <span class="ca-divider" aria-hidden="true"></span>
+
+      <!-- Search -->
+      <div class="ca-search" role="search">
+        <label class="ca-search__field">
+          <span class="ca-search__icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </span>
+          <input type="text" placeholder="{% trans "Pesquisar cliente, obra, documento…" %}" aria-label="{% trans "Pesquisa global" %}">
+          <kbd class="ca-kbd">⌘K</kbd>
+        </label>
       </div>
-    </div>
 
-    <div class="topbar-right">
-      <button class="topbar-btn" title="{% trans "Notificações" %}">🔔</button>
-      <button class="topbar-btn" title="{% trans "Ajuda" %}">❓</button>
+      <!-- Right cluster -->
+      <div class="ca-right">
 
-      {% if request.user.is_authenticated %}
-      <div class="topbar-user-area" id="topbarUserArea">
+        <!-- Criar — botão primário com dropdown -->
+        <div style="position:relative;">
+          <button class="ca-cta" type="button" id="ctaBtn" aria-label="{% trans "Criar" %}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span>{% trans "Criar" %}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="ca-dropdown" id="ctaDropdown">
+            <div class="ca-dropdown-header">{% trans "Criação rápida" %}</div>
+            <a href="{% url 'clients:create' %}">
+              <span class="dropdown-icon">👤</span> {% trans "Novo Cliente" %}
+            </a>
+            <a href="{% url 'budget:budget_create' %}">
+              <span class="dropdown-icon">📋</span> {% trans "Novo Orçamento" %}
+            </a>
+            <a href="{% url 'workforce:create' %}">
+              <span class="dropdown-icon">👷</span> {% trans "Novo Colaborador" %}
+            </a>
+          </div>
+        </div>
 
-        <!-- Gear / Configurações — apenas staff/superuser ou quem tem accounts.view_user -->
-        {% if request.user.is_staff or request.user.is_superuser or perms.accounts.view_user %}
-        <button class="topbar-gear" id="gearBtn" title="{% trans "Configurações" %}">⚙️</button>
-        <div class="topbar-dropdown" id="gearDropdown">
-          <div class="topbar-dropdown-header">{% trans "Configurações" %}</div>
+        <div class="ca-iconbtns">
+          <!-- Theme toggle — dois botões, CSS mostra só o relevante -->
+          <div class="ca-theme-toggle ca-theme-flip">
+            <button class="ca-iconbtn" type="button" data-theme="dark"
+                    aria-label="{% trans "Ativar modo escuro" %}" title="{% trans "Modo escuro" %}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            </button>
+            <button class="ca-iconbtn" type="button" data-theme="light"
+                    aria-label="{% trans "Ativar modo claro" %}" title="{% trans "Modo claro" %}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+          </div>
+
+          <!-- Notifications -->
+          <div style="position:relative;">
+            <button class="ca-iconbtn" type="button" id="notifBtn" aria-label="{% trans "Notificações" %}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+            </button>
+          </div>
+
+          <!-- Settings (staff only) -->
           {% if request.user.is_staff or request.user.is_superuser or perms.accounts.view_user %}
-          <a href="{% url 'accounts:list' %}">
-            <span class="dropdown-icon">👥</span> {% trans "Usuários" %}
-          </a>
-          <a href="{% url 'accounts:profile_list' %}">
-            <span class="dropdown-icon">🔐</span> {% trans "Gestão de Acessos" %}
-          </a>
+          <div style="position:relative;">
+            <button class="ca-iconbtn" type="button" id="gearBtn" aria-label="{% trans "Configurações" %}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <div class="ca-dropdown" id="gearDropdown">
+              <div class="ca-dropdown-header">{% trans "Configurações" %}</div>
+              <a href="{% url 'accounts:list' %}">
+                <span class="dropdown-icon">👥</span> {% trans "Usuários" %}
+              </a>
+              <a href="{% url 'accounts:profile_list' %}">
+                <span class="dropdown-icon">🔐</span> {% trans "Gestão de Acessos" %}
+              </a>
+            </div>
+          </div>
           {% endif %}
+        </div>
+
+        <!-- User pill -->
+        {% if request.user.is_authenticated %}
+        <div style="position:relative;">
+          <button class="ca-user" type="button" id="userPillBtn" aria-label="{% trans "Menu do utilizador" %}">
+            <span class="ca-avatar" aria-hidden="true">{{ request.user.first_name|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}</span>
+            <span class="ca-user__meta">
+              <span class="ca-user__name">{{ request.user.get_full_name|default:request.user.username }}</span>
+              <span class="ca-user__role">{{ request.user.get_role_display }}</span>
+            </span>
+            <span class="ca-user__chev" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </span>
+          </button>
+          <div class="ca-dropdown" id="userDropdown">
+            <div class="ca-dropdown-header">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <a href="{% url 'accounts:edit' request.user.pk %}">
+              <span class="dropdown-icon">👤</span> {% trans "Meus Dados" %}
+            </a>
+            <a href="{% url 'accounts:reset_password' request.user.pk %}">
+              <span class="dropdown-icon">🔑</span> {% trans "Alterar Senha" %}
+            </a>
+            <hr>
+            <form method="post" action="{% url 'logout' %}" style="margin:0">
+              {% csrf_token %}
+              <button type="submit" class="dropdown-item danger">
+                <span class="dropdown-icon">🚪</span> {% trans "Sair" %}
+              </button>
+            </form>
+          </div>
         </div>
         {% endif %}
 
-        <!-- User pill -->
-        <div class="topbar-user" id="userPillBtn">
-          <div class="topbar-user-avatar">
-            {{ request.user.first_name|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper }}
-          </div>
-          <div class="topbar-user-info">
-            <div class="topbar-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
-            <div class="topbar-user-role">{{ request.user.get_role_display }}</div>
-          </div>
-        </div>
-        <div class="topbar-dropdown" id="userDropdown">
-          <div class="topbar-dropdown-header">
-            {{ request.user.get_full_name|default:request.user.username }}
-          </div>
-          <a href="{% url 'accounts:edit' request.user.pk %}">
-            <span class="dropdown-icon">👤</span> {% trans "Meus Dados" %}
-          </a>
-          <a href="{% url 'accounts:reset_password' request.user.pk %}">
-            <span class="dropdown-icon">🔑</span> {% trans "Alterar Senha" %}
-          </a>
-          <hr>
-          <form method="post" action="{% url 'logout' %}" style="margin:0">
-            {% csrf_token %}
-            <button type="submit" class="dropdown-item danger">
-              <span class="dropdown-icon">🚪</span> {% trans "Sair" %}
-            </button>
-          </form>
-        </div>
+      </div><!-- /.ca-right -->
+    </div><!-- /.ca-top -->
 
+    <!-- Tab bar -->
+    <nav class="ca-tabs" id="tabbar" aria-label="{% trans "Abas abertas" %}">
+      {# Tabs são injectadas pelo JS abaixo #}
+      <div class="ca-tabs-breadcrumb" id="tabbar-breadcrumb">
+        {% block breadcrumb %}{% endblock %}
       </div>
-      {% endif %}
-    </div>
+    </nav>
 
-  </header>
+  </header><!-- /.ca-shell -->
 
   <!-- overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" style="display:none"></div>
@@ -1317,16 +1436,8 @@
 
   </nav>
 
-  <!-- ══ LAYOUT BODY (tabbar + content) ══ -->
+  <!-- ══ LAYOUT BODY ══ -->
   <div class="layout-body" id="layoutBody">
-
-    <!-- Tab bar -->
-    <div class="tabbar" id="tabbar">
-      {# Tabs are injected and managed by JS below #}
-      <div class="tabbar-breadcrumb">
-        {% block breadcrumb %}{% endblock %}
-      </div>
-    </div>
 
     <!-- Menu de contexto das abas -->
     <div id="tab-ctx-menu" style="
@@ -1366,12 +1477,10 @@
   (function () {
 
     // ── Sidebar expand/collapse ──────────────────────────────────────────
-    const sidebar     = document.getElementById('sidebar');
-    const layoutBody  = document.getElementById('layoutBody');
-    const tabbar      = document.getElementById('tabbar');
-    const topbarBrand = document.getElementById('topbarBrand');
-    const brandName   = document.getElementById('brandName');
-    const toggleBtn   = document.getElementById('sidebarToggle');
+    const sidebar    = document.getElementById('sidebar');
+    const layoutBody = document.getElementById('layoutBody');
+    const tabbar     = document.getElementById('tabbar');
+    const toggleBtn  = document.getElementById('sidebarToggle');
     const STORAGE_SIDEBAR = 'crt_sidebar_expanded';
     const EXPAND_SIDEBAR_LABEL = '{{ expand_sidebar_label|escapejs }}';
     const COLLAPSE_SIDEBAR_LABEL = '{{ collapse_sidebar_label|escapejs }}';
@@ -1388,23 +1497,12 @@
         document.documentElement.setAttribute('data-sidebar', 'expanded');
         sidebar.classList.add('is-expanded');
         layoutBody.classList.add('is-expanded');
-        // Limpar inline styles — o CSS via [data-sidebar] já cuida do estado
-        topbarBrand.style.width = '';
-        brandName.style.maxWidth = '';
-        brandName.style.opacity = '';
-        brandName.style.marginLeft = '';
-        tabbar.style.left = '';
         toggleBtn.title = COLLAPSE_SIDEBAR_LABEL;
         if (toggleLabel) toggleLabel.textContent = COLLAPSE_SHORT;
       } else {
         document.documentElement.removeAttribute('data-sidebar');
         sidebar.classList.remove('is-expanded');
         layoutBody.classList.remove('is-expanded');
-        topbarBrand.style.width = '';
-        brandName.style.maxWidth = '';
-        brandName.style.opacity = '';
-        brandName.style.marginLeft = '';
-        tabbar.style.left = '';
         toggleBtn.title = EXPAND_SIDEBAR_LABEL;
         if (toggleLabel) toggleLabel.textContent = EXPAND_SHORT;
       }
@@ -1417,14 +1515,11 @@
     });
 
     // ── Mobile sidebar toggle ─────────────────────────────────────────
-    const mobileMenuBtn  = document.getElementById('mobileMenuBtn');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
 
     function showMobileSidebar() {
       sidebar.classList.add('mobile-open', 'is-expanded');
-      // garantir que o layout não se desloca em mobile
       layoutBody.style.marginLeft = '';
-      tabbar.style.left = '';
       sidebarOverlay.style.display = 'block';
     }
     function hideMobileSidebar() {
@@ -1432,24 +1527,16 @@
       sidebarOverlay.style.display = 'none';
     }
 
-    if (mobileMenuBtn) {
-      mobileMenuBtn.addEventListener('click', () => {
-        if (sidebar.classList.contains('mobile-open')) hideMobileSidebar();
-        else showMobileSidebar();
-      });
-    }
     if (sidebarOverlay) {
       sidebarOverlay.addEventListener('click', hideMobileSidebar);
     }
 
     function applyMobileLayout() {
       if (isMobile()) {
-        if (mobileMenuBtn) mobileMenuBtn.style.display = 'flex';
         document.documentElement.removeAttribute('data-sidebar');
         layoutBody.classList.remove('is-expanded');
         hideMobileSidebar();
       } else {
-        if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
         sidebarOverlay.style.display = 'none';
         sidebar.classList.remove('mobile-open');
         setSidebar(sessionStorage.getItem(STORAGE_SIDEBAR) === '1');
@@ -1511,33 +1598,30 @@
 
 
     // ── Topbar dropdowns ─────────────────────────────────────────────────
-    const gearBtn       = document.getElementById('gearBtn');
-    const gearDropdown  = document.getElementById('gearDropdown');
-    const userPillBtn   = document.getElementById('userPillBtn');
-    const userDropdown  = document.getElementById('userDropdown');
+    const ctaBtn       = document.getElementById('ctaBtn');
+    const ctaDropdown  = document.getElementById('ctaDropdown');
+    const gearBtn      = document.getElementById('gearBtn');
+    const gearDropdown = document.getElementById('gearDropdown');
+    const userPillBtn  = document.getElementById('userPillBtn');
+    const userDropdown = document.getElementById('userDropdown');
 
     function closeAllDropdowns() {
-      if (gearDropdown)  gearDropdown.classList.remove('open');
-      if (userDropdown)  userDropdown.classList.remove('open');
+      document.querySelectorAll('.ca-dropdown.open').forEach(d => d.classList.remove('open'));
     }
 
-    if (gearBtn && gearDropdown) {
-      gearBtn.addEventListener('click', (e) => {
+    function wireDropdown(btn, dropdown) {
+      if (!btn || !dropdown) return;
+      btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const wasOpen = gearDropdown.classList.contains('open');
+        const wasOpen = dropdown.classList.contains('open');
         closeAllDropdowns();
-        if (!wasOpen) gearDropdown.classList.add('open');
+        if (!wasOpen) dropdown.classList.add('open');
       });
     }
 
-    if (userPillBtn && userDropdown) {
-      userPillBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const wasOpen = userDropdown.classList.contains('open');
-        closeAllDropdowns();
-        if (!wasOpen) userDropdown.classList.add('open');
-      });
-    }
+    wireDropdown(ctaBtn, ctaDropdown);
+    wireDropdown(gearBtn, gearDropdown);
+    wireDropdown(userPillBtn, userDropdown);
 
     document.addEventListener('click', closeAllDropdowns);
 
@@ -1688,20 +1772,22 @@
 
     function renderTabs(tabs) {
       const canCloseTabs = tabs.length > 1;
-      const breadcrumb = tabbar.querySelector('.tabbar-breadcrumb');
-      tabbar.querySelectorAll('.tab').forEach(t => t.remove());
+      const breadcrumb = tabbar.querySelector('#tabbar-breadcrumb');
+      tabbar.querySelectorAll('.ca-tab').forEach(t => t.remove());
 
       tabs.forEach(tab => {
         const el = document.createElement('a');
-        el.className = 'tab' + (tab.key === activeKey ? ' is-active' : '');
+        el.className = 'ca-tab' + (tab.key === activeKey ? ' ca-tab--active' : '');
         el.href = tab.url;
         el.innerHTML =
-          '<span class="tab-icon">' + tab.icon + '</span>' +
+          '<span class="ca-tab__icon">' + tab.icon + '</span>' +
           '<span>' + tab.label + '</span>' +
           (canCloseTabs
-            ? '<button class="tab-close" data-key="' + tab.key + '"' +
+            ? '<button class="ca-tab__close" data-key="' + tab.key + '"' +
               ' title="' + CLOSE_TAB_LABEL + '"' +
-              ' onclick="event.preventDefault();event.stopPropagation();">×</button>'
+              ' onclick="event.preventDefault();event.stopPropagation();">' +
+              '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+              '</button>'
           : '');
         el.addEventListener('contextmenu', e => {
           e.preventDefault();
@@ -1717,7 +1803,7 @@
         tabbar.insertBefore(el, breadcrumb);
       });
 
-      tabbar.querySelectorAll('.tab-close').forEach(btn => {
+      tabbar.querySelectorAll('.ca-tab__close').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -1780,6 +1866,8 @@
   })();
   </script>
 
+  <!-- Sistema de design: toggle de tema -->
+  <script src="{% static 'construart/construart.js' %}"></script>
   <script src="{% static 'js/smart-table.js' %}"></script>
   {% block extra_scripts %}{% endblock %}
 

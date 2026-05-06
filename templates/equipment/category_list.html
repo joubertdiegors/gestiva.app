@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Categorias de equipamento — Construart{% endblock %}
+{% block breadcrumb %}
+  <a href="{% url 'equipment:list' %}">Equipamentos</a>
+  <span class="sep">›</span>
+  <span class="current">Categorias</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🗂️ Categorias de equipamento</h1>
+  </div>
+  <button class="btn btn-primary" onclick="openModal()">+ Nova categoria</button>
+</div>
+
+<div class="card">
+  <table class="table dt" id="cat-table">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Equipamentos</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr id="row-{{ cat.pk }}">
+        <td>{{ cat.name }}</td>
+        <td>{{ cat.equipment_count }}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" onclick="editCategory({{ cat.pk }}, '{{ cat.name|escapejs }}')">✏️</button>
+          {% if cat.equipment_count == 0 %}
+          <button class="btn btn-ghost btn-sm" onclick="deleteCategory({{ cat.pk }}, '{{ cat.name|escapejs }}')">🗑️</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr id="empty-row"><td colspan="3" style="text-align:center;color:var(--text3);">Nenhuma categoria registada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<dialog id="cat-modal" style="border:1px solid var(--border);border-radius:var(--radius);padding:24px;min-width:320px;max-width:420px;">
+  <h3 style="margin-bottom:16px;" id="modal-title">Categoria</h3>
+  <form id="cat-form">
+    {% csrf_token %}
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:16px;">
+      <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);font-family:sans-serif;">Nome *</label>
+      <input type="text" name="name" id="cat-name" class="form-control" required
+             style="padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);">
+      <div id="cat-error" style="display:none;font-size:11px;color:var(--red);font-family:sans-serif;"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('cat-modal').close()">Cancelar</button>
+      <button type="submit" class="btn btn-primary" id="cat-submit">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+let editingPk = null;
+
+function openModal(pk, name) {
+  editingPk = pk || null;
+  document.getElementById('modal-title').textContent = pk ? 'Editar categoria' : 'Nova categoria';
+  document.getElementById('cat-name').value = name || '';
+  document.getElementById('cat-error').style.display = 'none';
+  document.getElementById('cat-modal').showModal();
+  document.getElementById('cat-name').focus();
+}
+function editCategory(pk, name) { openModal(pk, name); }
+
+document.getElementById('cat-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('cat-submit');
+  btn.disabled = true;
+  const name = document.getElementById('cat-name').value;
+  const url = editingPk
+    ? `{% url 'equipment:category_update' 0 %}`.replace('/0/', `/${editingPk}/`)
+    : `{% url 'equipment:category_save' %}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `name=${encodeURIComponent(name)}`,
+  });
+  const data = await res.json();
+  btn.disabled = false;
+  if (data.ok) {
+    document.getElementById('cat-modal').close();
+    const cat = data.category;
+    const deleteBtn = cat.equipment_count === 0
+      ? `<button class="btn btn-ghost btn-sm" onclick="deleteCategory(${cat.id}, '${cat.name.replace(/'/g,"\\'")}')">🗑️</button>`
+      : '';
+    const html = `<td>${cat.name}</td><td>${cat.equipment_count}</td><td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="editCategory(${cat.id}, '${cat.name.replace(/'/g,"\\'")}')">✏️</button>${deleteBtn}</td>`;
+    let row = document.getElementById(`row-${cat.id}`);
+    if (row) {
+      row.innerHTML = html;
+    } else {
+      const empty = document.getElementById('empty-row');
+      if (empty) empty.remove();
+      const tr = document.createElement('tr');
+      tr.id = `row-${cat.id}`;
+      tr.innerHTML = html;
+      document.querySelector('#cat-table tbody').appendChild(tr);
+    }
+  } else {
+    const err = document.getElementById('cat-error');
+    err.textContent = data.errors?.name?.[0] || 'Erro ao guardar.';
+    err.style.display = 'block';
+  }
+});
+
+async function deleteCategory(pk, name) {
+  if (!confirm(`Eliminar a categoria "${name}"?`)) return;
+  const res = await fetch(`{% url 'equipment:category_delete' 0 %}`.replace('/0/', `/${pk}/`), {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const row = document.getElementById(`row-${pk}`);
+    if (row) row.remove();
+  } else {
+    alert(data.error || 'Não foi possível eliminar.');
+  }
+}
+</script>
+{% endblock %}

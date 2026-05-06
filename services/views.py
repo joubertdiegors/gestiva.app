@@ -1,5 +1,4 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -9,6 +8,7 @@ from django.db.models.deletion import ProtectedError
 from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
+from accounts.decorators import perm_required
 from .models import Service, ServiceCategory, ServiceMaterial
 from .forms import ServiceForm, ServiceCategoryForm, ServiceMaterialForm
 from catalog.models import Product, UnitOfMeasure
@@ -21,7 +21,7 @@ PAGE_SIZE = 30
 # CATEGORIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('services.view_servicecategory')
 def category_list(request):
     qs = (
         ServiceCategory.objects
@@ -51,7 +51,7 @@ def category_list(request):
     return render(request, 'services/category_list.html', {'categories': nodes})
 
 
-@login_required
+@perm_required('services.change_servicecategory')
 @require_POST
 def category_save(request, pk=None):
     instance = get_object_or_404(ServiceCategory, pk=pk) if pk else None
@@ -73,7 +73,7 @@ def category_save(request, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('services.delete_servicecategory')
 @require_POST
 def category_delete(request, pk):
     cat = get_object_or_404(ServiceCategory, pk=pk)
@@ -95,7 +95,7 @@ def category_delete(request, pk):
 # SERVICES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('services.view_service')
 def service_list(request):
     qs = (
         Service.objects
@@ -139,7 +139,7 @@ def service_list(request):
     })
 
 
-@login_required
+@perm_required('services.add_service')
 def service_create(request):
     form = ServiceForm(request.POST or None)
     if form.is_valid():
@@ -158,7 +158,7 @@ def service_create(request):
     })
 
 
-@login_required
+@perm_required('services.view_service')
 def service_detail(request, pk):
     service = get_object_or_404(
         Service.objects
@@ -173,7 +173,7 @@ def service_detail(request, pk):
     })
 
 
-@login_required
+@perm_required('services.change_service')
 def service_update(request, pk):
     service = get_object_or_404(Service, pk=pk)
     form = ServiceForm(request.POST or None, instance=service)
@@ -194,7 +194,7 @@ def service_update(request, pk):
     })
 
 
-@login_required
+@perm_required('services.delete_service')
 @require_POST
 def service_delete(request, pk):
     service = get_object_or_404(Service, pk=pk)
@@ -207,7 +207,7 @@ def service_delete(request, pk):
     return redirect('services:service_list')
 
 
-@login_required
+@perm_required('services.change_service')
 @require_POST
 def service_toggle_active(request, pk):
     service = get_object_or_404(Service, pk=pk)
@@ -220,7 +220,7 @@ def service_toggle_active(request, pk):
 # MATERIALS (AJAX)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@login_required
+@perm_required('services.change_service')
 @require_POST
 def material_save(request, service_pk, pk=None):
     service = get_object_or_404(Service, pk=service_pk)
@@ -250,7 +250,7 @@ def material_save(request, service_pk, pk=None):
     return JsonResponse({'ok': False, 'errors': form.errors}, status=400)
 
 
-@login_required
+@perm_required('services.change_service')
 @require_POST
 def material_delete(request, service_pk, pk):
     service = get_object_or_404(Service, pk=service_pk)
@@ -259,7 +259,7 @@ def material_delete(request, service_pk, pk):
     return JsonResponse({'ok': True, 'totals': _service_totals(service)})
 
 
-@login_required
+@perm_required('services.view_service')
 def material_list(request, service_pk):
     service = get_object_or_404(
         Service.objects.prefetch_related('materials__product__unit'),

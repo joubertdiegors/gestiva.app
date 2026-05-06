@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ contract.title }} — {{ contract.supplier.name }} — Construart{% endblock %}
+{% block tab_parent %}suppliers{% endblock %}
+{% block tab_icon %}📄{% endblock %}
+
+{% block extra_head %}
+<style>
+.doc-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:900px){.doc-grid{grid-template-columns:1fr}}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.detail-card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.info-row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text3);min-width:140px;flex-shrink:0}
+.info-value{color:var(--text);font-weight:500}
+.lines-table{width:100%;border-collapse:collapse;font-size:13px}
+.lines-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);border-bottom:2px solid var(--border)}
+.lines-table td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.lines-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.btn-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px}
+.btn-del:hover{color:var(--danger);background:#fee2e2}
+.add-line-grid{display:grid;grid-template-columns:2fr 80px 120px auto;gap:6px;align-items:end;margin-top:12px}
+@media(max-width:640px){.add-line-grid{grid-template-columns:1fr}}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-grey{background:#f0f0f0;color:#666}.badge-green{background:#e6f9ef;color:#15803d}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <p class="page-sub" style="margin-bottom:4px">
+      <a href="{% url 'contracts:supplier_contracts' supplier_pk=contract.supplier.pk %}" style="color:var(--accent);text-decoration:none">{{ contract.supplier.name }}</a>
+    </p>
+    <h1 class="page-title" style="margin:0">{{ contract.title }}</h1>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{% url 'contracts:supplier_contract_edit' contract.pk %}" class="btn btn-ghost">✏️ Editar</a>
+    <a href="{% url 'contracts:supplier_contracts' supplier_pk=contract.supplier.pk %}" class="btn btn-ghost">← Lista</a>
+  </div>
+</div>
+
+<div class="doc-grid">
+  {# ══ MAIN ══ #}
+  <div>
+    <div class="detail-card">
+      <div class="detail-card-title">💶 Preços Acordados</div>
+
+      {% if contract.lines.all %}
+      <table class="lines-table">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Unidade</th>
+            <th class="num">Preço Unit. (€)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for line in contract.lines.all %}
+        <tr>
+          <td>
+            {{ line.description }}
+            {% if line.notes %}<br><small style="color:var(--text3)">{{ line.notes }}</small>{% endif %}
+          </td>
+          <td style="color:var(--text3)">{{ line.unit|default:"—" }}</td>
+          <td class="num"><strong>{{ line.unit_price|floatformat:2 }} €</strong></td>
+          <td style="text-align:center">
+            <form method="post" action="{% url 'contracts:supplier_line_delete' contract.pk line.pk %}" style="margin:0">
+              {% csrf_token %}<button type="submit" class="btn-del">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="font-size:13px;color:var(--text3);margin:0 0 12px">Nenhuma linha de preço ainda.</p>
+      {% endif %}
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text3);margin-bottom:8px">Adicionar Produto / Serviço</div>
+        <form method="post" action="{% url 'contracts:supplier_line_add' contract.pk %}">
+          {% csrf_token %}
+          <div class="add-line-grid">
+            <div class="form-group"><label class="form-label">Descrição</label>{{ line_form.description }}</div>
+            <div class="form-group"><label class="form-label">Unidade</label>{{ line_form.unit }}</div>
+            <div class="form-group"><label class="form-label">Preço (€)</label>{{ line_form.unit_price }}</div>
+            <div class="form-group"><button type="submit" class="btn btn-primary" style="white-space:nowrap">+ Adicionar</button></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if contract.notes %}
+    <div class="detail-card">
+      <div class="detail-card-title">Notas</div>
+      <p style="font-size:14px;white-space:pre-line;margin:0">{{ contract.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ══ SIDEBAR ══ #}
+  <div>
+    <div class="detail-card">
+      <div class="detail-card-title">Informações</div>
+      <div class="info-row"><span class="info-label">Fornecedor</span><span class="info-value">{{ contract.supplier.name }}</span></div>
+      {% if contract.reference %}<div class="info-row"><span class="info-label">Referência</span><span class="info-value">{{ contract.reference }}</span></div>{% endif %}
+      {% if contract.signed_date %}<div class="info-row"><span class="info-label">Assinado em</span><span class="info-value">{{ contract.signed_date|date:"d/m/Y" }}</span></div>{% endif %}
+      <div class="info-row">
+        <span class="info-label">Validade</span>
+        <span class="info-value">
+          {% if contract.valid_from %}{{ contract.valid_from|date:"d/m/Y" }}{% else %}—{% endif %}
+          {% if contract.valid_until %} → {{ contract.valid_until|date:"d/m/Y" }}{% endif %}
+        </span>
+      </div>
+      <div class="info-row"><span class="info-label">Estado</span><span class="info-value">
+        <span class="badge {% if contract.status == 'active' %}badge-green{% else %}badge-grey{% endif %}">{{ contract.get_status_display }}</span>
+      </span></div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">Ações</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="{% url 'contracts:supplier_contract_edit' contract.pk %}" class="btn btn-ghost" style="text-align:center">✏️ Editar</a>
+        <form method="post" action="{% url 'contracts:supplier_contract_delete' contract.pk %}" onsubmit="return confirm('Eliminar este contrato e todas as linhas?')">
+          {% csrf_token %}<button type="submit" class="btn btn-ghost" style="width:100%;color:var(--danger)">🗑 Eliminar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-card-title">Auditoria</div>
+      <div class="info-row"><span class="info-label">Criado por</span><span class="info-value">{{ contract.created_by.get_full_name|default:contract.created_by.username }}</span></div>
+      <div class="info-row"><span class="info-label">Criado em</span><span class="info-value">{{ contract.created_at|date:"d/m/Y H:i" }}</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
