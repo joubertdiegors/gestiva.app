@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from django.db import models
@@ -25,6 +26,9 @@ class Project(models.Model):
         PAUSED   = 'paused',   _('Paused')
         FINISHED = 'finished', _('Finished')
 
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
     name = models.CharField(_("Name"), max_length=255)
 
     client = models.ForeignKey(
@@ -216,6 +220,34 @@ class ProjectCiawParticipant(models.Model):
         verbose_name = _('CIAW Participant')
         verbose_name_plural = _('CIAW Participants')
         ordering = ['order', 'added_at']
+        constraints = [
+            # Coerência da árvore CIAW: cada nó preenche exactamente os
+            # campos que o seu tipo exige. Nós 'client' e 'construart' são
+            # sintéticos (sem FK); 'subcontractor' aponta para Subcontractor;
+            # 'worker' aponta para Collaborator.
+            models.CheckConstraint(
+                name='ciaw_node_entity_xor',
+                check=(
+                    (
+                        models.Q(node_type='client',
+                                 subcontractor__isnull=True,
+                                 worker__isnull=True)
+                    ) | (
+                        models.Q(node_type='construart',
+                                 subcontractor__isnull=True,
+                                 worker__isnull=True)
+                    ) | (
+                        models.Q(node_type='subcontractor',
+                                 subcontractor__isnull=False,
+                                 worker__isnull=True)
+                    ) | (
+                        models.Q(node_type='worker',
+                                 subcontractor__isnull=True,
+                                 worker__isnull=False)
+                    )
+                ),
+            ),
+        ]
 
     def __str__(self):
         if self.node_type == self.TYPE_CLIENT:

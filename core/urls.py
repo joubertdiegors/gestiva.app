@@ -23,6 +23,9 @@ urlpatterns = [
     path('search/', views.global_search, name='global_search'),
     # API sem prefixo de língua para uso em fetch() do JS
     path('api/prefs/table/<str:table_id>/', api_table_prefs, name='api_table_prefs'),
+    # Healthcheck para UptimeRobot/Better Stack — fora de i18n_patterns para
+    # ser sempre `/healthz/` independentemente da língua activa.
+    path('healthz/', views.healthz, name='healthz'),
 ]
 
 urlpatterns += i18n_patterns(

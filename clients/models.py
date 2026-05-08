@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -8,6 +10,10 @@ class Client(models.Model):
         ('private', _('Private')),
         ('professional', _('Professional')),
     ]
+
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
 
     name = models.CharField(max_length=255, verbose_name=_('Legal name'))
     trade_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Trade name'))

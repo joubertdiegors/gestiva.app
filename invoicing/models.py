@@ -1,8 +1,9 @@
 import datetime
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 
@@ -22,6 +23,9 @@ class Invoice(models.Model):
         CREDIT_NOTE = 'credit_note', _('Credit note')
 
     # ── Identification ────────────────────────────────────────────────────────
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
     number = models.CharField(_('Number'), max_length=40, unique=True)
     title  = models.CharField(_('Title'), max_length=255, blank=True, default='')
 
@@ -148,21 +152,32 @@ class Invoice(models.Model):
 
     @classmethod
     def next_number(cls):
+        """
+        Reserva o próximo número de fatura.
+
+        DEVE ser chamado dentro de uma transação aberta pelo caller, e o
+        objeto retornado deve ser persistido nessa mesma transação. O
+        bloqueio de tabela (select_for_update) evita que dois processos
+        leiam o mesmo "último número" e gerem o mesmo `number` (seria UNIQUE
+        constraint violation em produção).
+        """
         year = datetime.date.today().year
         prefix = f'FAT-{year}-'
-        last = (
-            cls.objects.filter(number__startswith=prefix)
-            .order_by('-number')
-            .values_list('number', flat=True)
-            .first()
-        )
-        seq = 1
-        if last:
-            try:
-                seq = int(last.split('-')[-1]) + 1
-            except (ValueError, IndexError):
-                seq = 1
-        return f'{prefix}{seq:04d}'
+        with transaction.atomic():
+            last = (
+                cls.objects.select_for_update()
+                .filter(number__startswith=prefix)
+                .order_by('-number')
+                .values_list('number', flat=True)
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            return f'{prefix}{seq:04d}'
 
 
 class InvoiceLine(models.Model):

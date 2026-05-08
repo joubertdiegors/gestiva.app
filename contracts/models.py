@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -41,6 +42,10 @@ class Contract(models.Model):
         (STATUS_ACTIVE,     _('Active')),
         (STATUS_TERMINATED, _('Terminated')),
     ]
+
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
 
     contract_type = models.CharField(
         _('Type'), max_length=20, choices=TYPE_CHOICES, default=TYPE_CLIENT,
@@ -131,6 +136,37 @@ class Contract(models.Model):
         ordering            = ['-created_at']
         indexes = [
             models.Index(fields=['contract_type', 'status']),
+        ]
+        constraints = [
+            # Garante consistência entre o tipo de contrato e a contraparte
+            # ligada: cada tipo só admite a sua FK, e contratos 'other' não
+            # podem ter nenhuma das três contrapartes preenchidas.
+            models.CheckConstraint(
+                name='contract_counterpart_xor',
+                check=(
+                    (
+                        models.Q(contract_type='client',
+                                 client__isnull=False,
+                                 subcontractor__isnull=True,
+                                 supplier__isnull=True)
+                    ) | (
+                        models.Q(contract_type='subcontractor',
+                                 client__isnull=True,
+                                 subcontractor__isnull=False,
+                                 supplier__isnull=True)
+                    ) | (
+                        models.Q(contract_type='supplier',
+                                 client__isnull=True,
+                                 subcontractor__isnull=True,
+                                 supplier__isnull=False)
+                    ) | (
+                        models.Q(contract_type='other',
+                                 client__isnull=True,
+                                 subcontractor__isnull=True,
+                                 supplier__isnull=True)
+                    )
+                ),
+            ),
         ]
 
     def __str__(self):
@@ -445,6 +481,24 @@ class Statement(models.Model):
         verbose_name        = _('Statement')
         verbose_name_plural = _('Statements')
         ordering            = ['-issue_date']
+        constraints = [
+            # Cada tipo de EA aponta para origem específica:
+            # 'client' usa contract; 'subcontractor' usa addendum.
+            models.CheckConstraint(
+                name='statement_origin_xor',
+                check=(
+                    (
+                        models.Q(statement_type='client',
+                                 contract__isnull=False,
+                                 addendum__isnull=True)
+                    ) | (
+                        models.Q(statement_type='subcontractor',
+                                 contract__isnull=True,
+                                 addendum__isnull=False)
+                    )
+                ),
+            ),
+        ]
 
     def __str__(self):
         return f'EA {self.number} — {self.get_statement_type_display()}'

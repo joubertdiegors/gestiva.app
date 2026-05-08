@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -14,6 +16,10 @@ class Subcontractor(models.Model):
         ('paused',  _('Paused')),
         ('blocked', _('Blocked')),
     ]
+
+    external_id = models.UUIDField(
+        _("External ID"), default=uuid.uuid4, editable=False, unique=True,
+    )
 
     name = models.CharField(_("Name"), max_length=255, db_index=True)
     trade_name = models.CharField(_("Trade Name"), max_length=255, blank=True, null=True)

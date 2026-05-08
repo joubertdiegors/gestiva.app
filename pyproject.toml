@@ -1,0 +1,24 @@
+[tool.ruff]
+# Sprint 2 introduz lint pela primeira vez — começamos com regras conservadoras
+# para manter o sinal alto sem inundar o CI com avisos legados.
+line-length = 120
+target-version = "py312"
+extend-exclude = [
+    "*/migrations/*",
+    "venv",
+    "staticfiles",
+    "media",
+]
+
+[tool.ruff.lint]
+# E (pycodestyle), F (pyflakes), I (isort), B (bugbear), UP (pyupgrade).
+# DJ ainda não — gera ruído com o ORM legado existente. Ativar mais tarde.
+select = ["E", "F", "I", "B", "UP"]
+ignore = [
+    "E501",  # comprimento de linha — line-length já cobre o aviso útil
+    "B008",  # function call in default arg — Django usa em Q(), F(), etc.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"core/settings.py" = ["F401"]  # imports condicionais (sentry_sdk)
+"**/admin.py" = ["F401"]

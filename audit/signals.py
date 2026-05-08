@@ -7,7 +7,7 @@ from django.forms.models import model_to_dict
 from django.apps import apps
 
 from .utils import serialize_dict
-from audit.middleware import get_current_user
+from audit.middleware import get_current_user, get_request_context
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,7 @@ def log_post_save(sender, instance, created, **kwargs):
         return
 
     user = get_current_user()
+    ctx = get_request_context()
 
     try:
         if created:
@@ -94,7 +95,10 @@ def log_post_save(sender, instance, created, **kwargs):
                 action='create',
                 model_name=sender.__name__,
                 object_id=str(instance.pk),
-                changes=serialize_dict(model_to_dict(instance))
+                changes=serialize_dict(model_to_dict(instance)),
+                ip_address=ctx['ip'],
+                user_agent=ctx['user_agent'],
+                request_id=ctx['request_id'],
             )
         else:
             changes = getattr(instance, '_audit_changes', None)
@@ -105,7 +109,10 @@ def log_post_save(sender, instance, created, **kwargs):
                     action='update',
                     model_name=sender.__name__,
                     object_id=str(instance.pk),
-                    changes=changes
+                    changes=changes,
+                    ip_address=ctx['ip'],
+                    user_agent=ctx['user_agent'],
+                    request_id=ctx['request_id'],
                 )
     except Exception:
         logger.exception('Audit failed on post_save for %s pk=%s', sender.__name__, instance.pk)
@@ -121,6 +128,7 @@ def log_post_delete(sender, instance, **kwargs):
         return
 
     user = get_current_user()
+    ctx = get_request_context()
 
     try:
         AuditLog.objects.create(
@@ -128,7 +136,10 @@ def log_post_delete(sender, instance, **kwargs):
             action='delete',
             model_name=sender.__name__,
             object_id=str(instance.pk),
-            changes=serialize_dict(model_to_dict(instance))
+            changes=serialize_dict(model_to_dict(instance)),
+            ip_address=ctx['ip'],
+            user_agent=ctx['user_agent'],
+            request_id=ctx['request_id'],
         )
     except Exception:
         logger.exception('Audit failed on post_delete for %s pk=%s', sender.__name__, instance.pk)

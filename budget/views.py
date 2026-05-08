@@ -142,13 +142,18 @@ def budget_list(request):
 
 @perm_required('budget.add_budget')
 def budget_create(request):
-    initial = {'number': Budget.next_number()}
+    # Reserva o próximo número apenas no GET (preview do formulário). No POST,
+    # geramos o número real dentro da transação para garantir unicidade
+    # mesmo com múltiplos utilizadores a submeter em paralelo.
+    initial = {'number': Budget.next_number()} if request.method != 'POST' else {}
     form = BudgetForm(request.POST or None, initial=initial)
 
     if request.method == 'POST' and form.is_valid():
-        budget = form.save(commit=False)
-        budget.created_by = request.user
-        budget.save()
+        with transaction.atomic():
+            budget = form.save(commit=False)
+            budget.number = Budget.next_number()
+            budget.created_by = request.user
+            budget.save()
         return redirect('budget:budget_detail', pk=budget.pk)
 
     clients  = Client.objects.filter(is_active=True).order_by('name')

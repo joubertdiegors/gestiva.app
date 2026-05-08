@@ -10,7 +10,103 @@
   <span class="current">{{ subcontractor.name }}</span>
 {% endblock %}
 
-{% block extra_head %}{% endblock %}
+{% block extra_head %}
+<style>
+  .detail-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--text3); font-family: sans-serif; font-size: 13px; }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .section-header h2 { font-size: 13px; font-family: sans-serif; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ── Simple table ── */
+  .dt-wrap { overflow-x: auto; }
+  .dt {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: sans-serif;
+  }
+  .dt thead th {
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface2);
+  }
+  .dt tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .dt tbody tr:last-child { border-bottom: none; }
+  .dt tbody tr:hover { background: var(--surface2); }
+  .dt td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+  .dt td.muted { color: var(--text3); }
+  .dt .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .dt .btn-icon {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    transition: background .12s, color .12s;
+  }
+  .dt .btn-icon:hover { background: var(--surface2); color: var(--accent); }
+  .dt .btn-icon.danger:hover { background: var(--red-light); color: var(--red); border-color: #f5c6c2; }
+  .dt-empty { padding: 20px 18px; font-size: 13px; color: var(--text3); text-align: center; font-family: sans-serif; }
+
+  /* ── Popup ── */
+  .popup-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 600;
+    align-items: center;
+    justify-content: center;
+  }
+  .popup-overlay.open { display: flex; }
+  .popup {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    width: 540px;
+    max-width: 96vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-md);
+  }
+  .popup-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+  .popup-title { font-size: 15px; font-weight: 500; }
+  .popup-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text3); line-height: 1; }
+  .popup-body { padding: 22px; }
+  .popup-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .form-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid2 .span-2 { grid-column: span 2; }
+  @media(max-width:520px) { .form-grid2 { grid-template-columns: 1fr; } .form-grid2 .span-2 { grid-column: span 1; } }
+
+  .field-error { color: var(--red); font-size: 12px; margin-top: 3px; font-family: sans-serif; }
+  .popup-alert { padding: 9px 12px; border-radius: var(--radius); font-size: 13px; font-family: sans-serif; margin-bottom: 14px; display: none; }
+  .popup-alert.show { display: block; }
+  .popup-alert.error { background: var(--red-light); color: var(--red); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">

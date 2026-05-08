@@ -2,13 +2,47 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import connection, DatabaseError
 from django.db.models import Q
 from django.urls import reverse
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from core import __version__
 from .i18n_redirect import redirect_with_cookie_language
 
 User = get_user_model()
+
+
+@csrf_exempt
+@never_cache
+@require_http_methods(["GET", "HEAD"])
+def healthz(request):
+    """
+    Liveness/readiness probe usada por UptimeRobot/Better Stack.
+
+    - 200 → app responde e DB aceita uma query trivial.
+    - 503 → DB inacessível (pool esgotado, host fora, etc.).
+    """
+    db_ok = True
+    db_error = ''
+    try:
+        with connection.cursor() as cur:
+            cur.execute('SELECT 1')
+            cur.fetchone()
+    except DatabaseError as exc:
+        db_ok = False
+        db_error = str(exc)
+
+    payload = {
+        'status': 'ok' if db_ok else 'degraded',
+        'version': __version__,
+        'database': 'ok' if db_ok else 'error',
+    }
+    if not db_ok:
+        payload['database_error'] = db_error
+    return JsonResponse(payload, status=200 if db_ok else 503)
 
 
 def root_redirect(request):

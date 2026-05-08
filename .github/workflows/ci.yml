@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Settings mínimos para o pipeline. SECRET_KEY é dummy — só serve para
+  # `manage.py check` carregar; nada do que o CI corre toca em produção.
+  SECRET_KEY: ci-dummy-secret-key-not-used-in-prod
+  DEBUG: "True"
+  ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
+  DJANGO_SETTINGS_MODULE: core.settings
+
+jobs:
+  test:
+    name: Test + check + lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Migrations are up to date
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: pytest
+        run: pytest
+
+      - name: Deploy check (production settings)
+        # Mesmos settings, mas com DEBUG=False, valida hardening do Sprint 1
+        # antes do PR aterrar em main.
+        env:
+          DEBUG: "False"
+          ALLOWED_HOSTS: "construart.eu"
+          CSRF_TRUSTED_ORIGINS: "https://construart.eu"
+        run: python manage.py check --deploy --fail-level WARNING

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 
+
 class AuditLog(models.Model):
     ACTION_CHOICES = (
         ('create', 'Create'),
@@ -21,6 +22,10 @@ class AuditLog(models.Model):
     object_id = models.CharField(max_length=50)
 
     changes = models.JSONField(blank=True, null=True)
+
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True, default='')
+    request_id = models.CharField(max_length=36, blank=True, default='', db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -65,3 +65,4 @@ deploy/
 #  Ferramentas de IA / Cursor
 # =============================================================
 .claude/
+analise-roadmap.txt

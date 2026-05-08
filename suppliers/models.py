@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -7,6 +9,10 @@ class Supplier(models.Model):
     class Category(models.TextChoices):
         PROFESSIONAL = 'professional', _('Professional')
         PRIVATE = 'private', _('Private')
+
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
 
     name = models.CharField(max_length=255, verbose_name=_('Legal name'))
     trade_name = models.CharField(max_length=255, blank=True, default='', verbose_name=_('Trade name'))

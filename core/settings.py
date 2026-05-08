@@ -53,6 +53,11 @@ DJANGO_APPS = [
     'django.contrib.staticfiles',
 ]
 
+THIRD_PARTY_APPS = [
+    # Rate limit / brute-force protection no login (config em baixo)
+    'axes',
+]
+
 LOCAL_APPS = [
     # Infraestrutura
     'accounts',
@@ -86,7 +91,7 @@ LOCAL_APPS = [
     'document_templates',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -100,6 +105,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'audit.middleware.CurrentUserMiddleware',
+
+    # django-axes — DEVE ser o último middleware para apanhar logins
+    # falhados de qualquer rota (admin, login custom, etc.)
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -233,3 +242,76 @@ LOGGING = {
         },
     },
 }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hardening de produção
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Tudo abaixo está condicionado a DEBUG=False para não estorvar o ambiente
+# local (cookies seguros impedem login em http://127.0.0.1, HSTS prende o
+# browser ao https, etc.). Em produção (DEBUG=False) entra automaticamente.
+#
+# `python manage.py check --deploy` deve ficar limpo neste estado.
+
+# Origins permitidas para POST com CSRF token (ex.: https://construart.eu).
+# Lista separada por vírgula no .env. Em produção é OBRIGATÓRIO definir.
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='',
+    cast=Csv(),
+)
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE   = True
+    CSRF_COOKIE_SECURE      = True
+    SECURE_SSL_REDIRECT     = True
+    # PythonAnywhere termina TLS num proxy à frente — Django só sabe que o
+    # request é HTTPS através deste header.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # 1h inicialmente. Sobe para 31536000 (1 ano) + preload depois de
+    # validares HTTPS estável e quereres entrar nas listas de HSTS preload.
+    SECURE_HSTS_SECONDS            = config('SECURE_HSTS_SECONDS', default=3600, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD            = False
+    SECURE_REFERRER_POLICY         = 'same-origin'
+    SECURE_CONTENT_TYPE_NOSNIFF    = True
+    X_FRAME_OPTIONS                = 'DENY'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# django-axes — rate limit de login (anti brute-force)
+# ─────────────────────────────────────────────────────────────────────────────
+AUTHENTICATION_BACKENDS = [
+    # AxesStandaloneBackend tem de vir PRIMEIRO para bloquear antes do
+    # ModelBackend processar credenciais.
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# 5 tentativas falhadas → bloqueio de 1 hora, combinando username + IP.
+AXES_FAILURE_LIMIT       = config('AXES_FAILURE_LIMIT', default=5,  cast=int)
+AXES_COOLOFF_TIME        = config('AXES_COOLOFF_TIME',  default=1,  cast=int)  # horas
+AXES_RESET_ON_SUCCESS    = True
+# Lista de tuplos = AND entre os campos. Bloqueia o par (username, ip)
+# em vez de o IP inteiro — evita lockout colateral atrás de NAT.
+AXES_LOCKOUT_PARAMETERS  = [['username', 'ip_address']]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sentry — error tracking (free tier 5k eventos/mês)
+# ─────────────────────────────────────────────────────────────────────────────
+SENTRY_DSN = config('SENTRY_DSN', default='')
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        # Sample baixo: free tier não suporta APM em volume.
+        traces_sample_rate=config('SENTRY_TRACES_SAMPLE_RATE', default=0.0, cast=float),
+        send_default_pii=False,
+        environment=config('SENTRY_ENVIRONMENT', default='production'),
+        release=config('SENTRY_RELEASE', default=''),
+    )

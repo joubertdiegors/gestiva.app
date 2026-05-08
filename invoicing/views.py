@@ -89,37 +89,38 @@ def invoice_create(request):
             errors['issue_date'] = 'Informe a data de emissão.'
 
         if not errors:
-            inv = Invoice(
-                number               = Invoice.next_number(),
-                title                = data.get('title', '').strip(),
-                client_id            = client_id,
-                issue_date           = issue_date,
-                due_date             = data.get('due_date') or None,
-                status               = Invoice.Status.DRAFT,
-                invoice_type         = data.get('invoice_type', Invoice.InvoiceType.DIRECT),
-                bon_de_facturation   = data.get('bon_de_facturation', '').strip(),
-                authorization_date   = data.get('authorization_date') or None,
-                authorization_contact = data.get('authorization_contact', '').strip(),
-                work_start_date      = data.get('work_start_date') or None,
-                work_end_date        = data.get('work_end_date') or None,
-                execution_notes      = data.get('execution_notes', '').strip(),
-                billing_name         = data.get('billing_name', '').strip(),
-                billing_address      = data.get('billing_address', '').strip(),
-                billing_vat          = data.get('billing_vat', '').strip(),
-                payment_terms        = data.get('payment_terms', '').strip(),
-                notes_internal       = data.get('notes_internal', '').strip(),
-                notes_client         = data.get('notes_client', '').strip(),
-                created_by           = request.user,
-            )
-            project_id = data.get('project_id', '').strip()
-            if project_id:
-                inv.project_id = project_id
-            try:
-                inv.discount_percent = Decimal(data.get('discount_percent') or '0')
-                inv.vat_rate         = Decimal(data.get('vat_rate') or '21')
-            except InvalidOperation:
-                pass
-            inv.save()
+            with transaction.atomic():
+                inv = Invoice(
+                    number               = Invoice.next_number(),
+                    title                = data.get('title', '').strip(),
+                    client_id            = client_id,
+                    issue_date           = issue_date,
+                    due_date             = data.get('due_date') or None,
+                    status               = Invoice.Status.DRAFT,
+                    invoice_type         = data.get('invoice_type', Invoice.InvoiceType.DIRECT),
+                    bon_de_facturation   = data.get('bon_de_facturation', '').strip(),
+                    authorization_date   = data.get('authorization_date') or None,
+                    authorization_contact = data.get('authorization_contact', '').strip(),
+                    work_start_date      = data.get('work_start_date') or None,
+                    work_end_date        = data.get('work_end_date') or None,
+                    execution_notes      = data.get('execution_notes', '').strip(),
+                    billing_name         = data.get('billing_name', '').strip(),
+                    billing_address      = data.get('billing_address', '').strip(),
+                    billing_vat          = data.get('billing_vat', '').strip(),
+                    payment_terms        = data.get('payment_terms', '').strip(),
+                    notes_internal       = data.get('notes_internal', '').strip(),
+                    notes_client         = data.get('notes_client', '').strip(),
+                    created_by           = request.user,
+                )
+                project_id = data.get('project_id', '').strip()
+                if project_id:
+                    inv.project_id = project_id
+                try:
+                    inv.discount_percent = Decimal(data.get('discount_percent') or '0')
+                    inv.vat_rate         = Decimal(data.get('vat_rate') or '21')
+                except InvalidOperation:
+                    pass
+                inv.save()
             return redirect('invoicing:detail', pk=inv.pk)
 
     return render(request, 'invoicing/invoice_form.html', {
@@ -221,12 +222,13 @@ def invoice_update(request, pk):
 @perm_required('invoicing.change_invoice')
 @require_POST
 def invoice_mark_sent(request, pk):
-    invoice = get_object_or_404(Invoice, pk=pk)
-    if invoice.status == Invoice.Status.DRAFT:
-        invoice.status  = Invoice.Status.SENT
-        invoice.sent_at = timezone.now()
-        invoice.save(update_fields=['status', 'sent_at', 'updated_at'])
-        _ensure_receivable(invoice)
+    with transaction.atomic():
+        invoice = Invoice.objects.select_for_update().get(pk=pk)
+        if invoice.status == Invoice.Status.DRAFT:
+            invoice.status  = Invoice.Status.SENT
+            invoice.sent_at = timezone.now()
+            invoice.save(update_fields=['status', 'sent_at', 'updated_at'])
+            _ensure_receivable(invoice)
     return redirect('invoicing:detail', pk=pk)
 
 

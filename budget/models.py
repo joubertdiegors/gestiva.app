@@ -1,4 +1,5 @@
-from django.db import models
+import uuid
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from decimal import Decimal
@@ -13,6 +14,9 @@ class Budget(models.Model):
         REJECTED = 'rejected', _('Rejected')
         EXPIRED  = 'expired',  _('Expired')
 
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
     number     = models.CharField(max_length=30, unique=True, verbose_name=_("Number"))
     title      = models.CharField(max_length=200, verbose_name=_("Title"))
 
@@ -126,23 +130,33 @@ class Budget(models.Model):
 
     @classmethod
     def next_number(cls):
+        """
+        Reserva o próximo número de orçamento.
+
+        DEVE ser chamado dentro de uma transação aberta pelo caller, e o
+        objeto retornado deve ser persistido nessa mesma transação. O
+        select_for_update bloqueia leitura concorrente para evitar geração
+        do mesmo número em duas threads/workers.
+        """
         import datetime
         year = datetime.date.today().year
         prefix = f"ORC-{year}-"
-        last = (
-            cls.objects.filter(number__startswith=prefix)
-            .order_by('-id')
-            .values_list('number', flat=True)
-            .first()
-        )
-        if last:
-            try:
-                seq = int(last.split('-')[-1]) + 1
-            except (ValueError, IndexError):
+        with transaction.atomic():
+            last = (
+                cls.objects.select_for_update()
+                .filter(number__startswith=prefix)
+                .order_by('-id')
+                .values_list('number', flat=True)
+                .first()
+            )
+            if last:
+                try:
+                    seq = int(last.split('-')[-1]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            else:
                 seq = 1
-        else:
-            seq = 1
-        return f"{prefix}{seq:04d}"
+            return f"{prefix}{seq:04d}"
 
 
 class BudgetChapter(models.Model):

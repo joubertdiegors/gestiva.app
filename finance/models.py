@@ -1,8 +1,9 @@
 import datetime
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 
@@ -102,17 +103,26 @@ class Payable(models.Model):
         return False
 
     def sync_status(self):
-        """Recalculate and save status based on payments."""
-        paid = self.amount_paid
-        if paid <= 0:
-            new = self.Status.PENDING
-        elif paid >= self.amount:
-            new = self.Status.PAID
-        else:
-            new = self.Status.PARTIAL
-        if new != self.status:
-            self.status = new
-            self.save(update_fields=['status', 'updated_at'])
+        """
+        Recalcula e grava o status com base nos pagamentos.
+
+        Bloqueia o próprio Payable durante o cálculo para que dois pagamentos
+        criados em paralelo não vejam um snapshot inconsistente do total
+        pago. Tem de correr dentro de uma transação aberta pelo caller.
+        """
+        with transaction.atomic():
+            locked = Payable.objects.select_for_update().get(pk=self.pk)
+            paid = locked.amount_paid
+            if paid <= 0:
+                new = self.Status.PENDING
+            elif paid >= locked.amount:
+                new = self.Status.PAID
+            else:
+                new = self.Status.PARTIAL
+            if new != locked.status:
+                locked.status = new
+                locked.save(update_fields=['status', 'updated_at'])
+                self.status = new
 
 
 class Receivable(models.Model):
@@ -127,7 +137,7 @@ class Receivable(models.Model):
     # ── Origin — one of invoice OR statement must be set ─────────────────────
     invoice = models.OneToOneField(
         'invoicing.Invoice',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True, blank=True,
         related_name='receivable',
         verbose_name=_('Invoice'),
@@ -196,27 +206,38 @@ class Receivable(models.Model):
         return False
 
     def sync_status(self):
-        """Recalculate and save status based on payments; also updates Invoice if linked."""
-        paid = self.amount_paid
-        if paid <= 0:
-            new_r = self.Status.PENDING
-            new_i = 'sent'
-        elif paid >= self.amount:
-            new_r = self.Status.PAID
-            new_i = 'paid'
-        else:
-            new_r = self.Status.PARTIAL
-            new_i = 'partial'
+        """
+        Recalcula e grava o status com base nos pagamentos; sincroniza
+        também o status da Invoice ligada.
 
-        if new_r != self.status:
-            self.status = new_r
-            self.save(update_fields=['status', 'updated_at'])
+        Bloqueia Receivable e Invoice durante o cálculo para evitar
+        condições de corrida entre múltiplos pagamentos paralelos. Tem de
+        correr dentro de uma transação aberta pelo caller.
+        """
+        with transaction.atomic():
+            locked = Receivable.objects.select_for_update().get(pk=self.pk)
+            paid = locked.amount_paid
+            if paid <= 0:
+                new_r = self.Status.PENDING
+                new_i = 'sent'
+            elif paid >= locked.amount:
+                new_r = self.Status.PAID
+                new_i = 'paid'
+            else:
+                new_r = self.Status.PARTIAL
+                new_i = 'partial'
 
-        if self.invoice_id:
-            inv = self.invoice
-            if inv.status not in ('draft', 'cancelled') and inv.status != new_i:
-                inv.status = new_i
-                inv.save(update_fields=['status', 'updated_at'])
+            if new_r != locked.status:
+                locked.status = new_r
+                locked.save(update_fields=['status', 'updated_at'])
+                self.status = new_r
+
+            if locked.invoice_id:
+                from invoicing.models import Invoice
+                inv = Invoice.objects.select_for_update().get(pk=locked.invoice_id)
+                if inv.status not in ('draft', 'cancelled') and inv.status != new_i:
+                    inv.status = new_i
+                    inv.save(update_fields=['status', 'updated_at'])
 
 
 class Payment(models.Model):
@@ -229,6 +250,9 @@ class Payment(models.Model):
         CARD     = 'card',     _('Card')
         OTHER    = 'other',    _('Other')
 
+    external_id = models.UUIDField(
+        _('External ID'), default=uuid.uuid4, editable=False, unique=True,
+    )
     payable = models.ForeignKey(
         Payable,
         on_delete=models.CASCADE,
@@ -279,23 +303,28 @@ class Payment(models.Model):
         return f'€{self.amount} — {self.date} [{parent}]'
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.payable_id:
-            self.payable.sync_status()
-        if self.receivable_id:
-            self.receivable.sync_status()
+        # INSERT/UPDATE do Payment + sync_status do pai numa única
+        # transação. Isto garante que o status do Payable/Receivable nunca
+        # fica desfasado do conjunto de pagamentos visível na DB.
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            if self.payable_id:
+                self.payable.sync_status()
+            if self.receivable_id:
+                self.receivable.sync_status()
 
     def delete(self, *args, **kwargs):
         payable_id    = self.payable_id
         receivable_id = self.receivable_id
-        super().delete(*args, **kwargs)
-        if payable_id:
-            try:
-                Payable.objects.get(pk=payable_id).sync_status()
-            except Payable.DoesNotExist:
-                pass
-        if receivable_id:
-            try:
-                Receivable.objects.get(pk=receivable_id).sync_status()
-            except Receivable.DoesNotExist:
-                pass
+        with transaction.atomic():
+            super().delete(*args, **kwargs)
+            if payable_id:
+                try:
+                    Payable.objects.get(pk=payable_id).sync_status()
+                except Payable.DoesNotExist:
+                    pass
+            if receivable_id:
+                try:
+                    Receivable.objects.get(pk=receivable_id).sync_status()
+                except Receivable.DoesNotExist:
+                    pass
