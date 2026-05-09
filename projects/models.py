@@ -6,6 +6,8 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
+from core.models import SoftDeleteMixin
+
 
 class WorkRegistrationType(models.Model):
     name = models.CharField(_("Name"), max_length=100)
@@ -18,7 +20,7 @@ class WorkRegistrationType(models.Model):
         return self.name
 
 
-class Project(models.Model):
+class Project(SoftDeleteMixin, models.Model):
 
     class Status(models.TextChoices):
         PLANNING = 'planning', _('Planning')
@@ -410,52 +412,6 @@ class ProjectMaterial(models.Model):
         super().save(*args, **kwargs)
 
 
-class ProjectLabourEntry(models.Model):
-    project = models.ForeignKey(
-        'projects.Project',
-        on_delete=models.CASCADE,
-        related_name='labour_entries',
-        verbose_name=_('Project'),
-    )
-    worker = models.ForeignKey(
-        'workforce.Collaborator',
-        on_delete=models.PROTECT,
-        related_name='project_labour_entries',
-        verbose_name=_('Worker'),
-    )
-    timesheet = models.OneToOneField(
-        'timesheets.Timesheet',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='labour_entry',
-        verbose_name=_('Timesheet'),
-    )
-    date = models.DateField(_('Date'))
-    hours = models.DecimalField(_('Hours'), max_digits=6, decimal_places=2, default=Decimal('0'))
-    hourly_rate = models.DecimalField(_('Hourly rate (€)'), max_digits=10, decimal_places=2, default=Decimal('0'))
-    is_overtime = models.BooleanField(_('Overtime'), default=False)
-    overtime_multiplier = models.DecimalField(
-        _('Overtime multiplier'), max_digits=4, decimal_places=2, default=Decimal('1.50'),
-    )
-    notes = models.TextField(_('Notes'), blank=True, default='')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = _('Labour Entry')
-        verbose_name_plural = _('Labour Entries')
-        ordering = ['-date', 'worker__name']
-
-    def __str__(self):
-        return f'{self.project.name} — {self.worker.name} — {self.date}'
-
-    @property
-    def effective_rate(self):
-        if self.is_overtime:
-            return self.hourly_rate * self.overtime_multiplier
-        return self.hourly_rate
-
-    @property
-    def total_cost(self):
-        return self.hours * self.effective_rate
+# NOTE: `ProjectLabourEntry` foi removido no Sprint 3 (2026-05-08). Timesheet
+# é a fonte única de mão-de-obra. Os dados existentes foram migrados em
+# `projects/migrations/0007_drop_projectlabourentry.py`.

@@ -4,8 +4,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from decimal import Decimal
 
+from core.models import SoftDeleteMixin
 
-class Budget(models.Model):
+
+class Budget(SoftDeleteMixin, models.Model):
 
     class Status(models.TextChoices):
         DRAFT    = 'draft',    _('Draft')
@@ -81,6 +83,18 @@ class Budget(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     sent_at    = models.DateTimeField(null=True, blank=True, verbose_name=_("Sent at"))
+
+    # Lock de versão (Sprint 5) — quando is_locked=True o orçamento é
+    # imutável. Aprovação cria automaticamente um BudgetVersion com snapshot
+    # do estado.
+    is_locked = models.BooleanField(default=False, db_index=True, verbose_name=_("Locked"))
+    locked_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Locked at"))
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='budgets_locked',
+        verbose_name=_("Locked by")
+    )
 
     class Meta:
         verbose_name        = _("Budget")
@@ -296,6 +310,48 @@ class BudgetItem(models.Model):
     @property
     def total_ttc(self):
         return self.total_price + self.vat_amount
+
+
+class BudgetVersion(models.Model):
+    """
+    Snapshot imutável de um orçamento no momento em que foi aprovado/locked.
+
+    Guarda os totais e a estrutura completa (capítulos + linhas + materiais)
+    em JSON para garantir rastreabilidade fiscal: se um dia desbloquearmos
+    e editarmos o orçamento, o que foi enviado/assinado pelo cliente fica
+    preservado tal e qual.
+    """
+    budget = models.ForeignKey(
+        Budget,
+        on_delete=models.CASCADE,
+        related_name='versions',
+        verbose_name=_("Budget")
+    )
+    version_number = models.PositiveIntegerField(verbose_name=_("Version"))
+    locked_at = models.DateTimeField(verbose_name=_("Locked at"))
+    locked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+        verbose_name=_("Locked by")
+    )
+    reason = models.CharField(
+        max_length=80, blank=True, default='',
+        verbose_name=_("Reason"),
+        help_text=_("approved, manual, etc.")
+    )
+    # Snapshot completo: header + chapters + items (com materiais embebidos)
+    # + totais. Não há FKs para "linhas históricas" — é JSON puro.
+    snapshot = models.JSONField(verbose_name=_("Snapshot"))
+
+    class Meta:
+        verbose_name        = _("Budget version")
+        verbose_name_plural = _("Budget versions")
+        ordering            = ['-version_number']
+        unique_together     = [('budget', 'version_number')]
+
+    def __str__(self):
+        return f"{self.budget.number} v{self.version_number}"
 
 
 class BudgetItemMaterial(models.Model):

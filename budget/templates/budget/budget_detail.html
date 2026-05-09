@@ -43,12 +43,38 @@
 {% block content %}
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap">
   <div>
-    <h1 class="page-title">{{ budget.number }}</h1>
+    <h1 class="page-title">
+      {{ budget.number }}
+      {% if budget.is_locked %}
+        <span class="badge" title="{% trans 'Versão bloqueada — desbloqueie para editar' %}"
+              style="background:var(--amber-light);color:var(--amber);font-weight:600;margin-left:8px">
+          🔒 {% trans "Bloqueado" %}
+        </span>
+      {% endif %}
+    </h1>
     <p class="page-sub">{{ budget.title }}</p>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a href="{% url 'budget:budget_update' budget.pk %}" class="btn btn-primary">✏️ {% trans "Editar / Itens" %}</a>
-    <a href="{% url 'budget:budget_list' %}"             class="btn btn-ghost">{% trans "← Lista" %}</a>
+    {% if budget.is_locked %}
+      <form method="post" action="{% url 'budget:budget_unlock' budget.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost"
+                onclick="return confirm('{% trans "Desbloquear orçamento? A versão atual fica preservada no histórico." %}')">
+          🔓 {% trans "Desbloquear" %}
+        </button>
+      </form>
+    {% else %}
+      <a href="{% url 'budget:budget_update' budget.pk %}" class="btn btn-primary">✏️ {% trans "Editar / Itens" %}</a>
+      <form method="post" action="{% url 'budget:budget_approve' budget.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary"
+                onclick="return confirm('{% trans "Aprovar e bloquear este orçamento? Não poderá ser editado sem desbloquear." %}')">
+          ✅ {% trans "Aprovar e bloquear" %}
+        </button>
+      </form>
+    {% endif %}
+    <a href="{% url 'budget:budget_versions' budget.pk %}" class="btn btn-ghost">📜 {% trans "Versões" %}</a>
+    <a href="{% url 'budget:budget_list' %}" class="btn btn-ghost">{% trans "← Lista" %}</a>
   </div>
 </div>
 

@@ -3,8 +3,10 @@ import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from core.models import SoftDeleteMixin
 
-class Subcontractor(models.Model):
+
+class Subcontractor(SoftDeleteMixin, models.Model):
 
     CATEGORY_CHOICES = [
         ('professional', _('Professional')),
@@ -69,6 +71,13 @@ class Subcontractor(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        if self.vat_number:
+            from core.validators import validate_be_vat, normalize_be_vat
+            validate_be_vat(self.vat_number)
+            self.vat_number = normalize_be_vat(self.vat_number)
 
 
 class SubcontractorAddress(models.Model):

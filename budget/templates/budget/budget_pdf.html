@@ -1,0 +1,133 @@
+{% load i18n %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>{{ budget.number }} — {% trans "Budget" %}</title>
+<style>
+  @page { margin: 14mm 12mm; size: A4; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
+  .header { display: flex; justify-content: space-between; padding-bottom: 14px; border-bottom: 3px solid #1e293b; margin-bottom: 16px; }
+  .company { font-size: 20px; font-weight: 700; color: #1e293b; }
+  .doc-title { font-size: 26px; font-weight: 800; color: #1e293b; text-align: right; }
+  .doc-num { font-size: 12px; color: #64748b; text-align: right; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+  .party-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #94a3b8; margin-bottom: 4px; }
+  .party-name { font-weight: 600; font-size: 13px; color: #1e293b; }
+  .party-detail { font-size: 11px; color: #475569; line-height: 1.5; margin-top: 4px; }
+  .meta { display: flex; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+  .meta-item .meta-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; }
+  .meta-item .meta-val { font-size: 12px; font-weight: 500; color: #1e293b; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+  table.lines thead th { padding: 6px 8px; background: #1e293b; color: #fff; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; text-align: left; }
+  table.lines thead th.r { text-align: right; }
+  table.lines tbody tr { border-bottom: 1px solid #e2e8f0; }
+  table.lines td { padding: 6px 8px; vertical-align: top; }
+  table.lines td.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.chapter td { background: #f1f5f9; font-weight: 700; color: #1e293b; }
+  .totals { margin-top: 14px; margin-left: auto; width: 280px; border: 1px solid #e2e8f0; border-radius: 4px; }
+  .tot-row { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 12px; border-bottom: 1px solid #e2e8f0; }
+  .tot-row:last-child { border-bottom: none; }
+  .tot-row.grand { background: #1e293b; color: #fff; font-size: 14px; font-weight: 700; }
+  .notes { margin-top: 16px; padding-top: 14px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #475569; line-height: 1.5; }
+  .notes-label { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #94a3b8; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="company">{{ company_name }}</div>
+  <div>
+    <div class="doc-title">{% trans "BUDGET" %}</div>
+    <div class="doc-num">{{ budget.number }}</div>
+  </div>
+</div>
+
+<div class="parties">
+  <div>
+    <div class="party-label">{% trans "Issued by" %}</div>
+    <div class="party-name">{{ company_name }}</div>
+    {% if company_address %}<div class="party-detail">{{ company_address }}</div>{% endif %}
+    {% if company_vat %}<div class="party-detail">VAT: {{ company_vat }}</div>{% endif %}
+  </div>
+  <div>
+    <div class="party-label">{% trans "For" %}</div>
+    <div class="party-name">{{ budget.client.name|default:"—" }}</div>
+    {% if budget.client.vat_number %}<div class="party-detail">VAT: {{ budget.client.vat_number }}</div>{% endif %}
+    {% if budget.project %}<div class="party-detail">{% trans "Project" %}: {{ budget.project.name }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="meta">
+  {% if budget.issue_date %}
+  <div class="meta-item"><div class="meta-label">{% trans "Issue date" %}</div><div class="meta-val">{{ budget.issue_date|date:"d/m/Y" }}</div></div>
+  {% endif %}
+  {% if budget.valid_until %}
+  <div class="meta-item"><div class="meta-label">{% trans "Valid until" %}</div><div class="meta-val">{{ budget.valid_until|date:"d/m/Y" }}</div></div>
+  {% endif %}
+  <div class="meta-item"><div class="meta-label">{% trans "Status" %}</div><div class="meta-val">{{ budget.get_status_display }}</div></div>
+</div>
+
+<table class="lines">
+  <thead>
+    <tr>
+      <th>{% trans "Description" %}</th>
+      <th class="r">{% trans "Qty" %}</th>
+      <th>{% trans "Unit" %}</th>
+      <th class="r">{% trans "Unit price" %}</th>
+      <th class="r">{% trans "Discount" %}%</th>
+      <th class="r">{% trans "Total HT" %}</th>
+      <th class="r">{% trans "VAT" %}%</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% regroup items by chapter as items_by_chapter %}
+    {% for group in items_by_chapter %}
+      {% if group.grouper %}
+      <tr class="chapter"><td colspan="7">{{ group.grouper.name }}</td></tr>
+      {% endif %}
+      {% for item in group.list %}
+      <tr>
+        <td>
+          {{ item.service_name_snapshot }}
+          {% if item.description %}<div style="font-size:10px;color:#94a3b8;margin-top:2px;">{{ item.description }}</div>{% endif %}
+        </td>
+        <td class="r">{{ item.quantity|floatformat:"-2" }}</td>
+        <td>{{ item.service_unit_snapshot }}</td>
+        <td class="r">{{ item.effective_unit_price|floatformat:"2" }} €</td>
+        <td class="r">{% if item.discount_percent %}{{ item.discount_percent }}%{% endif %}</td>
+        <td class="r">{{ item.total_price|floatformat:"2" }} €</td>
+        <td class="r">{{ item.vat_rate|floatformat:"-2" }}%</td>
+      </tr>
+      {% endfor %}
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;padding:14px;color:#94a3b8;">{% trans "No lines." %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="tot-row"><span>Subtotal HT</span><span>{{ totals.subtotal_ht }} €</span></div>
+  {% if budget.discount_percent %}
+  <div class="tot-row"><span>{% trans "Discount" %} ({{ budget.discount_percent }}%)</span><span>- {{ totals.discount_amount }} €</span></div>
+  {% endif %}
+  <div class="tot-row"><span>Total HT</span><span>{{ totals.total_ht }} €</span></div>
+  <div class="tot-row"><span>VAT</span><span>{{ totals.total_vat }} €</span></div>
+  <div class="tot-row grand"><span>Total TTC</span><span>{{ totals.total_ttc }} €</span></div>
+</div>
+
+{% if budget.notes_client or budget.payment_terms %}
+<div class="notes">
+  {% if budget.payment_terms %}
+  <div class="notes-label">{% trans "Payment terms" %}</div>
+  <p>{{ budget.payment_terms }}</p>
+  {% endif %}
+  {% if budget.notes_client %}
+  <div class="notes-label" style="margin-top:10px;">{% trans "Notes" %}</div>
+  <p>{{ budget.notes_client }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>

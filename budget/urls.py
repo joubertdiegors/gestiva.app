@@ -10,6 +10,14 @@ urlpatterns = [
     path('<int:pk>/',             views.budget_detail, name='budget_detail'),
     path('<int:pk>/edit/',        views.budget_update, name='budget_update'),
     path('<int:pk>/delete/',      views.budget_delete, name='budget_delete'),
+    path('<int:pk>/pdf/',         views.budget_pdf,    name='budget_pdf'),
+
+    # Sprint 5: lock / approve / versões
+    path('<int:pk>/approve/',     views.budget_approve, name='budget_approve'),
+    path('<int:pk>/unlock/',      views.budget_unlock,  name='budget_unlock'),
+    path('<int:pk>/versions/',    views.budget_versions, name='budget_versions'),
+    path('<int:pk>/versions/<int:version_number>/',
+         views.budget_version_detail, name='budget_version_detail'),
 
     # AJAX — project helpers
     path('ajax/projects/',        views.ajax_projects_by_client, name='ajax_projects'),

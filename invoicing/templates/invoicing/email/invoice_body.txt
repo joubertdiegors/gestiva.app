@@ -1,0 +1,11 @@
+{% load i18n %}Bonjour,
+
+Veuillez trouver en pièce jointe la facture {{ invoice.number }}{% if invoice.title %} — {{ invoice.title }}{% endif %}.
+
+Détails :
+- Date d'émission : {{ invoice.issue_date|date:"d/m/Y" }}{% if invoice.due_date %}
+- Échéance : {{ invoice.due_date|date:"d/m/Y" }}{% endif %}
+- Montant TTC : {{ invoice.total_ttc|floatformat:"2" }} €
+
+Cordialement,
+{{ company_name }}

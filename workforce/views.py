@@ -127,7 +127,6 @@ def _collaborator_has_links(collaborator):
         'driven_plannings',
         'vehicle_planning_assignments',
         'ciaw_nodes',
-        'project_labour_entries',
         'default_vehicles',
         'fuelings',
         'fines',

@@ -6,12 +6,22 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from decimal import Decimal, InvalidOperation
 
-from .models import Budget, BudgetChapter, BudgetItem, BudgetItemMaterial
+from .models import Budget, BudgetChapter, BudgetItem, BudgetItemMaterial, BudgetVersion
 from .forms import BudgetForm, BudgetChapterForm, BudgetItemForm
+from .services import lock_budget, unlock_budget, BudgetLockedError
 from accounts.decorators import perm_required
 from clients.models import Client
 from projects.models import Project
 from services.models import Service
+
+
+def _locked_response():
+    """Resposta JSON padronizada quando se tenta editar orçamento bloqueado."""
+    return JsonResponse({
+        'ok': False,
+        'error': str(_('Orçamento bloqueado. Desbloqueie antes de editar.')),
+        'locked': True,
+    }, status=409)
 
 
 # ─── helpers ────────────────────────────────────────────────────────────────
@@ -186,11 +196,50 @@ def budget_detail(request, pk):
     })
 
 
+@perm_required('budget.view_budget')
+def budget_pdf(request, pk):
+    """
+    Gera o PDF do orçamento server-side com WeasyPrint.
+    """
+    from django.conf import settings as dj_settings
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from weasyprint import HTML
+
+    budget = get_object_or_404(
+        Budget.objects.select_related('client', 'project', 'created_by'),
+        pk=pk,
+    )
+    items = BudgetItem.objects.filter(budget=budget).select_related('service', 'chapter').order_by('chapter__order', 'order')
+
+    html_string = render_to_string('budget/budget_pdf.html', {
+        'budget':       budget,
+        'items':        items,
+        'totals':       _budget_totals(budget),
+        'company_name': getattr(dj_settings, 'COMPANY_NAME', 'Construart'),
+        'company_address': getattr(dj_settings, 'COMPANY_ADDRESS', ''),
+        'company_vat':  getattr(dj_settings, 'COMPANY_VAT', ''),
+    }, request=request)
+
+    pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    filename = f'{budget.number}.pdf'
+    disposition = 'inline' if request.GET.get('inline') else 'attachment'
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    return response
+
+
 # ─── update ──────────────────────────────────────────────────────────────────
 
 @perm_required('budget.change_budget')
 def budget_update(request, pk):
     budget = get_object_or_404(Budget, pk=pk)
+
+    if budget.is_locked:
+        from django.contrib import messages
+        messages.error(request, _("Orçamento bloqueado. Desbloqueie antes de editar."))
+        return redirect('budget:budget_detail', pk=budget.pk)
+
     form   = BudgetForm(request.POST or None, instance=budget)
 
     if request.method == 'POST' and form.is_valid():
@@ -262,6 +311,8 @@ def ajax_project_create(request):
 @require_POST
 def chapter_save(request, budget_pk, pk=None):
     budget = get_object_or_404(Budget, pk=budget_pk)
+    if budget.is_locked:
+        return _locked_response()
     instance = get_object_or_404(BudgetChapter, pk=pk, budget=budget) if pk else None
     form = BudgetChapterForm(request.POST, instance=instance, budget=budget)
     if not form.is_valid():
@@ -278,6 +329,8 @@ def chapter_save(request, budget_pk, pk=None):
 @require_POST
 def chapter_delete(request, budget_pk, pk):
     budget = get_object_or_404(Budget, pk=budget_pk)
+    if budget.is_locked:
+        return _locked_response()
     ch = get_object_or_404(BudgetChapter, pk=pk, budget=budget)
     if ch.items.exists():
         return JsonResponse({'ok': False, 'error': str(_('Capítulo tem itens associados.'))})
@@ -293,6 +346,8 @@ def chapter_delete(request, budget_pk, pk):
 @require_POST
 def item_save(request, budget_pk, pk=None):
     budget   = get_object_or_404(Budget, pk=budget_pk)
+    if budget.is_locked:
+        return _locked_response()
     instance = get_object_or_404(BudgetItem, pk=pk, budget=budget) if pk else None
 
     # Resolve service first to auto-fill snapshots
@@ -345,6 +400,8 @@ def item_save(request, budget_pk, pk=None):
 @require_POST
 def item_delete(request, budget_pk, pk):
     budget = get_object_or_404(Budget, pk=budget_pk)
+    if budget.is_locked:
+        return _locked_response()
     item   = get_object_or_404(BudgetItem, pk=pk, budget=budget)
     item.delete()
     return JsonResponse({'ok': True, 'totals': _budget_totals(budget)})
@@ -364,4 +421,71 @@ def service_info(request, pk):
         'default_margin_percent':str(s.default_margin_percent),
         'effective_sale_price':  str(s.effective_sale_price),
         'total_cost_per_unit':   str(s.total_cost_per_unit),
+    })
+
+
+# ─── Sprint 5: lock / unlock / approve ───────────────────────────────────────
+
+@perm_required('budget.change_budget')
+@require_POST
+def budget_approve(request, pk):
+    """
+    Marca o orçamento como APPROVED + lock + cria BudgetVersion.
+
+    Idempotente: se já está locked não cria nova versão. Permissão é a
+    standard `change_budget`; promover para APPROVED é considerado uma
+    edição administrativa.
+    """
+    from django.contrib import messages
+    budget = get_object_or_404(Budget, pk=pk)
+    with transaction.atomic():
+        if budget.status != Budget.Status.APPROVED:
+            budget.status = Budget.Status.APPROVED
+            budget.save(update_fields=['status'])
+        try:
+            lock_budget(budget, request.user, reason='approved')
+        except BudgetLockedError as e:
+            messages.error(request, str(e))
+            return redirect('budget:budget_detail', pk=budget.pk)
+    messages.success(request, _("Orçamento aprovado e bloqueado."))
+    return redirect('budget:budget_detail', pk=budget.pk)
+
+
+@perm_required('budget.change_budget')
+@require_POST
+def budget_unlock(request, pk):
+    """
+    Reabre um orçamento aprovado para edição.
+
+    A versão anterior fica preservada como BudgetVersion. Re-aprovar mais
+    tarde cria v(N+1). Restrito a quem tem `change_budget`.
+    """
+    from django.contrib import messages
+    budget = get_object_or_404(Budget, pk=pk)
+    unlock_budget(budget, request.user)
+    messages.success(request, _("Orçamento desbloqueado para edição."))
+    return redirect('budget:budget_detail', pk=budget.pk)
+
+
+@perm_required('budget.view_budget')
+def budget_versions(request, pk):
+    """Lista as versões (snapshots) já gravadas para este orçamento."""
+    budget = get_object_or_404(Budget, pk=pk)
+    versions = BudgetVersion.objects.filter(budget=budget).select_related('locked_by')
+    return render(request, 'budget/budget_versions.html', {
+        'budget':   budget,
+        'versions': versions,
+    })
+
+
+@perm_required('budget.view_budget')
+def budget_version_detail(request, pk, version_number):
+    """Mostra o snapshot completo de uma versão histórica (read-only)."""
+    budget = get_object_or_404(Budget, pk=pk)
+    version = get_object_or_404(
+        BudgetVersion, budget=budget, version_number=version_number
+    )
+    return render(request, 'budget/budget_version_detail.html', {
+        'budget':  budget,
+        'version': version,
     })

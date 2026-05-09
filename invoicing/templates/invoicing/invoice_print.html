@@ -237,10 +237,25 @@ tr.lt-page-break td { padding: 2px; }
 {% if sections.custom_css %}
 <style>{{ sections.custom_css }}</style>
 {% endif %}
+{% if is_pdf %}
+<style>
+  /* PDF-specific overrides: WeasyPrint renders straight @page; toolbar is hidden,
+     so reset wrapper margins/box-shadow and let the document fill the page. */
+  body { background: #fff; padding: 0; }
+  #page-wrap { margin: 0; max-width: 100%; box-shadow: none; min-height: auto; }
+  .lines-section,
+  .fallback-header, .fallback-parties, .fallback-meta,
+  .sec-page-header, .sec-page-footer, .sec-header-generic,
+  .sec-header-document, .sec-footer-document,
+  .totals-wrap, .notes-section { padding-left: 0; padding-right: 0; }
+  @page { margin: 14mm 12mm; size: A4; }
+</style>
+{% endif %}
 </head>
 <body>
 
 <!-- Print toolbar -->
+{% if not is_pdf %}
 <div id="print-bar">
   <div class="doc-title">🖨️ {{ invoice.number }} — {{ invoice.client.name }}</div>
 
@@ -256,8 +271,10 @@ tr.lt-page-break td { padding: 2px; }
   {% endif %}
 
   <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+  <a class="btn-print" href="?{% if request.GET.template %}template={{ request.GET.template }}{% endif %}" style="background:#16a34a;text-decoration:none;display:inline-flex;align-items:center;" onclick="event.preventDefault();window.location.href='{% url 'invoicing:pdf' invoice.pk %}{% if request.GET.template %}?template={{ request.GET.template }}{% endif %}'">📄 Baixar PDF</a>
   <button class="btn-close" onclick="window.close()">✕ Fechar</button>
 </div>
+{% endif %}
 
 <!-- Document page -->
 <div id="page-wrap">
@@ -439,6 +456,7 @@ tr.lt-page-break td { padding: 2px; }
 
 </div><!-- /#page-wrap -->
 
+{% if not is_pdf %}
 <script>
 function switchTemplate(val) {
   const url = new URL(window.location.href);
@@ -450,5 +468,6 @@ function switchTemplate(val) {
   window.location.href = url.toString();
 }
 </script>
+{% endif %}
 </body>
 </html>

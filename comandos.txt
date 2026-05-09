@@ -17,28 +17,3 @@ django-admin makemessages -l en --ignore venv --ignore *.txt --ignore *.md
 
 Compilar as mensagens
 django-admin compilemessages
-
-
-
-*Estrutura a implementar
-OPERAÇÕES
-  └─ + Ordens de Trabalho (futura app work_orders)
-  └─ + Equipamentos/Ferramentas (futura app equipment)
-
-COMERCIAL
-  └─ + Propostas / Pipeline CRM (futura app crm)
-  └─ + Contratos (futura app contracts)
-
-FINANCEIRO
-  └─ + Reconciliação Bancária (futura app banking)
-  └─ + Relatórios & DRE (futura app reporting)
-
-COMPRAS
-  └─ + Ordens de Compra (futura app purchase_orders)
-  └─ + Gestão de Stock (futura app inventory)
-  └─ + Receção de Mercadoria (dentro de inventory)
-
-RECURSOS HUMANOS (grupo futuro)
-  └─ + Contratos de Trabalho
-  └─ + Folha de Salários
-  └─ + Férias & Ausências

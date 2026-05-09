@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -59,6 +60,32 @@ def invoice_create(request):
     pre_type       = request.GET.get('type', Invoice.InvoiceType.DIRECT)
     pre_client_id  = request.GET.get('client', '')
     pre_project_id = request.GET.get('project', '')
+
+    # Special wizard branches: create-and-redirect for from_budget/credit_note.
+    if request.method == 'GET' and pre_type == Invoice.InvoiceType.FROM_BUDGET:
+        budget_id = request.GET.get('budget', '').strip()
+        if budget_id:
+            from budget.models import Budget
+            from .services import create_invoice_from_budget
+            try:
+                budget = Budget.objects.get(pk=budget_id)
+            except Budget.DoesNotExist:
+                budget = None
+            if budget is not None:
+                inv = create_invoice_from_budget(budget, request.user)
+                return redirect('invoicing:detail', pk=inv.pk)
+
+    if request.method == 'GET' and pre_type == Invoice.InvoiceType.CREDIT_NOTE:
+        origin_id = request.GET.get('origin', '').strip()
+        if origin_id:
+            from .services import create_credit_note_from_invoice
+            try:
+                origin = Invoice.objects.get(pk=origin_id)
+            except Invoice.DoesNotExist:
+                origin = None
+            if origin is not None:
+                cn = create_credit_note_from_invoice(origin, request.user)
+                return redirect('invoicing:detail', pk=cn.pk)
 
     pre_client = None
     pre_project = None
@@ -216,6 +243,49 @@ def invoice_update(request, pk):
         'pre_client_id':  str(invoice.client_id),
         'pre_project_id': str(invoice.project_id) if invoice.project_id else '',
     })
+
+
+# ── ACTION: SEND BY EMAIL (sync, with PDF attached) ───────────────────────────
+@perm_required('invoicing.change_invoice')
+@require_POST
+def invoice_send_email(request, pk):
+    """
+    Gera o PDF e envia por email síncronamente. Falha de SMTP devolve JSON
+    com erro (não rebenta) — utilizador pode tentar de novo. Marca a fatura
+    como SENT no sucesso (mesma lógica de `invoice_mark_sent`).
+    """
+    from .tasks import send_invoice_email_task
+
+    invoice = get_object_or_404(Invoice, pk=pk)
+    to_raw = (request.POST.get('to') or '').strip()
+    cc_raw = (request.POST.get('cc') or '').strip()
+    subject = (request.POST.get('subject') or '').strip() or None
+    body    = (request.POST.get('body') or '').strip() or None
+
+    to_list = [e.strip() for e in re.split(r'[;,\s]+', to_raw) if e.strip()]
+    cc_list = [e.strip() for e in re.split(r'[;,\s]+', cc_raw) if e.strip()]
+    if not to_list:
+        return JsonResponse({'ok': False, 'error': 'Indique pelo menos um destinatário.'}, status=400)
+
+    try:
+        send_invoice_email_task(
+            invoice.pk, to=to_list, cc=cc_list or None,
+            subject=subject, body=body,
+        )
+    except Exception as exc:
+        # Falha de SMTP / rendering. Caller pode tentar outra vez.
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=502)
+
+    # Marca como enviada (idempotente — só transita de DRAFT)
+    with transaction.atomic():
+        inv = Invoice.objects.select_for_update().get(pk=pk)
+        if inv.status == Invoice.Status.DRAFT:
+            inv.status  = Invoice.Status.SENT
+            inv.sent_at = timezone.now()
+            inv.save(update_fields=['status', 'sent_at', 'updated_at'])
+            _ensure_receivable(inv)
+
+    return JsonResponse({'ok': True, 'message': f'Email enviado para {", ".join(to_list)}.'})
 
 
 # ── ACTION: MARK SENT ─────────────────────────────────────────────────────────
@@ -434,16 +504,15 @@ def _ensure_receivable(invoice):
         rec.save(update_fields=['amount', 'updated_at'])
 
 
-# ── PRINT ─────────────────────────────────────────────────────────────────────
+# ── PRINT / PDF ───────────────────────────────────────────────────────────────
 
-@perm_required('invoicing.view_invoice')
-def invoice_print(request, pk):
-    invoice = get_object_or_404(
-        Invoice.objects.select_related('client', 'project').prefetch_related(
-            'lines', 'client__addresses', 'client__contacts',
-        ),
-        pk=pk,
-    )
+def _prepare_print_context(request, invoice):
+    """
+    Constrói o context partilhado por `invoice_print` (HTML para o navegador,
+    diálogo de impressão) e `invoice_pdf` (WeasyPrint server-side).
+
+    Devolve um dict pronto para `render(request, 'invoicing/invoice_print.html', ctx)`.
+    """
 
     # Load requested template or fall back to default invoice template
     tmpl = None
@@ -635,11 +704,52 @@ def invoice_print(request, pk):
             num = f'{counters[0]}.{counters[1]}.{counters[2]}.{counters[3]}'
         numbered_lines.append((line, num))
 
-    return render(request, 'invoicing/invoice_print.html', {
+    return {
         'invoice':      invoice,
         'lines':        numbered_lines,
         'sections':     sections,
         'tmpl':         tmpl,
         'tmpl_choices': tmpl_choices,
         'has_template': bool(tmpl),
-    })
+    }
+
+
+@perm_required('invoicing.view_invoice')
+def invoice_print(request, pk):
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('client', 'project').prefetch_related(
+            'lines', 'client__addresses', 'client__contacts',
+        ),
+        pk=pk,
+    )
+    ctx = _prepare_print_context(request, invoice)
+    return render(request, 'invoicing/invoice_print.html', ctx)
+
+
+@perm_required('invoicing.view_invoice')
+def invoice_pdf(request, pk):
+    """
+    Gera um PDF server-side com WeasyPrint a partir de `invoice_print.html`.
+
+    Por defeito devolve `attachment` (download). `?inline=1` mostra inline no
+    browser (útil para iframe/preview).
+    """
+    invoice = get_object_or_404(
+        Invoice.objects.select_related('client', 'project').prefetch_related(
+            'lines', 'client__addresses', 'client__contacts',
+        ),
+        pk=pk,
+    )
+    ctx = _prepare_print_context(request, invoice)
+    ctx['is_pdf'] = True
+    html_string = render_to_string('invoicing/invoice_print.html', ctx, request=request)
+
+    from django.http import HttpResponse
+    from weasyprint import HTML
+
+    pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    filename = f'{invoice.number}.pdf'
+    disposition = 'inline' if request.GET.get('inline') else 'attachment'
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    return response

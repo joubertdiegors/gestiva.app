@@ -17,7 +17,14 @@ EXCLUDED_APPS = ['audit', 'admin']
 
 
 def is_migration_running():
-    return any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'test'])
+    if any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'test']):
+        return True
+    # pytest-django também aplica migrations no setup; sys.argv aí é
+    # ['pytest', ...]. Detetamos pytest para evitar que os signals tentem
+    # gravar AuditLog antes de a sua própria tabela existir.
+    if any('pytest' in arg for arg in sys.argv):
+        return True
+    return False
 
 
 def get_audit_model():

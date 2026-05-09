@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}v{{ version.version_number }} — {{ budget.number }}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'budget:budget_list' %}">{% trans "Orçamentos" %}</a>
+<span class="bc-sep">›</span>
+<a href="{% url 'budget:budget_detail' budget.pk %}">{{ budget.number }}</a>
+<span class="bc-sep">›</span>
+<a href="{% url 'budget:budget_versions' budget.pk %}">{% trans "Versões" %}</a>
+<span class="bc-sep">›</span>
+<span>v{{ version.version_number }}</span>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.snap-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px}
+.snap-section h3{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:0 0 12px 0}
+.snap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.snap-cell{font-size:13px}
+.snap-cell-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+table.snap{width:100%;border-collapse:collapse;font-size:13px}
+table.snap thead th{padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--surface2)}
+table.snap td{padding:8px 12px;border-bottom:1px solid var(--border)}
+table.snap td.num{text-align:right;font-variant-numeric:tabular-nums}
+.snap-chapter td{background:var(--surface2);font-weight:600;color:var(--text2)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+  <div>
+    <h1 class="page-title">v{{ version.version_number }} — {{ budget.number }}</h1>
+    <p class="page-sub">
+      {% trans "Bloqueado em" %} {{ version.locked_at|date:"d/m/Y H:i" }}
+      {% if version.locked_by %} · {{ version.locked_by.get_full_name|default:version.locked_by.username }}{% endif %}
+      · <span class="badge">{{ version.reason }}</span>
+    </p>
+  </div>
+  <a href="{% url 'budget:budget_versions' budget.pk %}" class="btn btn-ghost">{% trans "← Versões" %}</a>
+</div>
+
+{% with snap=version.snapshot %}
+<div class="snap-section">
+  <h3>{% trans "Cabeçalho (à data do snapshot)" %}</h3>
+  <div class="snap-grid">
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Número" %}</div>{{ snap.budget.number }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Estado" %}</div>{{ snap.budget.status }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Cliente" %}</div>{{ snap.budget.client_name|default:"—" }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Projeto" %}</div>{{ snap.budget.project_name|default:"—" }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Emissão" %}</div>{{ snap.budget.issue_date|default:"—" }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Válido até" %}</div>{{ snap.budget.valid_until|default:"—" }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Desconto global" %}</div>{{ snap.budget.discount_percent }}%</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "VAT default" %}</div>{{ snap.budget.vat_rate }}%</div>
+  </div>
+</div>
+
+<div class="snap-section">
+  <h3>{% trans "Linhas" %}</h3>
+  <table class="snap">
+    <thead>
+      <tr>
+        <th>{% trans "Código" %}</th>
+        <th>{% trans "Descrição" %}</th>
+        <th class="num">{% trans "Qtd" %}</th>
+        <th class="num">{% trans "Un." %}</th>
+        <th class="num">{% trans "Preço un." %}</th>
+        <th class="num">{% trans "Total HT" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in snap.items %}
+      <tr>
+        <td>{{ it.service_code }}</td>
+        <td>{{ it.service_name }}</td>
+        <td class="num">{{ it.quantity }}</td>
+        <td class="num">{{ it.service_unit }}</td>
+        <td class="num">{{ it.effective_unit_price }}</td>
+        <td class="num">{{ it.total_price }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="snap-section">
+  <h3>{% trans "Totais" %}</h3>
+  <div class="snap-grid">
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Subtotal HT" %}</div>{{ snap.totals.subtotal_ht }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Desconto" %}</div>{{ snap.totals.discount_amount }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Total HT" %}</div>{{ snap.totals.total_ht }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "VAT" %}</div>{{ snap.totals.total_vat }}</div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Total TTC" %}</div><strong>{{ snap.totals.total_ttc }}</strong></div>
+    <div class="snap-cell"><div class="snap-cell-label">{% trans "Margem bruta" %}</div>{{ snap.totals.gross_margin_amount }}</div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

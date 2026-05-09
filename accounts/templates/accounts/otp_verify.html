@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Verificar 2FA" %} — Construart{% endblock %}
+
+{% block extra_head %}
+<style>
+  .form-card {
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .form-card-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .form-card-icon {
+    width: 40px; height: 40px;
+    background: var(--amber-light);
+    color: var(--amber);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .form-card-body { padding: 28px; }
+  .form-card-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .field-error {
+    font-size: 12px; color: var(--red); margin-top: 4px;
+  }
+  input.otp-input {
+    font-size: 22px;
+    letter-spacing: 6px;
+    text-align: center;
+    font-family: monospace;
+  }
+  .helper {
+    font-size: 13px;
+    color: var(--text2);
+    font-family: sans-serif;
+    line-height: 1.5;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{% trans "Verificação 2FA" %}</h1>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <div class="form-card">
+
+    <div class="form-card-header">
+      <div class="form-card-icon">🔐</div>
+      <div>
+        <div style="font-size:15px;font-weight:500">{% trans "Introduz o código da app" %}</div>
+        <div class="helper">{% trans "6 dígitos do teu autenticador." %}</div>
+      </div>
+    </div>
+
+    <div class="form-card-body">
+      <div class="form-group">
+        <label class="form-label">{% trans "Código" %} *</label>
+        <input
+          type="text"
+          name="token"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          required
+          autofocus
+          class="form-control otp-input"
+        >
+        {% if error %}<div class="field-error">{{ error }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-card-footer">
+      <button type="submit" class="btn btn-primary">
+        ✅ {% trans "Verificar" %}
+      </button>
+    </div>
+
+  </div>
+</form>
+{% endblock %}

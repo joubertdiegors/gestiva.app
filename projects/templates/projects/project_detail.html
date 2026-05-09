@@ -363,12 +363,12 @@
             </thead>
             <tbody id="labour-tbody">
               {% for entry in labour %}
-              <tr data-id="{{ entry.pk }}" data-worker-id="{{ entry.worker_id }}" data-date="{{ entry.date|date:'Y-m-d' }}" data-hours="{{ entry.hours }}" data-rate="{{ entry.hourly_rate }}" data-overtime="{{ entry.is_overtime|yesno:'true,false' }}" data-multiplier="{{ entry.overtime_multiplier }}" data-total="{{ entry.total_cost }}" data-notes="{{ entry.notes|escapejs }}">
+              <tr data-id="{{ entry.pk }}" data-worker-id="{{ entry.worker_id }}" data-date="{{ entry.date|date:'Y-m-d' }}" data-hours="{{ entry.hours }}" data-rate="{{ entry.hourly_rate_snapshot|default_if_none:0 }}" data-overtime="{{ entry.is_overtime|yesno:'true,false' }}" data-multiplier="{{ entry.overtime_rate }}" data-total="{{ entry.total_cost }}" data-notes="{{ entry.notes|escapejs }}">
                 <td class="muted">{{ entry.date|date:"d/m/Y" }}</td>
                 <td style="font-weight:500;">{{ entry.worker.name }}</td>
-                <td class="num">{{ entry.hours|floatformat:2 }}</td>
-                <td class="num">€{{ entry.hourly_rate|floatformat:2 }}</td>
-                <td>{% if entry.is_overtime %}<span class="badge badge-amber">×{{ entry.overtime_multiplier }}</span>{% else %}—{% endif %}</td>
+                <td class="num">{{ entry.hours|default_if_none:0|floatformat:2 }}</td>
+                <td class="num">€{{ entry.hourly_rate_snapshot|default_if_none:0|floatformat:2 }}</td>
+                <td>{% if entry.is_overtime %}<span class="badge badge-amber">×{{ entry.overtime_rate }}</span>{% else %}—{% endif %}</td>
                 <td class="num">€{{ entry.total_cost|floatformat:2 }}</td>
                 <td>
                   <div class="actions">

@@ -17,11 +17,12 @@ from workforce.models import Collaborator
 
 from accounts.decorators import perm_required
 from .forms import ProjectForm
+from timesheets.models import Timesheet
+
 from .models import (
     Project,
     ProjectCiawParticipant,
     ProjectInteraction,
-    ProjectLabourEntry,
     ProjectMaterial,
     ProjectSupplierInvoice,
     WorkRegistrationType,
@@ -86,7 +87,7 @@ def project_detail(request, pk):
     interactions = project.interactions.select_related('author').order_by('-date', '-created_at')
     invoices = project.supplier_invoices.select_related('supplier').order_by('-date')
     materials = project.materials.select_related('product').order_by('-date')
-    labour = project.labour_entries.select_related('worker').order_by('-date')
+    labour = project.timesheets.select_related('worker').order_by('-date')
 
     # Combustível: agrega VehicleFueling pelos veículos usados no planning deste projecto
     # dentro do intervalo de datas do projecto.
@@ -358,19 +359,19 @@ def labour_save(request, pk):
         return JsonResponse({'ok': False, 'errors': errors})
 
     if entry_pk:
-        obj = get_object_or_404(ProjectLabourEntry, pk=entry_pk, project=project)
+        obj = get_object_or_404(Timesheet, pk=entry_pk, project=project)
     else:
-        obj = ProjectLabourEntry(project=project)
+        obj = Timesheet(project=project)
 
     obj.worker = get_object_or_404(Collaborator, pk=worker_id)
     obj.date = date
     obj.hours = hours
-    obj.hourly_rate = hourly_rate
+    obj.hourly_rate_snapshot = hourly_rate
     obj.is_overtime = data.get('is_overtime') == 'on'
     try:
-        obj.overtime_multiplier = Decimal(data.get('overtime_multiplier', '1.5'))
+        obj.overtime_rate = Decimal(data.get('overtime_multiplier', '1.5'))
     except InvalidOperation:
-        obj.overtime_multiplier = Decimal('1.5')
+        obj.overtime_rate = Decimal('1.5')
     obj.notes = data.get('notes', '').strip()
     obj.save()
 
@@ -378,8 +379,8 @@ def labour_save(request, pk):
         'id': obj.pk,
         'date': str(obj.date),
         'worker': obj.worker.name,
-        'hours': str(obj.hours),
-        'hourly_rate': str(obj.hourly_rate),
+        'hours': str(obj.hours or Decimal('0')),
+        'hourly_rate': str(obj.hourly_rate_snapshot or Decimal('0')),
         'is_overtime': obj.is_overtime,
         'total_cost': str(obj.total_cost),
     }})
@@ -388,7 +389,7 @@ def labour_save(request, pk):
 @perm_required('projects.change_project')
 @require_POST
 def labour_delete(request, pk, entry_pk):
-    obj = get_object_or_404(ProjectLabourEntry, pk=entry_pk, project_id=pk)
+    obj = get_object_or_404(Timesheet, pk=entry_pk, project_id=pk)
     obj.delete()
     return JsonResponse({'ok': True})
 

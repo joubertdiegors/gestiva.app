@@ -56,6 +56,10 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     # Rate limit / brute-force protection no login (config em baixo)
     'axes',
+    # 2FA TOTP — usado para superusers e contas financeiras (Sprint 5)
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
 ]
 
 LOCAL_APPS = [
@@ -105,6 +109,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'audit.middleware.CurrentUserMiddleware',
+
+    # django-otp — marca request.user.is_verified() conforme TOTP/static.
+    # Tem de vir DEPOIS do AuthenticationMiddleware.
+    'django_otp.middleware.OTPMiddleware',
+
+    # OTPGateMiddleware — redireciona staff/superusers sem TOTP confirmado.
+    # Tem de vir DEPOIS do OTPMiddleware.
+    'accounts.middleware.OTPGateMiddleware',
 
     # django-axes — DEVE ser o último middleware para apanhar logins
     # falhados de qualquer rota (admin, login custom, etc.)
@@ -215,6 +227,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Formato dos logs: 'text' (default — legível em terminal) ou 'json'
+# (pronto para Loki/CloudWatch quando vier monitoring centralizado).
+LOG_FORMAT = config('LOG_FORMAT', default='text').lower()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -223,11 +239,14 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
+        'json': {
+            '()': 'core.logging_json.JSONFormatter',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'json' if LOG_FORMAT == 'json' else 'verbose',
         },
     },
     'root': {
@@ -299,12 +318,79 @@ AXES_LOCKOUT_PARAMETERS  = [['username', 'ip_address']]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Email — envio de fatura (síncrono, sem Celery)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Por defeito (DEBUG=True) usa o backend de console que imprime o email no
+# terminal — não envia nada. Em produção define EMAIL_BACKEND=smtp + os
+# parâmetros abaixo. Se SMTP cair, `invoice_send` apanha a exceção e
+# devolve mensagem de erro sem rebentar a transação.
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST          = config('EMAIL_HOST',          default='')
+EMAIL_PORT          = config('EMAIL_PORT',          default=587, cast=int)
+EMAIL_HOST_USER     = config('EMAIL_HOST_USER',     default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS       = config('EMAIL_USE_TLS',       default=True, cast=bool)
+EMAIL_USE_SSL       = config('EMAIL_USE_SSL',       default=False, cast=bool)
+DEFAULT_FROM_EMAIL  = config('DEFAULT_FROM_EMAIL',  default='no-reply@construart.local')
+EMAIL_TIMEOUT       = config('EMAIL_TIMEOUT',       default=15, cast=int)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Empresa emissora — usado em PDFs e emails
+# ─────────────────────────────────────────────────────────────────────────────
+COMPANY_NAME         = config('COMPANY_NAME',         default='Construart')
+COMPANY_ADDRESS      = config('COMPANY_ADDRESS',      default='')
+COMPANY_POSTAL_CODE  = config('COMPANY_POSTAL_CODE',  default='')
+COMPANY_CITY         = config('COMPANY_CITY',         default='')
+COMPANY_PHONE        = config('COMPANY_PHONE',        default='')
+COMPANY_EMAIL        = config('COMPANY_EMAIL',        default='')
+COMPANY_VAT          = config('COMPANY_VAT',          default='')
+COMPANY_LEGAL_STATUS = config('COMPANY_LEGAL_STATUS', default='')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2FA — django-otp (Sprint 5)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Estratégia: TOTP por app (Google Authenticator, 1Password, Authy...).
+# - Superusers/staff: OBRIGATÓRIO assim que `OTP_REQUIRED_FOR_STAFF=True`
+#   (default em produção, ver baixo).
+# - Resto da equipa: opcional. Cada utilizador pode inscrever-se na própria
+#   página (`/accounts/2fa/`).
+#
+# O middleware django-otp marca `request.user.is_verified()` quando o token
+# está confirmado nesta sessão. Decorador `accounts.decorators.otp_required`
+# protege views financeiras/admin.
+OTP_REQUIRED_FOR_STAFF = config('OTP_REQUIRED_FOR_STAFF', default=not DEBUG, cast=bool)
+OTP_TOTP_ISSUER = config('OTP_TOTP_ISSUER', default=COMPANY_NAME or 'Construart')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Sentry — error tracking (free tier 5k eventos/mês)
 # ─────────────────────────────────────────────────────────────────────────────
 SENTRY_DSN = config('SENTRY_DSN', default='')
 if SENTRY_DSN:
     import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
+
+    def _sentry_before_send(event, hint):
+        """Anexa request_id e instance_name a cada evento (Sprint 5)."""
+        try:
+            from audit.middleware import get_request_context
+            ctx = get_request_context()
+        except Exception:
+            ctx = {}
+        request_id = ctx.get('request_id') or ''
+        if request_id:
+            event.setdefault('tags', {})['request_id'] = request_id
+        instance = config('INSTANCE_NAME', default='')
+        if instance:
+            event.setdefault('tags', {})['instance'] = instance
+        return event
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
@@ -314,4 +400,5 @@ if SENTRY_DSN:
         send_default_pii=False,
         environment=config('SENTRY_ENVIRONMENT', default='production'),
         release=config('SENTRY_RELEASE', default=''),
+        before_send=_sentry_before_send,
     )

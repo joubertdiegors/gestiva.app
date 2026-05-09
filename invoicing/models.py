@@ -6,8 +6,10 @@ from django.conf import settings
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
+from core.models import SoftDeleteMixin
 
-class Invoice(models.Model):
+
+class Invoice(SoftDeleteMixin, models.Model):
 
     class Status(models.TextChoices):
         DRAFT     = 'draft',     _('Draft')
@@ -49,6 +51,14 @@ class Invoice(models.Model):
         null=True, blank=True,
         related_name='invoices',
         verbose_name=_('Budget origin'),
+    )
+    credit_note_origin = models.ForeignKey(
+        'self',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='credit_notes',
+        verbose_name=_('Credit note origin'),
+        help_text=_('When invoice_type=credit_note, links back to the original invoice.'),
     )
 
     # ── Dates ─────────────────────────────────────────────────────────────────

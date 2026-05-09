@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Versões" %} — {{ budget.number }}{% endblock %}
+{% block tab_parent %}/budget/{% endblock %}
+{% block tab_icon %}📋{% endblock %}
+
+{% block breadcrumb %}
+<a href="{% url 'budget:budget_list' %}">{% trans "Orçamentos" %}</a>
+<span class="bc-sep">›</span>
+<a href="{% url 'budget:budget_detail' budget.pk %}">{{ budget.number }}</a>
+<span class="bc-sep">›</span>
+<span>{% trans "Versões" %}</span>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+  <div>
+    <h1 class="page-title">{% trans "Histórico de versões" %}</h1>
+    <p class="page-sub">{{ budget.number }} — {{ budget.title }}</p>
+  </div>
+  <a href="{% url 'budget:budget_detail' budget.pk %}" class="btn btn-ghost">{% trans "← Voltar" %}</a>
+</div>
+
+{% if versions %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>{% trans "Versão" %}</th>
+      <th>{% trans "Bloqueado em" %}</th>
+      <th>{% trans "Bloqueado por" %}</th>
+      <th>{% trans "Motivo" %}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for v in versions %}
+    <tr>
+      <td><strong>v{{ v.version_number }}</strong></td>
+      <td>{{ v.locked_at|date:"d/m/Y H:i" }}</td>
+      <td>{{ v.locked_by.get_full_name|default:v.locked_by.username|default:"—" }}</td>
+      <td><span class="badge">{{ v.reason }}</span></td>
+      <td>
+        <a href="{% url 'budget:budget_version_detail' budget.pk v.version_number %}" class="btn btn-ghost btn-sm">
+          🔍 {% trans "Ver snapshot" %}
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card" style="padding:24px;text-align:center;color:var(--text2)">
+  {% trans "Este orçamento ainda não tem versões. Cada aprovação cria uma versão imutável aqui." %}
+</div>
+{% endif %}
+{% endblock %}
